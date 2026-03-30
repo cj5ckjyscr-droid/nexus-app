@@ -1,0 +1,621 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block contenido %}
+
+<style>
+    /* ==========================================
+       ESTILOS PREMIUM - DASHBOARD NEXT LEVEL
+       ========================================== */
+    :root {
+        --text-main: #1e293b;
+        --primary-navy: #0A192F;
+        --primary-blue: #1D4ED8;
+        --accent-blue: #3B82F6;
+        --clean-bg: #F4F7FA; /* Fondo grisáceo muy claro para que resalten las tarjetas blancas */
+    }
+
+    body { background-color: var(--clean-bg); color: var(--text-main); }
+
+    /* ==============================================================
+       🔥 FIX ANTI-DARK MODE (Fuerza texto oscuro en fondos claros) 🔥
+       ============================================================== */
+    .modal-content, .table, .accordion-item, .bg-white, .bg-light {
+        color: var(--primary-navy) !important; 
+    }
+    .text-muted { color: #64748b !important; }
+    .accordion-button { color: var(--primary-navy) !important; }
+    .accordion-button:not(.collapsed) { color: var(--primary-blue) !important; }
+
+    /* ==========================================
+       TARJETAS DE NAVEGACIÓN PRINCIPAL (GRADIENTES AZULES)
+       ========================================== */
+    .dash-card {
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    .dash-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(29, 78, 216, 0.15) !important;
+    }
+    
+    .icon-box-lg {
+        width: 48px; height: 48px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 12px; font-size: 1.4rem; color: white;
+        backdrop-filter: blur(5px);
+    }
+
+    /* Gradients Atractivos NEXT LEVEL */
+    .bg-gradient-reserva { background: linear-gradient(135deg, var(--primary-navy) 0%, #1e293b 100%); }
+    .bg-gradient-stats { background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-blue) 100%); }
+
+    /* ==========================================
+       CARTELERA TIPO "APP DEPORTIVA"
+       ========================================== */
+    .date-header {
+        background: linear-gradient(90deg, #ffffff 0%, transparent 100%);
+        border-left: 4px solid var(--primary-blue);
+        padding: 6px 12px;
+        margin-bottom: 0.8rem;
+        border-radius: 6px;
+        display: inline-block;
+    }
+
+    .match-card-mini {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        min-width: 260px;
+        max-width: 280px;
+        scroll-snap-align: start;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        padding: 15px;
+        color: var(--primary-navy); 
+    }
+    .match-card-mini:hover { 
+        border-color: var(--accent-blue); 
+        box-shadow: 0 8px 20px rgba(29, 78, 216, 0.1); 
+        transform: translateY(-3px); 
+    }
+
+    .match-time-badge { 
+        background: var(--primary-navy); color: #ffffff; 
+        font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.75rem; 
+    }
+
+    .team-shield-box {
+        width: 42px; height: 42px;
+        border-radius: 50%; background: #f8fafc;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+        margin: 0 auto 6px auto;
+    }
+    .team-shield-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+    .scroll-horizontal {
+        display: flex; overflow-x: auto; gap: 15px; padding: 5px 5px 20px 5px;
+        scroll-snap-type: x mandatory; scrollbar-width: none;
+    }
+    .scroll-horizontal::-webkit-scrollbar { display: none; }
+
+    /* Alertas compactas */
+    .alert-compact { padding: 10px 15px !important; font-size: 0.85rem; border-radius: 12px !important; }
+
+    @media (max-width: 768px) {
+        .card-body-pro { padding: 1.2rem !important; }
+        .dash-card h2 { font-size: 1.2rem !important; }
+        .dash-card p { font-size: 0.75rem !important; }
+    }
+</style>
+
+<div class="row mb-3 animate__animated animate__fadeInDown">
+    {% if request.session.reserva_pendiente %}
+    <div class="col-12 mb-2">
+        <div class="alert alert-warning alert-compact border-0 shadow-sm d-flex align-items-center justify-content-between m-0" style="background-color: #fffbeb; border-left: 4px solid #f59e0b !important;">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-cart-fill text-warning fs-5 me-3"></i>
+                <strong class="d-block text-dark">Reserva pendiente</strong>
+            </div>
+            <a href="{% url 'checkout_pago' %}" class="btn btn-sm btn-dark fw-bold rounded-pill px-3 py-1 shadow-sm" style="font-size: 0.75rem;">Pagar</a>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if user.is_authenticated and user.perfil.rol == 'DIR' and tengo_deudas %}
+    <div class="col-12 mb-2">
+        <div class="card border-0 rounded-4 shadow-sm bg-white" style="border-left: 4px solid #ef4444;">
+            <div class="card-body p-2 px-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-danger bg-opacity-10 p-2 rounded-3 text-danger"><i class="bi bi-wallet2" style="font-size: 1rem;"></i></div>
+                    <h6 class="fw-black text-dark m-0" style="font-size: 0.9rem;">Deuda: <span class="text-danger">${{ monto_deuda }}</span></h6>
+                </div>
+                <button class="btn btn-outline-danger btn-sm rounded-pill fw-bold px-3 py-1" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#modalDeudasDir">Detalle</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if user.is_authenticated and user.perfil.rol == 'ORG' and deudas %}
+    <div class="col-12 mb-2">
+        <div class="card border-0 rounded-4 shadow-sm bg-white" style="border-left: 4px solid #ef4444;">
+            <div class="card-body p-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-danger bg-opacity-10 p-2 rounded-3 text-danger"><i class="bi bi-exclamation-octagon-fill" style="font-size: 1rem;"></i></div>
+                    <div>
+                        <h6 class="fw-black text-dark m-0" style="font-size: 0.9rem;">Cobrar: <span class="text-danger">${{ total_por_cobrar }}</span></h6>
+                        <span class="text-muted" style="font-size: 0.7rem;">{{ deudas|length }} multas pendientes.</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-light border btn-sm rounded-pill fw-bold px-3 py-1 text-dark" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#modalDeudasOrg">Equipos</button>
+                    <a href="{% url 'gestionar_finanzas' %}" class="btn btn-primary btn-sm rounded-pill fw-bold px-3 py-1" style="font-size: 0.75rem;">Caja</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 animate__animated animate__fadeInDown">
+    <div>
+        <h6 class="text-uppercase mb-1 fw-bold text-muted" style="letter-spacing: 1px; font-size: 0.75rem;">Complejo NEXT LEVEL</h6>
+        <h3 class="fw-black text-dark m-0" style="letter-spacing: -0.5px;">Hola, <span style="color: var(--primary-blue);">{{ user.first_name|default:user.username }}</span></h3>
+    </div>
+    <div class="mt-3 mt-md-0">
+        <div class="d-inline-flex align-items-center bg-white px-3 py-2 rounded-pill shadow-sm border border-light">
+            <i class="bi bi-calendar2-check-fill me-2" style="font-size: 0.9rem; color: var(--primary-blue);"></i>
+            <span class="fw-bold text-dark text-capitalize" style="font-size: 0.85rem;">{% now "l, d M" %}</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4 animate__animated animate__fadeInUp justify-content-center">
+    <div class="col-6 col-md-5">
+        <a href="{% url 'reservar_cancha' %}" class="text-decoration-none">
+            <div class="card dash-card h-100 border-0 shadow-lg bg-gradient-reserva text-white overflow-hidden">
+                <div class="card-body card-body-pro p-3 text-center text-md-start">
+                    <div class="icon-box-lg mx-auto mx-md-0"><i class="bi bi-calendar-plus"></i></div>
+                    <h2 class="fw-black mb-1 text-white m-0 fs-5">Reservar Cancha</h2>
+                    <p class="text-white-50 m-0 small d-none d-md-block">Alquiler de instalaciones.</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-md-5">
+        <a href="{% url 'seleccionar_reporte' %}" class="text-decoration-none">
+            <div class="card dash-card h-100 border-0 shadow-lg bg-gradient-stats text-white overflow-hidden">
+                <div class="card-body card-body-pro p-3 text-center text-md-start">
+                    <div class="icon-box-lg mx-auto mx-md-0"><i class="bi bi-bar-chart-line"></i></div>
+                    <h2 class="fw-black mb-1 text-white m-0 fs-5">Estadísticas</h2>
+                    <p class="text-white-50 m-0 small d-none d-md-block">Tablas y torneos.</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div id="seccion-programacion" class="mb-5 animate__animated animate__fadeInUp">
+    <div class="card border-0 rounded-4 shadow-sm pt-4 pb-3 px-3 px-md-4 bg-white">
+        <div class="mb-3 ps-1 d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="fw-black text-dark m-0"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Cartelera NEXT LEVEL</h5>
+                <span class="text-muted fw-medium d-none d-md-block" style="font-size: 0.8rem;">Desliza para ver los partidos programados.</span>
+            </div>
+        </div>
+
+        {% if proximos_partidos %}
+            {% regroup proximos_partidos by fecha_local as partidos_por_dia %}
+            
+            {% for dia in partidos_por_dia %}
+                <div class="mt-2 mb-2 date-header shadow-sm ms-1">
+                    <span class="fw-bold m-0 text-dark text-capitalize" style="font-size: 0.85rem;">
+                        <i class="bi bi-calendar-event me-2" style="color: var(--primary-blue);"></i>{{ dia.grouper|date:"l, d \d\e F" }}
+                    </span>
+                </div>
+                
+                <div class="scroll-horizontal mb-3">
+                    {% for p in dia.list %}
+                    <div class="match-card-mini shadow-sm">
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge match-time-badge rounded-pill px-3 py-1 shadow-sm">
+                                <i class="bi bi-clock me-1 text-warning"></i> {{ p.fecha_hora|time:"H:i" }}
+                            </span>
+                            <span class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.65rem;">
+                                JOR. {{ p.numero_fecha }}
+                            </span>
+                        </div>
+
+                        <div class="text-center mb-3">
+                            <span class="fw-bold text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">{{ p.torneo.nombre|truncatechars:35 }}</span>
+                        </div>
+                        
+                        <div class="d-flex align-items-center justify-content-between px-1">
+                            <div class="text-center" style="width: 40%;">
+                                <div class="team-shield-box">
+                                    {% if p.equipo_local.escudo %}<img src="{{ p.equipo_local.escudo.url }}">
+                                    {% else %}<i class="bi bi-shield-fill text-muted opacity-50 fs-4"></i>{% endif %}
+                                </div>
+                                <div class="fw-black text-dark text-truncate" style="font-size: 0.8rem;" title="{{ p.equipo_local.nombre }}">{{ p.equipo_local.nombre }}</div>
+                            </div>
+
+                            <div class="fw-black text-muted opacity-50 fs-6">VS</div>
+
+                            <div class="text-center" style="width: 40%;">
+                                <div class="team-shield-box">
+                                    {% if p.equipo_visita.escudo %}<img src="{{ p.equipo_visita.escudo.url }}">
+                                    {% else %}<i class="bi bi-shield-fill text-muted opacity-50 fs-4"></i>{% endif %}
+                                </div>
+                                <div class="fw-black text-dark text-truncate" style="font-size: 0.8rem;" title="{{ p.equipo_visita.nombre }}">{{ p.equipo_visita.nombre }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-5 mb-3 bg-light rounded-4 border border-dashed mx-1">
+                <i class="bi bi-calendar-x fs-2 text-muted opacity-25 d-block mb-2"></i>
+                <span class="fw-bold text-dark small">No hay partidos programados.</span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if user.is_authenticated and not user.perfil.rol == 'ORG' and not user.perfil.rol == 'VOC' %}
+<div class="mb-5 animate__animated animate__fadeInUp">
+    <h6 class="fw-black mb-3 text-dark text-uppercase small" style="letter-spacing: 1px;"><i class="bi bi-person-badge-fill me-2" style="color: var(--primary-blue);"></i>Mi Cuenta</h6>
+    <div class="row g-3">
+        
+        <div class="col-6 col-md-3">
+            <a href="{% url 'mis_reservas' %}" class="card border-0 rounded-4 text-decoration-none text-center bg-white p-3 shadow-sm dash-card-light">
+                <i class="bi bi-receipt-cutoff fs-3 d-block mb-2" style="color: var(--primary-blue);"></i>
+                <div class="fw-bold text-dark" style="font-size: 0.85rem;">Mis Reservas</div>
+            </a>
+        </div>
+        
+        {% if user.perfil.rol == 'DIR' %}
+        <div class="col-6 col-md-3">
+            <a href="{% url 'gestionar_jugadores' %}" class="card border-0 rounded-4 text-decoration-none text-center bg-white p-3 shadow-sm dash-card-light">
+                <i class="bi bi-shield-shaded fs-3 d-block mb-2" style="color: var(--primary-blue);"></i>
+                <div class="fw-bold text-dark" style="font-size: 0.85rem;">Mi Equipo</div>
+            </a>
+        </div>
+        {% endif %}
+        
+        <div class="col-6 col-md-3">
+            <a href="{% url 'ver_torneos_activos' %}" class="card border-0 rounded-4 text-decoration-none text-center bg-white p-3 shadow-sm dash-card-light">
+                <i class="bi bi-trophy-fill text-warning fs-3 d-block mb-2"></i>
+                <div class="fw-bold text-dark" style="font-size: 0.85rem;">Unirse a Torneo</div>
+            </a>
+        </div>
+        
+    </div>
+</div>
+{% endif %}
+
+{% if user.is_authenticated and user.perfil.rol == 'VOC' %}
+<div class="animate__animated animate__fadeInUp mb-5">
+    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+        <h5 class="fw-black text-dark m-0"><i class="bi bi-clipboard2-data-fill me-2" style="color: var(--accent-blue);"></i>Mesa de Control</h5>
+        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary rounded-pill shadow-sm" style="font-size: 0.75rem;">Vocal</span>
+    </div>
+
+    <div class="card border-0 rounded-4 shadow-sm overflow-hidden mb-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle text-center mb-0">
+                    <tbody style="font-size: 0.85rem; color: #0f172a;">
+                        {% for partido in partidos_vocal %}
+                        <tr class="border-bottom">
+                            <td class="text-start ps-4 py-3">
+                                <span class="fw-bold d-block text-dark">{{ partido.fecha_hora|date:"d M" }}</span>
+                                <span class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-clock me-1"></i>{{ partido.fecha_hora|time:"H:i" }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <span class="fw-bold text-dark text-truncate text-end" style="max-width: 90px;">{{ partido.equipo_local.nombre }}</span>
+                                    {% if partido.estado == 'VIVO' %}
+                                        <span class="badge bg-danger rounded-pill" style="font-size: 0.65rem;">VIVO</span>
+                                    {% else %}
+                                        <span class="badge bg-dark rounded-pill" style="font-size: 0.65rem;">VS</span>
+                                    {% endif %}
+                                    <span class="fw-bold text-dark text-truncate text-start" style="max-width: 90px;">{{ partido.equipo_visita.nombre }}</span>
+                                </div>
+                            </td>
+                            <td class="pe-4 text-end">
+                                <a href="{% url 'gestionar_vocalia' partido.id %}" class="btn btn-sm btn-primary fw-bold rounded-pill px-3 shadow-sm" style="font-size: 0.75rem;"><i class="bi bi-whistle me-1"></i> Pitar</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="py-4 text-muted small bg-light"><i class="bi bi-check-circle-fill text-primary opacity-25 me-1"></i>Sin Partidos Activos</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if user.is_authenticated and user.perfil.rol == 'ORG' %}
+<div class="animate__animated animate__fadeInUp mb-5">
+    
+    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+        <h5 class="fw-black text-dark m-0"><i class="bi bi-shield-lock-fill me-2 text-danger"></i>Administrador NEXT LEVEL</h5>
+    </div>
+
+    {% if equipos_pendientes.count > 0 or reservas_pendientes.count > 0 %}
+    <h6 class="fw-black text-primary mb-3 ms-1"><i class="bi bi-bell-fill me-2"></i>Solicitudes Pendientes</h6>
+    <div class="row g-3 mb-4">
+        
+        <div class="col-md-6">
+            <div class="card border-0 rounded-4 shadow-sm h-100 bg-white">
+                <div class="card-header bg-white border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-dark m-0"><i class="bi bi-shield-fill-plus text-primary me-2"></i>Nuevos Equipos</h6>
+                    {% if equipos_pendientes.count > 0 %}
+                        <span class="badge bg-danger rounded-pill animate__animated animate__pulse animate__infinite shadow-sm">{{ equipos_pendientes.count }} Pendientes</span>
+                    {% else %}
+                        <span class="badge bg-success rounded-pill shadow-sm">Al día</span>
+                    {% endif %}
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <p class="text-muted small mb-3">Equipos esperando aprobación para unirse a los torneos.</p>
+                    <div class="mt-auto">
+                        <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-outline-primary btn-sm w-100 fw-bold rounded-pill">
+                            <i class="bi bi-eye me-1"></i> Revisar Equipos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 rounded-4 shadow-sm h-100 bg-white">
+                <div class="card-header bg-white border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-dark m-0"><i class="bi bi-calendar-check-fill text-success me-2"></i>Reservas de Cancha</h6>
+                    {% if reservas_pendientes.count > 0 %}
+                        <span class="badge bg-danger rounded-pill animate__animated animate__pulse animate__infinite shadow-sm">{{ reservas_pendientes.count }} Pendientes</span>
+                    {% else %}
+                        <span class="badge bg-success rounded-pill shadow-sm">Al día</span>
+                    {% endif %}
+                </div>
+                <div class="card-body p-3">
+                    {% if reservas_pendientes %}
+                        <div class="list-group list-group-flush mb-0 border rounded-3 overflow-hidden">
+                            {% for r in reservas_pendientes|slice:":2" %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center bg-light border-bottom p-2">
+                                    <div>
+                                        <div class="fw-bold text-dark" style="font-size: 0.8rem;">{{ r.usuario.first_name|default:r.usuario.username }}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">{{ r.fecha|date:"d M" }} | {{ r.hora_inicio|time:"H:i" }}</div>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-1">
+                                        <a href="{% url 'aprobar_reserva_admin' r.id %}" class="btn btn-sm btn-success rounded-circle shadow-sm px-2 py-1" title="Aprobar" onclick="return confirm('¿Aprobar y marcar como pagada?')">
+                                            <i class="bi bi-check-lg text-white"></i>
+                                        </a>
+                                        <a href="{% url 'rechazar_reserva_admin' r.id %}" class="btn btn-sm btn-danger rounded-circle shadow-sm px-2 py-1" title="Rechazar" onclick="return confirm('¿Estás seguro de RECHAZAR y eliminar esta reserva? Esta acción no se puede deshacer.')">
+                                            <i class="bi bi-x-lg text-white"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if reservas_pendientes.count > 2 %}
+                            <div class="text-center mt-2">
+                                <span class="text-muted" style="font-size: 0.7rem;">+ {{ reservas_pendientes.count|add:"-2" }} más...</span>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-2 text-muted small bg-light rounded-3">
+                            <i class="bi bi-emoji-smile fs-5 d-block mb-1 opacity-50"></i> Sin reservas por aprobar.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <h6 class="text-muted text-uppercase small fw-bold mb-3 ms-1" style="letter-spacing: 1px;">Panel de Control Administrativo</h6>
+    <div class="row g-2 mb-4">
+        
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="{% url 'gestionar_configuracion' %}" class="card border-0 rounded-4 p-3 text-center text-decoration-none bg-white shadow-sm dash-card-light h-100">
+                <i class="bi bi-palette-fill fs-3 mb-2 d-block" style="color: #ec4899;"></i>
+                <span class="fw-bold text-dark" style="font-size: 0.8rem;">Logo / Ajustes</span>
+            </a>
+        </div>
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="{% url 'gestionar_torneos' %}" class="card border-0 rounded-4 p-3 text-center text-decoration-none bg-white shadow-sm dash-card-light h-100">
+                <i class="bi bi-trophy-fill fs-3 mb-2 d-block" style="color: var(--primary-blue);"></i><span class="fw-bold text-dark" style="font-size: 0.8rem;">Torneos</span>
+            </a>
+        </div>
+
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="{% url 'gestionar_equipos' %}" class="card border-0 rounded-4 p-3 text-center text-decoration-none bg-white shadow-sm dash-card-light h-100">
+                <i class="bi bi-shield-fill fs-3 mb-2 d-block" style="color: var(--primary-blue);"></i><span class="fw-bold text-dark" style="font-size: 0.8rem;">Equipos</span>
+            </a>
+        </div>
+
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="{% url 'programar_partidos' %}" class="card border-0 rounded-4 p-3 text-center text-decoration-none bg-white shadow-sm dash-card-light h-100">
+                <i class="bi bi-calendar-event-fill text-warning fs-3 mb-2 d-block"></i><span class="fw-bold text-dark" style="font-size: 0.8rem;">Fixture</span>
+            </a>
+        </div>
+
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="{% url 'admin_gestion_jugadores' %}" class="card border-0 rounded-4 p-3 text-center text-decoration-none bg-white shadow-sm dash-card-light h-100">
+                <i class="bi bi-people-fill fs-3 mb-2 d-block" style="color: var(--accent-blue);"></i><span class="fw-bold text-dark" style="font-size: 0.8rem;">Jugadores</span>
+            </a>
+        </div>
+
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="{% url 'gestionar_finanzas' %}" class="card border-0 rounded-4 p-3 text-center text-decoration-none bg-white shadow-sm dash-card-light h-100">
+                <i class="bi bi-cash-stack text-success fs-3 mb-2 d-block"></i><span class="fw-bold text-dark" style="font-size: 0.8rem;">Finanzas</span>
+            </a>
+        </div>
+
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="{% url 'gestionar_horarios' %}" class="card border-0 rounded-4 p-3 text-center text-decoration-none bg-white shadow-sm dash-card-light h-100">
+                <i class="bi bi-clock-history text-info fs-3 mb-2 d-block"></i><span class="fw-bold text-dark" style="font-size: 0.8rem;">Horarios</span>
+            </a>
+        </div>
+
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="{% url 'gestionar_medios' %}" class="card border-0 rounded-4 p-3 text-center text-decoration-none bg-white shadow-sm dash-card-light h-100">
+                <i class="bi bi-megaphone-fill text-danger fs-3 mb-2 d-block"></i><span class="fw-bold text-dark" style="font-size: 0.8rem;">Publicidad</span>
+            </a>
+        </div>
+
+        <div class="col-4 col-md-3 col-lg-2">
+            <a href="{% url 'admin_gestion_usuarios' %}" class="card border-0 rounded-4 p-3 text-center text-decoration-none bg-white shadow-sm dash-card-light h-100">
+                <i class="bi bi-person-gear fs-3 mb-2 d-block" style="color: #475569;"></i><span class="fw-bold text-dark" style="font-size: 0.8rem;">Usuarios</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4 mb-5 animate__animated animate__fadeInUp">
+    
+    <div class="col-lg-7">
+        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+            <h6 class="fw-black text-dark m-0"><i class="bi bi-images me-2" style="color: var(--primary-blue);"></i>Instalaciones</h6>
+        </div>
+        <div class="card border-0 rounded-4 shadow-sm p-1 bg-white">
+            {% if fotos_galeria %}
+            <div id="carruselCancha" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner rounded-3 overflow-hidden">
+                    {% for f in fotos_galeria %}
+                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                        <img src="{{ f.imagen.url }}" class="d-block w-100" style="height: 220px; object-fit: cover;" alt="Foto NEXT LEVEL">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="d-flex flex-column align-items-center justify-content-center text-muted py-5 bg-light rounded-3 border border-dashed">
+                <i class="bi bi-images opacity-25 fs-1 mb-2"></i><span class="fw-medium small">Galería vacía</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-lg-5">
+        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+            <h6 class="fw-black text-dark m-0"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Ubicación</h6>
+        </div>
+        <div class="card border-0 rounded-4 shadow-sm p-1 bg-white d-flex flex-column h-100">
+            <div class="rounded-3 overflow-hidden flex-grow-1 bg-light">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d997.4338700017533!2d-78.37205863048362!3d-0.36921789997668425!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91d5b9000924cc0f%3A0x81d0a86552ce1b8c!2sComplejo%20Deportivo%20NEXT%20LEVEL!5e0!3m2!1ses!2sec!4v1773768606189!5m2!1ses!2sec" width="100%" height="100%" style="border:0; min-height: 220px;" allowfullscreen="" loading="lazy"></iframe>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% if publicidades %}
+<div class="mb-5 animate__animated animate__fadeInUp pb-4">
+    <div class="text-center mb-3"><h6 class="fw-black text-uppercase text-muted" style="letter-spacing: 1px; font-size: 0.75rem;">Auspiciantes Oficiales</h6></div>
+    <div class="scroll-horizontal justify-content-center" style="padding-bottom: 10px;">
+        {% for p in publicidades %}
+        <div class="card dash-card border-0 rounded-4 shadow-sm text-center bg-white flex-shrink-0" style="width: 100px;">
+            {% if p.enlace %}<a href="{{ p.enlace }}" target="_blank" class="text-decoration-none">{% endif %}
+                <div class="p-2 d-flex align-items-center justify-content-center" style="height: 70px;">
+                    <img src="{{ p.imagen.url }}" class="img-fluid" style="max-height: 100%; object-fit: contain;">
+                </div>
+            {% if p.enlace %}</a>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if user.is_authenticated and user.perfil.rol == 'ORG' and deudas %}
+<div class="modal fade" id="modalDeudasOrg" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 shadow-lg bg-light">
+            <div class="modal-header bg-white border-bottom py-3 px-4">
+                <h6 class="fw-black text-dark m-0 fs-5"><i class="bi bi-list-check text-danger me-2"></i>Multas Pendientes</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-2">
+                {% regroup deudas|dictsort:"equipo.nombre" by equipo as deudas_por_equipo %}
+                <div class="accordion accordion-flush" id="accordionModalDeudas">
+                    {% for grupo in deudas_por_equipo %}
+                    <div class="accordion-item border rounded-3 mb-2 shadow-sm overflow-hidden">
+                        <h2 class="accordion-header" id="modalHeading-{{ grupo.grouper.id }}">
+                            <button class="accordion-button collapsed bg-white py-2 px-3 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#modalCollapse-{{ grupo.grouper.id }}">
+                                <div class="d-flex align-items-center w-100 me-2">
+                                    <h6 class="fw-black text-dark m-0" style="font-size: 0.9rem;">{{ grupo.grouper.nombre|truncatechars:20 }}</h6>
+                                    <span class="badge bg-danger ms-auto rounded-pill px-2 py-1 shadow-sm">{{ grupo.list|length }}</span>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="modalCollapse-{{ grupo.grouper.id }}" class="accordion-collapse collapse" data-bs-parent="#accordionModalDeudas">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle text-center mb-0" style="font-size: 0.8rem; color: #0f172a;">
+                                        <tbody class="bg-light">
+                                            {% for deuda in grupo.list %}
+                                            <tr class="border-bottom">
+                                                <td class="text-start ps-3 py-2">
+                                                    <span class="text-dark fw-medium">{{ deuda.descripcion|truncatechars:25 }}</span>
+                                                    {% if deuda.jugador %}<br><small class="text-primary fw-bold">{{ deuda.jugador.nombres|truncatechars:15 }}</small>{% endif %}
+                                                </td>
+                                                <td class="text-end pe-3 fw-black text-danger">${{ deuda.saldo }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if user.is_authenticated and user.perfil.rol == 'DIR' and tengo_deudas %}
+<div class="modal fade" id="modalDeudasDir" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 shadow-lg bg-white">
+            <div class="modal-header border-0 py-3 px-4 text-center border-bottom bg-light">
+                <h5 class="fw-black text-dark m-0 w-100"><i class="bi bi-wallet2 text-warning me-2"></i>Mis Deudas</h5>
+                <button type="button" class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="table-responsive border rounded-3">
+                    <table class="table table-hover align-middle text-center mb-0" style="font-size: 0.8rem; color: #0f172a;">
+                        <tbody class="bg-white">
+                            {% for deuda in lista_mis_deudas %}
+                            <tr>
+                                <td class="text-start ps-3 py-3">
+                                    <span class="text-dark fw-bold">{{ deuda.descripcion }}</span>
+                                    {% if deuda.jugador %}<br><small class="text-primary fw-bold">{{ deuda.jugador.nombres }}</small>{% endif %}
+                                </td>
+                                <td class="text-end fw-black text-danger fs-6 pe-3">${{ deuda.saldo }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

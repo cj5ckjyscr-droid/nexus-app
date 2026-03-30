@@ -1,0 +1,67 @@
+<div class="table-responsive">
+    <table class="table table-hover align-middle text-center mb-0" style="white-space: nowrap;">
+        <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+            <tr>
+                <th class="ps-3 text-start" style="width: 5%;">#</th>
+                <th class="text-start" style="width: 35%;">Equipo</th>
+                <th title="Partidos Jugados">PJ</th>
+                <th title="Partidos Ganados">PG</th>
+                <th title="Partidos Empatados">PE</th>
+                <th title="Partidos Perdidos">PP</th>
+                <th title="Goles a Favor" class="d-none d-md-table-cell">GF</th>
+                <th title="Goles en Contra" class="d-none d-md-table-cell">GC</th>
+                <th title="Gol Diferencia">GD</th>
+                
+                {% if fase == 2 %}
+                <th title="Puntos de Bonificación por posición en Fase 1" class="text-warning">BONO</th>
+                {% endif %}
+                
+                <th class="pe-3 fs-6 text-dark" title="Puntos Totales">PTS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fila in tabla %}
+            <tr class="border-bottom transition-all" style="border-color: rgba(0,0,0,0.03) !important;">
+                
+                <td class="ps-3 text-start fw-bold text-muted">{{ forloop.counter }}</td>
+                
+                <td class="text-start fw-bold text-dark">
+                    {% if fila.equipo.escudo %}
+                        <img src="{{ fila.equipo.escudo.url }}" width="28" height="28" class="rounded-circle me-2 border shadow-sm" style="object-fit: cover;">
+                    {% else %}
+                        <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle me-2 border shadow-sm" style="width: 28px; height: 28px;">
+                            <i class="bi bi-shield-fill text-secondary" style="font-size: 0.7rem;"></i>
+                        </div>
+                    {% endif %}
+                    {{ fila.equipo.nombre }}
+                </td>
+                
+                <td class="fw-medium text-secondary">{{ fila.pj }}</td>
+                <td class="fw-medium">{{ fila.pg }}</td>
+                <td class="fw-medium">{{ fila.pe }}</td>
+                <td class="fw-medium">{{ fila.pp }}</td>
+                
+                <td class="d-none d-md-table-cell text-secondary">{{ fila.gf }}</td>
+                <td class="d-none d-md-table-cell text-secondary">{{ fila.gc }}</td>
+                
+                <td class="fw-bold {% if fila.gd > 0 %}text-success{% elif fila.gd < 0 %}text-danger{% else %}text-muted{% endif %}">
+                    {% if fila.gd > 0 %}+{% endif %}{{ fila.gd }}
+                </td>
+                
+                {% if fase == 2 %}
+                <td class="text-warning fw-bold">+{{ fila.bono }}</td>
+                {% endif %}
+                
+                <td class="pe-3 fw-black fs-5" style="color: var(--primary-dark, #0f172a);">{{ fila.pts }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{% if fase == 2 %}11{% else %}10{% endif %}" class="text-center py-5 text-muted">
+                    <i class="bi bi-table display-4 d-block mb-3 opacity-25"></i>
+                    Aún no hay datos para mostrar en esta tabla.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

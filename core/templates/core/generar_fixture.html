@@ -1,0 +1,93 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Vista Previa del Fixture | NEXT LEVEL{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Efectos hover sutiles */
+    .card-pro {
+        border: 0;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        background: #fff;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+    }
+    .card-pro:hover {
+        box-shadow: 0 12px 30px rgba(29, 78, 216, 0.1) !important;
+        transform: translateY(-3px);
+    }
+    .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .hover-lift:hover { transform: translateY(-2px); }
+    
+    .list-group-item { border-color: #E2E8F0; }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid px-0 animate__animated animate__fadeInUp">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
+        <div>
+            <h2 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">Vista Previa del Fixture</h2>
+            <p class="text-muted fw-medium mt-1 mb-0">Torneo: <strong style="color: var(--primary-blue);">{{ torneo.nombre }}</strong></p>
+        </div>
+        <div class="mt-3 mt-md-0">
+            <a href="{% url 'programar_partidos' %}?torneo={{ torneo.id }}" class="btn btn-outline-secondary fw-bold rounded-pill px-4 hover-lift transition-all" style="border-color: #CBD5E1;">
+                <i class="bi bi-arrow-left me-2"></i> Volver al Calendario
+            </a>
+        </div>
+    </div>
+
+    <div class="alert border-0 rounded-4 p-4 shadow-sm mb-4 d-flex align-items-center" style="background-color: #EFF6FF; border-left: 5px solid var(--primary-blue) !important;">
+        <i class="bi bi-info-circle-fill fs-3 me-3" style="color: var(--primary-blue);"></i>
+        <div>
+            <strong class="d-block text-dark mb-1" style="font-size: 1.05rem;">¡Atención Organizador!</strong>
+            <span class="text-muted small">Se han generado las fechas para <b>{{ total_equipos }}</b> equipos inscritos mediante el sistema "Todos contra Todos". Revisa los cruces abajo antes de guardarlos.</span>
+        </div>
+    </div>
+
+    <div class="card card-pro border-0 shadow-sm rounded-4 mb-5 overflow-hidden">
+        <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background: linear-gradient(to right, var(--primary-navy), var(--primary-blue));"></div>
+        <div class="card-body p-4 p-md-5 text-center">
+            <h5 class="fw-bold mb-4" style="color: var(--primary-navy);">¿Qué deseas hacer con este Fixture?</h5>
+            <form method="POST" class="d-flex flex-column flex-md-row justify-content-center gap-3 m-0">
+                {% csrf_token %}
+                <button type="submit" name="accion" value="descargar_pdf" class="btn btn-outline-danger fw-bold rounded-pill px-4 py-2 hover-lift">
+                    <i class="bi bi-file-earmark-pdf-fill me-2"></i> Descargar en PDF
+                </button>
+                <button type="submit" name="accion" value="guardar_db" class="btn text-white fw-bold rounded-pill px-4 py-2 hover-lift shadow-sm" style="background-color: var(--primary-blue);" onclick="return confirm('¿Seguro que quieres agregar estos partidos al calendario del sistema NEXT LEVEL?');">
+                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Guardar Partidos en el Sistema
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        {% for jornada in fixture %}
+        <div class="col-md-6 col-xl-4">
+            <div class="card card-pro border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+                <div class="card-header text-white text-center py-3 border-0" style="background-color: var(--primary-navy);">
+                    <h6 class="fw-bold mb-0 text-uppercase" style="letter-spacing: 1px;">Fecha {{ jornada.numero_fecha }}</h6>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for partido in jornada.partidos %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-3">
+                            <span class="fw-bold text-end text-truncate" style="width: 42%; font-size: 0.85rem; color: var(--text-main);" title="{% if partido.local %}{{ partido.local.nombre }}{% else %}DESCANSO{% endif %}">
+                                {% if partido.local %}{{ partido.local.nombre }}{% else %}<span class="text-muted fst-italic fw-normal">DESCANSO</span>{% endif %}
+                            </span>
+                            
+                            <span class="badge bg-light text-secondary border px-2 py-1 mx-2 shadow-sm" style="font-size: 0.65rem;">VS</span>
+                            
+                            <span class="fw-bold text-start text-truncate" style="width: 42%; font-size: 0.85rem; color: var(--text-main);" title="{% if partido.visita %}{{ partido.visita.nombre }}{% else %}DESCANSO{% endif %}">
+                                {% if partido.visita %}{{ partido.visita.nombre }}{% else %}<span class="text-muted fst-italic fw-normal">DESCANSO</span>{% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

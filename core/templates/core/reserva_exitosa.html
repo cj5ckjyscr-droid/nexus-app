@@ -1,0 +1,74 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Reserva Exitosa | NEXT LEVEL{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center animate__animated animate__zoomIn">
+    <div class="col-md-6 col-lg-5">
+        <div class="card card-pro border-0 shadow-lg text-center overflow-hidden mt-4 rounded-4">
+            
+            <div class="py-5 border-bottom border-success border-4" style="background-color: #F0FDF4;">
+                <div class="rounded-circle bg-success d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 80px; height: 80px;">
+                    <i class="bi bi-check-lg text-white" style="font-size: 3rem;"></i>
+                </div>
+                <h2 class="fw-black text-dark mb-0" style="letter-spacing: -1px;">¡Turno Separado!</h2>
+                <p class="text-muted mb-0 mt-2 px-4 fw-medium">Tu horario ha sido bloqueado en NEXT LEVEL, pero necesita validación administrativa.</p>
+            </div>
+
+            <div class="card-body p-4 p-md-5 bg-white">
+                <div class="bg-light rounded-4 p-4 mb-4 text-start border border-secondary-subtle shadow-inner">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Fecha:</span>
+                        <span class="fw-bold text-dark">{{ reserva.fecha|date:"d M Y" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Horario:</span>
+                        <span class="fw-bold text-dark">{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between pt-3 border-top border-secondary-subtle">
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Monto Total:</span>
+                        <span class="fw-black fs-4" style="color: var(--primary-blue);">${{ reserva.precio_total }}</span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill me-2" style="color: var(--primary-blue);"></i>Último Paso Requerido</h6>
+                    <p class="small text-muted fw-medium">Para oficializar tu reserva, envía el comprobante de pago vía WhatsApp. Un administrador revisará y activará tu turno en minutos.</p>
+                </div>
+
+                <a href="{{ url_whatsapp }}" target="_blank" class="btn btn-lg w-100 fw-bold shadow-lg d-flex align-items-center justify-content-center mb-3 whatsapp-btn" style="background-color: #25D366; color: white; border-radius: 12px; padding: 15px;">
+                    <i class="bi bi-whatsapp fs-4 me-2"></i> Notificar Pago por WhatsApp
+                </a>
+
+                <a href="{% url 'dashboard' %}" class="btn btn-link w-100 fw-bold text-decoration-none text-muted mt-2">
+                    <i class="bi bi-house-door me-1"></i> Volver al Inicio
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .shadow-inner {
+        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    /* Animación del botón de WhatsApp */
+    @keyframes pulse-whatsapp {
+        0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5); }
+        70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+    }
+    
+    .whatsapp-btn {
+        animation: pulse-whatsapp 2s infinite;
+        transition: all 0.3s ease;
+    }
+    
+    .whatsapp-btn:hover {
+        transform: translateY(-3px);
+        filter: brightness(1.1);
+        box-shadow: 0 10px 20px rgba(37, 211, 102, 0.3);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,228 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Tabla de Posiciones | NEXT LEVEL{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --text-dark-strict: #0F172A;
+        --text-muted-strict: #475569;
+        --primary-navy: #0F172A;
+        --bg-light-strict: #F8FAFC;
+        --border-strict: #E2E8F0;
+    }
+
+    /* Blindaje de Switches para que se vean bien siempre */
+    .form-switch .form-check-input {
+        width: 2.5rem !important; height: 1.25rem !important; cursor: pointer;
+        background-color: #CBD5E1 !important; border-color: #CBD5E1 !important;
+    }
+    .form-switch.switch-warning .form-check-input:checked { background-color: #F59E0B !important; border-color: #F59E0B !important; }
+    .form-switch.switch-info .form-check-input:checked { background-color: #0EA5E9 !important; border-color: #0EA5E9 !important; }
+    .form-switch.switch-success .form-check-input:checked { background-color: #10B981 !important; border-color: #10B981 !important; }
+
+    /* Efecto hover suave para las filas de la tabla */
+    tbody tr:hover td { background-color: #F1F5F9 !important; }
+    .cursor-help { cursor: help; }
+
+    /* Optimizaciones Mobile */
+    @media (max-width: 768px) {
+        .transition-card { margin-bottom: 1rem; }
+        .table-responsive { border: 0 !important; }
+        .badge-header { font-size: 0.65rem !important; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid px-0 animate__animated animate__fadeInUp">
+    
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 pb-3 border-bottom">
+        <div>
+            <h3 class="fw-black mb-0" style="color: var(--text-dark-strict) !important; letter-spacing: -0.5px;">
+                <i class="bi bi-table text-primary me-2"></i>Tabla de Posiciones
+            </h3>
+            <p class="small mb-0 mt-1 fw-bold" style="color: var(--text-muted-strict) !important;">Clasificación oficial de la Fase 1. El orden se define por Puntos, luego Gol Diferencia.</p>
+        </div>
+        
+        <div class="mt-3 mt-md-0 d-flex gap-2">
+            <span class="badge bg-light border px-3 py-2 rounded-pill shadow-sm fs-6" style="color: var(--text-dark-strict) !important; border-color: var(--border-strict) !important;">
+                <i class="bi bi-trophy-fill text-warning me-1"></i> {{ torneo.nombre }}
+            </span>
+        </div>
+    </div>
+
+    {% if request.user.perfil.rol == 'ORG' and not fase2_ya_generada %}
+    <div class="card border-0 shadow-sm mb-5 rounded-4 overflow-hidden" style="border: 1px solid var(--border-strict) !important;">
+        <div class="card-header py-3 d-flex align-items-center" style="background-color: var(--primary-navy) !important; color: #FFFFFF !important;">
+            <i class="bi bi-rocket-takeoff-fill me-2 text-warning fs-5"></i>
+            <span class="fw-black text-uppercase" style="letter-spacing: 0.5px; font-size: 0.9rem;">Panel de Transición de Torneo</span>
+        </div>
+        
+        <div class="card-body p-3 p-md-4" style="background-color: var(--bg-light-strict) !important;">
+            <p class="small fw-bold mb-3 text-center text-md-start" style="color: var(--text-muted-strict) !important;">
+                <i class="bi bi-info-circle-fill me-1 text-primary"></i> Selecciona el siguiente paso. Puedes crear grupos o saltar directo a eliminatorias si tienes pocos equipos.
+            </p>
+            
+            <div class="row g-3">
+                
+                <div class="col-md-4 transition-card">
+                    <form action="{% url 'generar_fase2' torneo.id %}" method="post" class="card h-100 border-0 shadow-sm p-3 text-center" style="background-color: #FFFFFF !important; border-top: 4px solid #F59E0B !important;">
+                        {% csrf_token %}
+                        <h6 class="fw-black mb-1" style="color: #D97706 !important;">Opción 1: Grupos</h6>
+                        <p class="small fw-bold mb-3" style="color: var(--text-muted-strict) !important; font-size: 0.7rem;">Divide en A (Impares) y B (Pares). Bonifica 2 y 1 pts.</p>
+                        
+                        <div class="form-check form-switch switch-warning mb-3 d-flex justify-content-center align-items-center">
+                            <input class="form-check-input" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_f2">
+                            <label class="form-check-label fw-bold small ms-2" for="ida_vuelta_f2" style="color: var(--text-dark-strict) !important;">¿Ida y Vuelta?</label>
+                        </div>
+                        
+                        <button type="submit" class="btn fw-black w-100 rounded-pill mt-auto text-white" style="background-color: #F59E0B !important; font-size: 0.8rem;" onclick="return confirm('¿Generar Fase de Grupos y otorgar bonificaciones?');">
+                            <i class="bi bi-diagram-2-fill me-1"></i> Generar Grupos
+                        </button>
+                    </form>
+                </div>
+
+                <div class="col-md-4 transition-card">
+                    <form action="{% url 'generar_cuartos_directos' torneo.id %}" method="post" class="card h-100 border-0 shadow-sm p-3 text-center" style="background-color: #FFFFFF !important; border-top: 4px solid #0EA5E9 !important;">
+                        {% csrf_token %}
+                        <h6 class="fw-black mb-1" style="color: #0284C7 !important;">Opción 2: Cuartos</h6>
+                        <p class="small fw-bold mb-3" style="color: var(--text-muted-strict) !important; font-size: 0.7rem;">Toma los 8 mejores y los cruza (1v8, 2v7, 3v6, 4v5).</p>
+                        
+                        <div class="form-check form-switch switch-info mb-3 d-flex justify-content-center align-items-center">
+                            <input class="form-check-input" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_q">
+                            <label class="form-check-label fw-bold small ms-2" for="ida_vuelta_q" style="color: var(--text-dark-strict) !important;">¿Ida y Vuelta?</label>
+                        </div>
+                        
+                        <button type="submit" class="btn fw-black w-100 rounded-pill mt-auto text-white" style="background-color: #0EA5E9 !important; font-size: 0.8rem;" onclick="return confirm('¿Saltar directo a Cuartos de Final (1v8, 2v7...)?');">
+                            <i class="bi bi-lightning-fill me-1"></i> Directo a Cuartos
+                        </button>
+                    </form>
+                </div>
+
+                <div class="col-md-4 transition-card">
+                    <form action="{% url 'generar_semis_directas' torneo.id %}" method="post" class="card h-100 border-0 shadow-sm p-3 text-center" style="background-color: #FFFFFF !important; border-top: 4px solid #10B981 !important;">
+                        {% csrf_token %}
+                        <h6 class="fw-black mb-1" style="color: #059669 !important;">Opción 3: Semifinales</h6>
+                        <p class="small fw-bold mb-3" style="color: var(--text-muted-strict) !important; font-size: 0.7rem;">Toma los 4 mejores y los cruza (1v4, 2v3).</p>
+                        
+                        <div class="form-check form-switch switch-success mb-3 d-flex justify-content-center align-items-center">
+                            <input class="form-check-input" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_s">
+                            <label class="form-check-label fw-bold small ms-2" for="ida_vuelta_s" style="color: var(--text-dark-strict) !important;">¿Ida y Vuelta?</label>
+                        </div>
+                        
+                        <button type="submit" class="btn fw-black w-100 rounded-pill mt-auto text-white" style="background-color: #10B981 !important; font-size: 0.8rem;" onclick="return confirm('¿Saltar directo a Semifinales (1v4, 2v3)?');">
+                            <i class="bi bi-trophy-fill me-1"></i> Directo a Semis
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% elif request.user.perfil.rol == 'ORG' and fase2_ya_generada %}
+    <div class="alert shadow-sm rounded-4 mb-4 fw-black d-flex flex-column flex-md-row align-items-center justify-content-between p-3" style="background-color: #ECFDF5 !important; color: #065F46 !important; border: 1px solid #A7F3D0 !important;">
+        <div class="mb-3 mb-md-0 text-center text-md-start">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i> La transición de este torneo ya fue generada.
+            <div class="small fw-bold mt-1 opacity-75">Los equipos ya fueron asignados a sus grupos o llaves.</div>
+        </div>
+        <form action="{% url 'revertir_transicion' torneo.id %}" method="post" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger fw-bold rounded-pill shadow-sm py-2 px-4" onclick="return confirm('⚠️ ¿ESTÁS SEGURO? Esto borrará los grupos de la Fase 2 y TODOS los partidos de eliminatorias. Los equipos volverán a la Fase 1 intactos.');">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Deshacer Transición
+            </button>
+        </form>
+    </div>
+    {% endif %}
+    <div class="card border-0 shadow-sm overflow-hidden mb-5 rounded-4" style="border: 1px solid var(--border-strict) !important;">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center" style="white-space: nowrap; background-color: #FFFFFF !important;">
+                    <thead style="background-color: #F1F5F9 !important;">
+                        <tr style="color: var(--text-muted-strict) !important; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px;">
+                            <th class="ps-4 text-start py-3" style="width: 5%;">#</th>
+                            <th class="text-start" style="width: 30%;">Equipo</th>
+                            <th data-bs-toggle="tooltip" title="Partidos Jugados" class="cursor-help">PJ</th>
+                            <th data-bs-toggle="tooltip" title="Partidos Ganados" class="cursor-help">PG</th>
+                            <th data-bs-toggle="tooltip" title="Partidos Empatados" class="cursor-help">PE</th>
+                            <th data-bs-toggle="tooltip" title="Partidos Perdidos" class="cursor-help">PP</th>
+                            <th data-bs-toggle="tooltip" title="Goles a Favor" class="d-none d-md-table-cell cursor-help">GF</th>
+                            <th data-bs-toggle="tooltip" title="Goles en Contra" class="d-none d-md-table-cell cursor-help">GC</th>
+                            <th data-bs-toggle="tooltip" title="Gol Diferencia" class="cursor-help">GD</th>
+                            <th data-bs-toggle="tooltip" title="Puntos Totales" class="pe-4 fs-6 text-dark cursor-help">PTS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fila in tabla %}
+                        <tr style="border-bottom: 1px solid #F1F5F9 !important;">
+                            
+                            <td class="ps-4 text-start py-3">
+                                {% if forloop.counter == 1 %}
+                                    <span class="badge bg-warning text-dark rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 25px; height: 25px;">1</span>
+                                {% elif forloop.counter == 2 %}
+                                    <span class="badge bg-secondary text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 25px; height: 25px;">2</span>
+                                {% elif forloop.counter == 3 %}
+                                    <span class="badge rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm text-white" style="width: 25px; height: 25px; background-color: #cd7f32;">3</span>
+                                {% else %}
+                                    <span class="fw-bold text-muted ms-2">{{ forloop.counter }}</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-start fw-black" style="color: var(--text-dark-strict) !important;">
+                                <div class="d-flex align-items-center">
+                                    {% if fila.equipo.escudo %}
+                                        <img src="{{ fila.equipo.escudo.url }}" width="35" height="35" class="rounded-circle me-3 border shadow-sm" style="object-fit: cover; background: #FFF;">
+                                    {% else %}
+                                        <div class="rounded-circle border shadow-sm me-3 d-inline-flex justify-content-center align-items-center" style="width: 35px; height: 35px; background-color: #F8FAFC;">
+                                            <i class="bi bi-shield-fill text-muted opacity-50"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span class="text-truncate" style="max-width: 200px;" title="{{ fila.equipo.nombre }}">{{ fila.equipo.nombre }}</span>
+                                </div>
+                            </td>
+                            
+                            <td class="fw-bold" style="color: var(--text-muted-strict) !important;">{{ fila.pj }}</td>
+                            <td class="fw-bold" style="color: var(--text-dark-strict) !important;">{{ fila.pg }}</td>
+                            <td class="fw-bold" style="color: var(--text-dark-strict) !important;">{{ fila.pe }}</td>
+                            <td class="fw-bold" style="color: var(--text-dark-strict) !important;">{{ fila.pp }}</td>
+                            
+                            <td class="d-none d-md-table-cell fw-bold" style="color: var(--text-muted-strict) !important;">{{ fila.gf }}</td>
+                            <td class="d-none d-md-table-cell fw-bold" style="color: var(--text-muted-strict) !important;">{{ fila.gc }}</td>
+                            
+                            <td class="fw-black {% if fila.gd > 0 %}text-success{% elif fila.gd < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                {% if fila.gd > 0 %}+{% endif %}{{ fila.gd }}
+                            </td>
+                            
+                            <td class="pe-4 fw-black fs-5" style="color: var(--primary-navy) !important;">
+                                {{ fila.pts }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center py-5">
+                                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 border shadow-sm" style="width: 80px; height: 80px; background-color: #F8FAFC;">
+                                    <i class="bi bi-table text-muted opacity-50" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h5 class="fw-black mb-1" style="color: var(--text-dark-strict) !important;">Tabla Vacía</h5>
+                                <p class="small fw-bold mb-0" style="color: var(--text-muted-strict) !important;">Aún no se han jugado partidos o registrado resultados.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+        // Inicializar tooltips (mensaje al pasar el mouse)
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+{% endblock %}

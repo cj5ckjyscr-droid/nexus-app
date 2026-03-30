@@ -1,0 +1,141 @@
+{% extends 'core/base.html' %}
+
+{% block extra_css %}
+<style>
+    .card-compact {
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(0,0,0,0.08) !important;
+    }
+    .card-compact:hover {
+        background-color: #f8fafc !important;
+        transform: translateX(5px);
+    }
+    .accordion-button {
+        font-weight: 800;
+        font-size: 0.9rem;
+        background-color: white !important;
+    }
+    .accordion-button:not(.collapsed) {
+        color: var(--primary-dark);
+        box-shadow: none;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .torneo-icon {
+        width: 40px; height: 40px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 10px;
+    }
+    /* Ajustes para móviles */
+    @media (max-width: 768px) {
+        .btn-view { padding: 0.4rem 0.8rem !important; font-size: 0.75rem !important; }
+        .torneo-title { font-size: 0.9rem !important; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container animate__animated animate__fadeIn pb-5">
+    
+    <div class="text-center mb-4 mt-3">
+        <h6 class="text-uppercase fw-bold ls-1 mb-1" style="color: var(--accent-green); font-size: 0.75rem;">
+            <i class="bi bi-bar-chart-fill me-1"></i> Análisis
+        </h6>
+        <h3 class="fw-black mb-1" style="color: var(--primary-dark); letter-spacing: -0.5px;">Estadísticas</h3>
+    </div>
+
+    {% if torneos_activos %}
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2">
+            <i class="bi bi-play-circle-fill text-success fs-5 me-2"></i>
+            <h6 class="fw-black m-0 text-dark text-uppercase" style="letter-spacing: 0.5px;">Torneos en Curso</h6>
+        </div>
+
+        {% regroup torneos_activos by categoria as torneos_por_categoria %}
+        <div class="accordion mb-4" id="accActivos">
+            {% for grupo in torneos_por_categoria %}
+            <div class="accordion-item border-0 mb-2 shadow-sm rounded-4 overflow-hidden">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#catActiva{{ forloop.counter }}">
+                        <i class="bi bi-tags-fill me-2 text-success"></i>
+                        CAT: {{ grupo.grouper.nombre|default:"GENERAL"|upper }}
+                        <span class="badge bg-light text-dark ms-auto border rounded-pill px-2">{{ grupo.list|length }}</span>
+                    </button>
+                </h2>
+                <div id="catActiva{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#accActivos">
+                    <div class="accordion-body p-2">
+                        {% for t in grupo.list %}
+                        <div class="card card-compact border-0 mb-2 bg-white shadow-none">
+                            <div class="card-body p-2 d-flex align-items-center">
+                                <div class="torneo-icon bg-warning bg-opacity-10 text-warning me-3">
+                                    <i class="bi bi-trophy-fill"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <h6 class="fw-bold mb-0 text-dark text-truncate torneo-title">{{ t.nombre }}</h6>
+                                    <small class="text-muted fw-bold" style="font-size: 0.65rem;">Desde: {{ t.fecha_inicio|date:"d M" }}</small>
+                                </div>
+                                <a href="{% url 'reporte_estadisticas' t.id %}" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold btn-view shadow-sm">
+                                    REPORTE <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if torneos_finalizados %}
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2 mt-4 opacity-75">
+            <i class="bi bi-archive-fill text-secondary fs-5 me-2"></i>
+            <h6 class="fw-black m-0 text-muted text-uppercase" style="letter-spacing: 0.5px;">Historial de Cierres</h6>
+        </div>
+
+        {% regroup torneos_finalizados by fecha_inicio.year as torneos_por_anio %}
+        <div class="accordion opacity-75" id="accFinalizados">
+            {% for grupo in torneos_por_anio %}
+            <div class="accordion-item border-0 mb-2 shadow-sm rounded-4 overflow-hidden">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#anio{{ grupo.grouper }}">
+                        <i class="bi bi-calendar-event-fill me-2 text-secondary"></i>
+                        AÑO: {{ grupo.grouper }}
+                        <span class="badge bg-secondary ms-auto rounded-pill px-2">{{ grupo.list|length }}</span>
+                    </button>
+                </h2>
+                <div id="anio{{ grupo.grouper }}" class="accordion-collapse collapse" data-bs-parent="#accFinalizados">
+                    <div class="accordion-body p-2">
+                        {% for t in grupo.list %}
+                        <div class="card card-compact border-0 mb-2 bg-light shadow-none">
+                            <div class="card-body p-2 d-flex align-items-center">
+                                <div class="torneo-icon bg-secondary bg-opacity-10 text-secondary me-3">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <h6 class="fw-bold mb-0 text-muted text-truncate torneo-title">{{ t.nombre }}</h6>
+                                    {% if t.categoria %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border-0 py-0" style="font-size: 0.6rem;">{{ t.categoria.nombre|upper }}</span>
+                                    {% endif %}
+                                </div>
+                                <a href="{% url 'reporte_estadisticas' t.id %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold btn-view">
+                                    VER <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if not torneos_activos and not torneos_finalizados %}
+        <div class="text-center py-5">
+            <i class="bi bi-clipboard-x text-muted opacity-25" style="font-size: 3rem;"></i>
+            <p class="text-muted mt-2">No hay torneos registrados para analizar.</p>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

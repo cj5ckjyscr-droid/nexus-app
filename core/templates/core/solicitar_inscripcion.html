@@ -1,0 +1,136 @@
+{% extends 'core/base.html' %}
+
+{% block contenido %}
+<div class="row justify-content-center animate__animated animate__fadeInUp">
+    <div class="col-md-8 col-lg-6">
+        
+        <div class="card border-0 shadow-lg overflow-hidden rounded-4">
+            <div class="card-header text-white p-4 text-center" style="background: #1e293b;">
+                <h5 class="mb-1 text-white-50 text-uppercase small" style="letter-spacing: 1px;">Formulario de Registro</h5>
+                <h3 class="fw-black text-white mb-0">Inscribir en {{ torneo.nombre }}</h3>
+            </div>
+            
+            <div class="card-body p-4 p-md-5">
+                
+                {% if form.errors %}
+                    <div class="alert alert-danger border-0 mb-4 shadow-sm rounded-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+                            <h5 class="fw-bold m-0">Corrige los siguientes errores:</h5>
+                        </div>
+                        <ul class="mb-0 ps-3 small fw-medium">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <div class="alert bg-light border shadow-sm rounded-4 mb-4">
+                    <h6 class="fw-black text-dark border-bottom pb-2 mb-3" style="font-size: 0.9rem;">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i>Detalles del Torneo
+                    </h6>
+                    
+                    {% if torneo.cobro_por_jugador %}
+                        <p class="mb-2 text-dark"><i class="bi bi-person-badge-fill text-success me-2"></i> <strong>Inscripción:</strong> ${{ torneo.costo_inscripcion_jugador }} por cada jugador habilitado.</p>
+                    {% else %}
+                        <p class="mb-2 text-dark"><i class="bi bi-shield-shaded text-success me-2"></i> <strong>Inscripción del Equipo:</strong> ${{ torneo.costo_inscripcion }} (Pago único).</p>
+                    {% endif %}
+                    
+                    <p class="mb-0 text-dark"><i class="bi bi-calendar-event text-info me-2"></i> <strong>Inicio estimado:</strong> {{ torneo.fecha_inicio|date:"d M Y" }}</p>
+                </div>
+
+                <div class="alert shadow-sm rounded-4 fw-bold mb-4 d-flex align-items-center" style="background-color: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0;">
+                    <i class="bi bi-whatsapp fs-3 me-3 text-success"></i> 
+                    <div style="font-size: 0.85rem;">
+                        <strong>Paso Final:</strong> Al enviar esta solicitud, debes comunicarte con el organizador por WhatsApp para gestionar el pago y que tu equipo sea habilitado.
+                    </div>
+                </div>
+
+                <div class="alert alert-info border-0 shadow-sm rounded-4 d-flex align-items-center mb-4">
+                    <i class="bi bi-clock-history fs-4 me-3"></i>
+                    <div style="font-size: 0.85rem;">
+                        Tu solicitud quedará en estado <strong>Pendiente</strong> hasta que el Organizador la verifique y apruebe.
+                    </div>
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-black text-muted small" style="letter-spacing: 0.5px;">NOMBRE DEL EQUIPO <span class="text-danger">*</span></label>
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-fill text-secondary"></i></span>
+                            {{ form.nombre }} 
+                        </div>
+                        {% if form.nombre.errors %}
+                            <div class="text-danger fw-bold small mt-1"><i class="bi bi-arrow-return-right me-1"></i>{{ form.nombre.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-black text-muted small" style="letter-spacing: 0.5px;">LOGO / ESCUDO (OPCIONAL)</label>
+                        <div class="shadow-sm rounded-3 overflow-hidden">
+                            {{ form.escudo }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-5">
+                        <div class="col-6">
+                            <label class="form-label fw-black text-muted small" style="letter-spacing: 0.5px;">SUPLENTE 1</label>
+                            <div class="shadow-sm rounded-3 overflow-hidden">
+                                {{ form.nombre_suplente_1 }}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-black text-muted small" style="letter-spacing: 0.5px;">SUPLENTE 2</label>
+                            <div class="shadow-sm rounded-3 overflow-hidden">
+                                {{ form.nombre_suplente_2 }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-3">
+                        <button type="submit" class="btn btn-success btn-lg fw-black shadow-sm" style="border-radius: 12px; letter-spacing: 1px;">
+                            ENVIAR SOLICITUD <i class="bi bi-send-fill ms-2"></i>
+                        </button>
+                        <a href="{% url 'ver_torneos_activos' %}" class="btn btn-light text-muted fw-bold" style="border-radius: 12px;">
+                            Cancelar y Volver
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilos forzados para garantizar consistencia visual en los inputs */
+    .form-control, .form-control[type="file"] {
+        border: 1px solid #cbd5e1 !important;
+        padding: 0.75rem 1rem !important;
+        font-weight: 600 !important;
+        color: #0f172a !important;
+    }
+    .form-control:focus {
+        border-color: #0ea5e9 !important;
+        box-shadow: none !important;
+    }
+</style>
+
+<script>
+    // Aplicar estilos de Bootstrap a los inputs de Django automáticamente
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('input[type="text"], input[type="file"]');
+        inputs.forEach(input => {
+            input.classList.add('form-control');
+            if(input.name === 'nombre') input.classList.add('border-start-0'); // Para que empate con el ícono
+        });
+    });
+</script>
+{% endblock %}

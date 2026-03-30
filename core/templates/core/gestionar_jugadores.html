@@ -1,0 +1,410 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Diseño de Fila Compacta para el Celular */
+    .player-row {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .player-row:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .avatar-img {
+        width: 45px; height: 45px; object-fit: cover; border-radius: 50%;
+    }
+    .avatar-placeholder {
+        width: 45px; height: 45px; border-radius: 50%; background: #f1f5f9;
+        display: flex; align-items: center; justify-content: center; color: #94a3b8;
+    }
+    .dorsal-badge {
+        position: absolute; bottom: -4px; right: -4px;
+        font-size: 0.65rem; font-weight: 900;
+        border: 2px solid white;
+    }
+    .action-btn {
+        width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; transition: all 0.2s;
+    }
+    
+    /* =========================================================
+       🔥 REPARACIÓN DE COLORES EN EL FORMULARIO FLOTANTE
+       ========================================================= */
+    .form-dark-glass {
+        background: #ffffff; 
+        border: 1px solid #E2E8F0; 
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+    }
+    
+    /* Blindaje de los Inputs (Evitar Letras Blancas) */
+    .dark-inputs input[type="text"], 
+    .dark-inputs input[type="number"], 
+    .dark-inputs select {
+        background-color: #F8FAFC !important; /* Fondo gris súper clarito */
+        color: #0F172A !important; /* Letras azul oscuro / negro (VITAL) */
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 10px; 
+        font-size: 0.85rem; 
+        font-weight: 600; /* Letra un poco más gordita para que se lea mejor */
+        padding: 0.6rem 0.8rem;
+        transition: all 0.2s ease;
+    }
+    
+    /* El texto de ayuda ("Ej: 1712345678") */
+    .dark-inputs input::placeholder {
+        color: #94A3B8 !important; 
+        font-weight: 400;
+    }
+
+    /* Efecto al hacer clic en el input */
+    .dark-inputs input:focus, 
+    .dark-inputs select:focus { 
+        background-color: #FFFFFF !important; /* Fondo blanco al escribir */
+        color: #0F172A !important; /* Mantiene la letra oscura */
+        border-color: var(--primary-blue, #2563EB) !important; 
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+        outline: none;
+    }
+    
+    /* Botón de subir archivo (Foto) */
+    .dark-inputs input[type="file"] {
+        color: #64748B !important; /* Texto del nombre del archivo subido */
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0;
+    }
+    .dark-inputs input[type="file"]::file-selector-button {
+        border: none; 
+        background: var(--primary-navy, #0F172A); 
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px; 
+        color: #ffffff !important; 
+        font-weight: 600; 
+        cursor: pointer;
+        margin-right: 10px;
+        transition: background 0.2s;
+    }
+    .dark-inputs input[type="file"]::file-selector-button:hover {
+        background: var(--primary-blue, #2563EB);
+    }
+    
+    /* Ajustes específicos para móviles */
+    @media (max-width: 768px) {
+        .player-row { padding: 0.5rem !important; }
+        .avatar-img, .avatar-placeholder { width: 40px; height: 40px; }
+        .action-btn { width: 28px; height: 28px; font-size: 0.75rem; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid px-0">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-3 pb-2 border-bottom animate__animated animate__fadeInDown">
+        <div>
+            <h3 class="fw-black mb-0 text-dark" style="letter-spacing: -0.5px;">Nómina de Jugadores</h3>
+            {% if equipo_obj %}
+            <p class="text-muted small fw-bold mb-0 mt-1">
+                <i class="bi bi-shield-fill text-primary"></i> {{ equipo_obj.nombre }} &bull; 
+                <span class="text-warning"><i class="bi bi-trophy-fill"></i> {{ equipo_obj.torneo.nombre }}</span>
+            </p>
+            {% endif %}
+        </div>
+        <div class="mt-2 mt-md-0">
+            <span class="badge bg-primary rounded-pill px-3 py-2 shadow-sm">{{ jugadores|length }} Inscritos</span>
+        </div>
+    </div>
+
+    <div class="row g-4 pb-5">
+        
+        <div class="col-lg-7 col-xl-8 animate__animated animate__fadeInLeft">
+            
+            {% if equipos_activos|length > 1 %}
+            <div class="bg-white p-2 rounded-4 border mb-3 shadow-sm">
+                <form method="get" id="filter-form" class="d-flex align-items-center m-0">
+                    <div class="bg-light rounded-circle d-flex justify-content-center align-items-center mx-2" style="width: 32px; height: 32px;">
+                        <i class="bi bi-funnel-fill text-muted"></i>
+                    </div>
+                    <select name="equipo" class="form-select border-0 shadow-none fw-bold text-dark" onchange="document.getElementById('filter-form').submit();" style="cursor: pointer; font-size: 0.9rem;">
+                        {% regroup equipos_activos by torneo.categoria as categorias %}
+                        {% for cat in categorias %}
+                            <optgroup label="📍 {{ cat.grouper.nombre|default:'General'|upper }}">
+                                {% regroup cat.list by torneo as torneos_activos %}
+                                {% for t in torneos_activos %}
+                                    <optgroup label="&nbsp;&nbsp;🏆 {{ t.grouper.nombre }}">
+                                        {% for e in t.list %}
+                                            <option value="{{ e.id }}" {% if e.id == equipo_seleccionado %}selected{% endif %}>{{ e.nombre }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </optgroup>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            {% endif %}
+
+            <div class="d-flex flex-column gap-2">
+                {% for jugador in jugadores %}
+                <div class="player-row d-flex align-items-center p-2 px-3">
+                    <div class="position-relative me-3">
+                        {% if jugador.foto %}
+                            <img src="{{ jugador.foto.url }}" class="avatar-img shadow-sm">
+                        {% else %}
+                            <div class="avatar-placeholder shadow-sm"><i class="bi bi-person-fill fs-4"></i></div>
+                        {% endif %}
+                        <span class="badge bg-dark text-white dorsal-badge shadow-sm">{{ jugador.dorsal }}</span>
+                    </div>
+                    {% if jugador.otros_equipos %}
+                        <div class="mt-2 w-100 pe-2">
+                            <small class="text-muted fw-black d-block mb-1" style="font-size: 0.6rem; letter-spacing: 0.5px;">TAMBIÉN JUEGA EN:</small>
+                            {% for otro in jugador.otros_equipos %}
+                                <div class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 w-100 text-start mb-1 text-truncate py-1 px-2 shadow-sm" style="font-size: 0.65rem;">
+                                    <i class="bi bi-diagram-3-fill me-1"></i> {{ otro.equipo.nombre }} 
+                                    <span class="opacity-75">({{ otro.equipo.torneo.categoria.nombre|default:'General' }})</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+
+                    <div class="flex-grow-1 min-w-0">
+                        <h6 class="fw-bold mb-0 text-dark text-truncate" style="font-size: 0.95rem;">{{ jugador.nombres }}</h6>
+                        <small class="text-muted fw-medium" style="font-size: 0.7rem;"><i class="bi bi-upc-scan me-1"></i>{{ jugador.cedula }}</small>
+                    </div>
+                    
+                    <div class="d-flex gap-1 ms-2">
+                        {% if puede_fichar %}
+                            {% if not es_dirigente %}
+                            <a href="{% url 'editar_jugador' jugador.id %}" class="action-btn bg-primary bg-opacity-10 text-primary"><i class="bi bi-pencil-fill"></i></a>
+                            {% endif %}
+                            
+                            <a href="{% url 'eliminar_jugador' jugador.id %}" class="action-btn bg-danger bg-opacity-10 text-danger" onclick="return confirm('¿Eliminar ficha de {{ jugador.nombres }}?');"><i class="bi bi-trash-fill"></i></a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5 bg-white rounded-4 border border-dashed">
+                    <i class="bi bi-person-x text-muted opacity-50" style="font-size: 3rem;"></i>
+                    <h6 class="fw-bold text-dark mt-3">Plantilla Vacía</h6>
+                    <p class="text-muted small mb-0">No hay jugadores inscritos en este equipo aún.</p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if not puede_fichar and equipo_obj %}
+            <div class="alert alert-danger mt-3 py-2 text-center rounded-pill shadow-sm border-danger fw-bold" style="font-size: 0.8rem;">
+                <i class="bi bi-lock-fill me-1"></i> Inscripciones cerradas o límite de cupos alcanzado.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-5 col-xl-4 animate__animated animate__fadeInRight">
+            {% if equipo_obj %}
+            <div class="form-dark-glass position-sticky" style="top: 100px;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3 pb-2 border-bottom">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                            <i class="bi {% if editando %}bi-pen-fill{% else %}bi-person-plus-fill{% endif %}"></i>
+                        </div>
+                        <h5 class="fw-black text-dark mb-0">{% if editando %}Editar Ficha{% else %}Fichar Jugador{% endif %}</h5>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" class="dark-inputs">
+                        {% csrf_token %}
+                        <div {% if equipos_activos|length <= 1 %}style="display:none;"{% else %}class="mb-3"{% endif %}>
+                            <label class="form-label small fw-bold text-muted mb-1">Equipo Destino</label>
+                            {{ form.equipo }}
+                            {% if form.equipo.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.equipo.errors|striptags }}</div>{% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted mb-1">Cédula de Identidad</label>
+                            {{ form.cedula }}
+                            {% if form.cedula.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.cedula.errors|striptags }}</div>{% endif %}
+                            
+                            <div id="cedula-feedback-box" class="mt-2 p-2 rounded border border-info border-opacity-25 bg-info bg-opacity-10" style="display: none;">
+                                <div id="cedula-feedback" class="small fw-bold d-flex align-items-center"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted mb-1">Nombres Completos</label>
+                            {{ form.nombres }}
+                            {% if form.nombres.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.nombres.errors|striptags }}</div>{% endif %}
+                        </div>
+
+                        <div class="row g-2 mb-4">
+                            <div class="col-4">
+                                <label class="form-label small fw-bold text-muted mb-1">Dorsal</label>
+                                {{ form.dorsal }}
+                                {% if form.dorsal.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.dorsal.errors|striptags }}</div>{% endif %}
+                            </div>
+                            <div class="col-8">
+                                <label class="form-label small fw-bold text-muted mb-1">Foto <span class="opacity-50">(opcional)</span></label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        {{ form.foto }}
+                                    </div>
+                                    <img id="foto-preview" src="#" alt="Vista previa" class="rounded-circle shadow-sm border border-2 border-primary d-none" style="width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;">
+                                </div>
+                                {% if form.foto.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.foto.errors|striptags }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary shadow-sm fw-black rounded-pill py-2" {% if not puede_fichar %}disabled{% endif %}>
+                                {% if editando %}GUARDAR CAMBIOS{% else %}FICHAR JUGADOR{% endif %}
+                            </button>
+                            {% if editando %}
+                                <a href="{% url 'gestionar_jugadores' %}?equipo={{ form.instance.equipo.id }}" class="btn btn-light border rounded-pill fw-bold py-1 text-dark" style="font-size: 0.8rem;">Cancelar</a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputCedula = document.getElementById('id_cedula');
+        const inputNombres = document.getElementById('id_nombres');
+        const feedbackBox = document.getElementById('cedula-feedback-box');
+        const feedback = document.getElementById('cedula-feedback');
+        
+        if(inputCedula && inputNombres) {
+            inputCedula.addEventListener('input', function() {
+                const cedula = this.value.trim();
+                
+                // Limpiar estados visuales
+                inputCedula.style.borderColor = "#CBD5E1";
+                if (feedbackBox) feedbackBox.style.display = 'none';
+                
+                if(cedula.length === 10) {
+                    
+                    // Mostrar estado de "Buscando..."
+                    if (feedbackBox) {
+                        feedbackBox.style.display = 'block';
+                        feedbackBox.className = "mt-2 p-2 rounded border border-info border-opacity-25 bg-info bg-opacity-10 transition-all";
+                    }
+                    inputNombres.value = "";
+                    inputNombres.placeholder = "Buscando en base de datos / SRI...";
+                    inputNombres.disabled = true; 
+                    
+                    if (feedback) {
+                        feedback.className = "text-info w-100";
+                        feedback.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div> Buscando identidad...';
+                    }
+                    
+                    // 1. Primero buscamos en nuestra propia base de datos (tu API de torneos anteriores)
+                    fetch(`/api/buscar-jugador/${cedula}/`)
+                    .then(response => response.json())
+                    .then(dataLocal => {
+                        if(dataLocal.encontrado) {
+                            // ¡Encontrado en nuestra base de datos!
+                            inputNombres.disabled = false;
+                            inputNombres.value = dataLocal.nombres;
+                            inputNombres.placeholder = "";
+                            inputCedula.style.borderColor = "#10B981"; // Verde
+                            
+                            if (feedbackBox && feedback) {
+                                feedbackBox.className = "mt-2 p-2 rounded border border-success border-opacity-25 bg-success bg-opacity-10";
+                                feedback.className = "text-success w-100";
+                                feedback.innerHTML = '<i class="bi bi-shield-check fs-5 me-2"></i> Jugador encontrado en el sistema.';
+                            }
+                        } else {
+                            // 2. Si no está en nuestra BD, buscamos en el SRI
+                            fetch(`/api/consultar-cedula/?cedula=${cedula}`)
+                            .then(response => response.json())
+                            .then(dataSRI => {
+                                inputNombres.disabled = false;
+                                
+                                if(dataSRI.exito && dataSRI.nombre) {
+                                    // Encontrado en el SRI
+                                    inputNombres.value = dataSRI.nombre;
+                                    inputNombres.placeholder = "";
+                                    inputCedula.style.borderColor = "#10B981"; // Verde
+                                    
+                                    if (feedbackBox && feedback) {
+                                        feedbackBox.className = "mt-2 p-2 rounded border border-success border-opacity-25 bg-success bg-opacity-10";
+                                        feedback.className = "text-success w-100";
+                                        feedback.innerHTML = '<i class="bi bi-check-circle fs-5 me-2"></i> Identidad validada (SRI)';
+                                    }
+                                } else if (dataSRI.exito && !dataSRI.nombre) {
+                                    // Cédula válida pero sin nombre en SRI
+                                    inputNombres.value = "";
+                                    inputNombres.placeholder = "Escribe el nombre aquí...";
+                                    inputNombres.focus();
+                                    inputCedula.style.borderColor = "#F59E0B"; // Amarillo
+                                    
+                                    if (feedbackBox && feedback) {
+                                        feedbackBox.className = "mt-2 p-2 rounded border border-warning border-opacity-25 bg-warning bg-opacity-10";
+                                        feedback.className = "text-warning w-100";
+                                        feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i> Cédula válida. Ingreso manual.';
+                                    }
+                                } else {
+                                    // Cédula inválida
+                                    inputNombres.value = "";
+                                    inputNombres.placeholder = "Cédula rechazada";
+                                    inputCedula.style.borderColor = "#EF4444"; // Rojo
+                                    
+                                    if (feedbackBox && feedback) {
+                                        feedbackBox.className = "mt-2 p-2 rounded border border-danger border-opacity-25 bg-danger bg-opacity-10";
+                                        feedback.className = "text-danger w-100";
+                                        feedback.innerHTML = `<i class="bi bi-x-octagon-fill fs-5 me-2"></i> ${dataSRI.error || 'Cédula incorrecta'}`;
+                                    }
+                                }
+                            })
+                            .catch(error => {
+                                // Error en la red al consultar SRI
+                                inputNombres.disabled = false;
+                                inputNombres.placeholder = "Error de red. Ingreso manual.";
+                                if (feedbackBox) feedbackBox.style.display = 'none';
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        // Error de red general
+                        inputNombres.disabled = false;
+                        inputNombres.placeholder = "Error de red. Ingreso manual.";
+                        if (feedbackBox) feedbackBox.style.display = 'none';
+                    });
+                }
+            });
+        }
+    });
+    
+    const fotoInput = document.getElementById('id_foto');
+    const fotoPreview = document.getElementById('foto-preview');
+
+    if (fotoInput && fotoPreview) {
+        fotoInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Le inyectamos la imagen al círculo y lo mostramos
+                    fotoPreview.src = e.target.result;
+                    fotoPreview.classList.remove('d-none');
+                }
+                reader.readAsDataURL(file); // Lee el archivo temporalmente
+            } else {
+                // Si el usuario cancela, ocultamos el círculo
+                fotoPreview.src = "#";
+                fotoPreview.classList.add('d-none');
+            }
+        });
+    }
+</script>
+{% endblock %}

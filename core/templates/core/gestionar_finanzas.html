@@ -1,0 +1,499 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Finanzas | NEXT LEVEL{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ==========================================
+       ESTILOS PREMIUM - CENTRO FINANCIERO NEXT LEVEL
+       ========================================== */
+    :root {
+        --clean-bg: #F4F7FA;
+        --clean-surface: #FFFFFF;
+        --clean-border: #CBD5E1;
+        --text-main: #1E293B;
+        --primary-navy: #0A192F;
+        --primary-blue: #1D4ED8;
+        --accent-green: #10B981;
+        --accent-gold: #F59E0B;
+        --accent-red: #EF4444;
+    }
+
+    body { background-color: var(--clean-bg); }
+
+    /* Tarjetas de Resumen Superior */
+    .scroll-horizontal {
+        display: flex; overflow-x: auto; gap: 15px; padding: 5px 5px 20px 5px;
+        scroll-snap-type: x mandatory; scrollbar-width: none;
+    }
+    .scroll-horizontal::-webkit-scrollbar { display: none; }
+    
+    .stat-card-mini {
+        min-width: 260px; max-width: 280px; flex-shrink: 0; scroll-snap-align: start;
+        border-radius: 16px; padding: 15px; background: #fff;
+        border: 1px solid var(--clean-border); border-bottom: 4px solid var(--clean-border);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.02); transition: transform 0.2s;
+    }
+    .stat-card-mini.blue { border-bottom-color: var(--primary-blue); }
+    .stat-card-mini.gold { border-bottom-color: var(--accent-gold); }
+    .stat-card-mini.green { border-bottom-color: var(--accent-green); }
+
+    /* ==========================================
+       ESTILOS DEL ACORDEÓN (AGRUPACIÓN DE EQUIPOS)
+       ========================================== */
+    .finance-accordion .accordion-item {
+        border: none;
+        background: transparent;
+        margin-bottom: 1.2rem;
+    }
+    
+    /* Botón/Cabecera del Equipo */
+    .finance-accordion .accordion-button {
+        background: var(--clean-surface);
+        border-radius: 16px !important;
+        border: 1px solid var(--clean-border);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        padding: 1rem 1.2rem;
+        color: var(--text-main);
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+    }
+    .finance-accordion .accordion-button:not(.collapsed) {
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        border-bottom: 1px dashed var(--clean-border);
+        background-color: #F8FAFC;
+    }
+    .finance-accordion .accordion-button:focus { box-shadow: none; border-color: var(--primary-blue); }
+
+    /* Cuerpo del Acordeón (Donde van las deudas) */
+    .finance-accordion .accordion-body {
+        background: var(--clean-surface);
+        border: 1px solid var(--clean-border);
+        border-top: none;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+        padding: 0;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+        overflow: hidden;
+    }
+
+    .team-shield-large { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); background: #fff; flex-shrink: 0; }
+
+    /* --- DIVISIONES INTERNAS DEL ACORDEÓN --- */
+    .section-title {
+        font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+        padding: 12px 20px; margin: 0; background: #F8FAFC; border-bottom: 1px solid var(--clean-border);
+    }
+    .section-pending .section-title { color: var(--accent-red); }
+    .section-paid .section-title { color: var(--accent-green); background: #F1F5F9; border-top: 1px solid var(--clean-border); }
+    
+    .empty-state-micro { padding: 15px 20px; font-size: 0.8rem; color: #94A3B8; font-weight: 600; font-style: italic; }
+
+    /* --- LISTA DE DEUDAS (APP STYLE) --- */
+    .debt-item {
+        display: flex; flex-direction: column; background: #ffffff;
+        padding: 1.2rem 1.5rem; border-bottom: 1px dashed var(--clean-border);
+        transition: background-color 0.2s;
+    }
+    .debt-item:last-child { border-bottom: none; }
+    
+    /* Diseño de item PAGADO (Compacto) */
+    .debt-item-paid {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.8rem 1.5rem; border-bottom: 1px dashed #CBD5E1;
+        background: #F8FAFC; opacity: 0.85; transition: opacity 0.2s;
+    }
+    .debt-item-paid:hover { opacity: 1; background: #F1F5F9; }
+    .debt-item-paid:last-child { border-bottom: none; }
+
+    .debt-icon-box {
+        width: 35px; height: 35px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    
+    /* ==========================================
+       ✨ INPUTS DE PAGO (NUMEROS GRANDES) ✨
+       ========================================== */
+    .pay-input-group { 
+        width: 175px; 
+        height: 44px; /* Más alto para dedos en celular */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        border-radius: 10px; 
+    }
+    .pay-input {
+        border: 1px solid #CBD5E1; 
+        border-radius: 10px 0 0 10px; 
+        font-weight: 900; 
+        font-size: 1.15rem !important; /* Números inmensos y legibles */
+        color: var(--primary-navy); 
+        padding: 0 10px; 
+        text-align: right; 
+        background: #fff;
+    }
+    .pay-input:focus { border-color: var(--accent-green); outline: none; box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.1); }
+    .btn-pay { 
+        border-radius: 0 10px 10px 0; 
+        font-weight: 900; 
+        font-size: 0.85rem; 
+        padding: 0 15px; 
+        background: var(--accent-green); 
+        color: white; 
+        border: none; 
+    }
+    .btn-pay:hover { background: #059669; }
+
+    /* Etiquetas y Detalles */
+    .pill-tag { font-size: 0.65rem; padding: 3px 8px; border-radius: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-box { background: #F8FAFC; border-left: 3px solid #CBD5E1; padding: 8px 12px; border-radius: 0 8px 8px 0; margin-top: 8px; }
+    
+    /* Historial mini */
+    .abono-history { background: #ffffff; border-radius: 8px; padding: 8px 12px; margin-top: 8px; border: 1px dashed #CBD5E1; font-size: 0.7rem; }
+
+    @media (min-width: 768px) {
+        .debt-item { flex-direction: row; align-items: center; justify-content: space-between; }
+        .debt-info { width: 60%; }
+        .debt-action { width: 40%; display: flex; flex-direction: column; align-items: flex-end; }
+    }
+    @media (max-width: 767px) {
+        .debt-action { margin-top: 15px; padding-top: 15px; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; }
+        .debt-item, .debt-item-paid, .section-title { padding-left: 1rem; padding-right: 1rem; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid px-0 animate__animated animate__fadeIn">
+
+    <div class="card border-0 rounded-4 shadow-sm mb-4" style="background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-blue) 100%); color: white;">
+        <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-white bg-opacity-10 p-3 rounded-circle d-flex align-items-center justify-content-center">
+                    <i class="bi bi-wallet2 text-success fs-3"></i>
+                </div>
+                <div>
+                    <h5 class="fw-black mb-0 text-white" style="letter-spacing: -0.5px;">Centro Financiero</h5>
+                    <span class="text-white-50 small">Gestión y recaudación NEXT LEVEL</span>
+                </div>
+            </div>
+            <div class="text-center text-md-end border-start-md border-light border-opacity-25 ps-md-4">
+                <div class="text-white-50 fw-bold small text-uppercase mb-1" style="letter-spacing: 1px;">Total General en Caja</div>
+                <h2 class="fw-black text-success m-0 lh-1">${{ total_caja|floatformat:2 }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="scroll-horizontal">
+        <div class="stat-card-mini blue">
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3 text-primary"><i class="bi bi-journal-text fs-5" style="color: var(--primary-blue);"></i></div>
+                <div><h6 class="fw-black text-dark mb-0 fs-6">Inscripciones</h6></div>
+            </div>
+            <div class="mb-2">
+                <h3 class="fw-black m-0 lh-1" style="color: var(--primary-blue);">${{ inscripciones_pagadas|floatformat:2 }}</h3>
+                <span class="text-muted" style="font-size: 0.7rem;">Dinero Cobrado en Caja</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2" style="font-size: 0.75rem;">
+                <span class="text-muted fw-bold">Por cobrar:</span>
+                <span class="badge bg-danger rounded-pill px-2 py-1">${{ inscripciones_pendientes|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card-mini gold">
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-warning bg-opacity-10 p-2 rounded-3 me-3 text-warning"><i class="bi bi-file-earmark-ruled fs-5"></i></div>
+                <div><h6 class="fw-black text-dark mb-0 fs-6">Sanciones</h6></div>
+            </div>
+            <div class="mb-2">
+                <h3 class="fw-black text-warning m-0 lh-1">${{ multas_pagadas|floatformat:2 }}</h3>
+                <span class="text-muted" style="font-size: 0.7rem;">Dinero Cobrado en Caja</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2" style="font-size: 0.75rem;">
+                <span class="text-muted fw-bold">Por cobrar:</span>
+                <span class="badge bg-danger rounded-pill px-2 py-1">${{ multas_pendientes|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card-mini green">
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-success bg-opacity-10 p-2 rounded-3 me-3 text-success"><i class="bi bi-clock-history fs-5"></i></div>
+                <div><h6 class="fw-black text-dark mb-0 fs-6">Alquiler Libre</h6></div>
+            </div>
+            <div class="mb-2">
+                <h3 class="fw-black text-success m-0 lh-1">${{ ingreso_canchas|floatformat:2 }}</h3>
+                <span class="text-muted" style="font-size: 0.7rem;">Turnos Externos Cobrados</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2" style="font-size: 0.75rem;">
+                <span class="text-muted fw-bold">Estado actual:</span>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill">Al día</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-dark text-white border-secondary mb-4 shadow rounded-4 overflow-hidden">
+        <div class="card-header bg-danger text-white fw-bold py-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> Imponer Multa / Deuda a un Equipo
+        </div>
+        <div class="card-body p-4">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row align-items-end">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label text-secondary small fw-bold">Torneo</label>
+                        {{ form_sancion.torneo }}
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label text-secondary small fw-bold">Equipo Infractor</label>
+                        {{ form_sancion.equipo }}
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label text-secondary small fw-bold">Monto ($)</label>
+                        {{ form_sancion.monto }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label text-secondary small fw-bold">Motivo / Descripción</label>
+                        {{ form_sancion.descripcion }}
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <button type="submit" name="agregar_sancion_manual" class="btn btn-danger fw-bold rounded-pill px-4">
+                        <i class="bi bi-plus-circle-fill me-1"></i> Guardar Deuda en el Sistema
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mt-4 mb-3 px-2">
+        <div>
+            <h5 class="fw-black text-dark m-0"><i class="bi bi-diagram-3-fill me-2" style="color: var(--primary-blue);"></i>Cuentas por Equipo</h5>
+            <p class="text-muted small m-0 lh-sm">Toca un equipo para ver sus deudas pendientes y su historial pagado.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <form method="POST" class="m-0">
+                {% csrf_token %}
+                <button type="submit" name="generar_inscripciones_viejas" class="btn btn-sm btn-light border fw-bold shadow-sm" onclick="return confirm('¿Buscar y generar deudas de inscripción faltantes para equipos oficiales?');">
+                    <i class="bi bi-arrow-clockwise" style="color: var(--primary-blue);"></i> Sincronizar
+                </button>
+            </form>
+            <a href="{% url 'registrar_pago' %}" class="btn btn-sm text-white fw-black shadow-sm" style="background-color: var(--primary-navy);"><i class="bi bi-plus-lg me-1"></i> Cobro Libre</a>
+        </div>
+    </div>
+
+    {% if sanciones %}
+        {% regroup sanciones|dictsort:"equipo.nombre" by equipo as sanciones_por_equipo %}
+        
+        <div class="accordion finance-accordion mb-5" id="accordionFinanzas">
+            {% for grupo in sanciones_por_equipo %}
+
+            <div class="accordion-item animate__animated animate__fadeInUp" style="animation-delay: 0.{{ forloop.counter }}s;">
+                
+                <h2 class="accordion-header" id="heading-{{ grupo.grouper.id }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ grupo.grouper.id }}" aria-expanded="false" aria-controls="collapse-{{ grupo.grouper.id }}">
+                        <div class="d-flex align-items-center gap-3 w-100 pe-3">
+                            {% if grupo.grouper.escudo %}
+                                <img src="{{ grupo.grouper.escudo.url }}" class="team-shield-large">
+                            {% else %}
+                                <div class="team-shield-large d-flex align-items-center justify-content-center bg-light text-muted"><i class="bi bi-shield-fill fs-4 opacity-50"></i></div>
+                            {% endif %}
+                            
+                            <div class="flex-grow-1">
+                                <h6 class="fw-black text-dark mb-0 fs-5" style="letter-spacing: -0.5px;">{{ grupo.grouper.nombre }}</h6>
+                                
+                                <div class="d-flex align-items-center gap-2 mt-1">
+                                    <span class="text-muted fw-medium" style="font-size: 0.75rem;"><i class="bi bi-receipt me-1"></i>{{ grupo.list|length }} Registros</span>
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+
+                <div id="collapse-{{ grupo.grouper.id }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ grupo.grouper.id }}" data-bs-parent="#accordionFinanzas">
+                    <div class="accordion-body">
+                        
+                        <div class="section-pending">
+                            <h6 class="section-title"><i class="bi bi-exclamation-circle-fill me-2"></i>Por Cobrar / Deudas Pendientes</h6>
+                            
+                            <div class="pending-list-container">
+                                {% for s in grupo.list %}
+                                    {% if not s.pagada %}
+                                    <div class="debt-item">
+                                        <div class="debt-info d-flex align-items-start gap-3">
+                                            <div class="debt-icon-box {% if 'Inscripci' in s.descripcion %}bg-primary bg-opacity-10 text-primary{% else %}bg-warning bg-opacity-10 text-warning{% endif %}" {% if 'Inscripci' in s.descripcion %}style="color: var(--primary-blue) !important;"{% endif %}>
+                                                <i class="bi {% if 'Inscripci' in s.descripcion %}bi-journal-check{% else %}bi-exclamation-triangle-fill{% endif %} fs-6"></i>
+                                            </div>
+                                            
+                                            <div style="min-width: 0;">
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    {% if 'Inscripci' in s.descripcion %}
+                                                        <span class="pill-tag text-white shadow-sm" style="background-color: var(--primary-blue);">INSCRIPCIÓN</span>
+                                                    {% else %}
+                                                        <span class="pill-tag bg-warning text-dark shadow-sm">SANCIÓN / MULTA</span>
+                                                    {% endif %}
+                                                    {% if s.partido %}
+                                                        <span class="text-muted fw-bold" style="font-size: 0.65rem;">{{ s.partido.fecha_hora|date:"d M Y" }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.85rem;">{{ s.descripcion }}</h6>
+                                                
+                                                {% if s.jugador or s.partido %}
+                                                <div class="detail-box">
+                                                    {% if s.jugador %}
+                                                        <div class="text-dark fw-bold" style="font-size: 0.7rem;"><i class="bi bi-person-fill text-muted me-1"></i>Jugador Implicado: <span style="color: var(--primary-blue);">{{ s.jugador.nombres }}</span></div>
+                                                    {% endif %}
+                                                    {% if s.partido %}
+                                                        <div class="text-muted mt-1" style="font-size: 0.7rem;"><i class="bi bi-geo-alt-fill me-1"></i>Origen: {{ s.partido.equipo_local.nombre }} vs {{ s.partido.equipo_visita.nombre }}</div>
+                                                    {% endif %}
+                                                </div>
+                                                {% endif %}
+                                                
+                                                {% if s.monto_pagado > 0 %}
+                                                    <div class="text-success fw-bold mt-2" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill me-1"></i>Abonado: ${{ s.monto_pagado }} de ${{ s.monto }}</div>
+                                                    {% if s.historial_abonos.all %}
+                                                        <div class="abono-history">
+                                                            {% for abono in s.historial_abonos.all %}
+                                                                <div class="d-flex justify-content-between mb-1 border-bottom pb-1">
+                                                                    <span class="text-muted"><i class="bi bi-calendar2-check me-1"></i>{{ abono.fecha|date:"d M Y" }}</span>
+                                                                    <span class="fw-bold text-success">+${{ abono.monto }}</span>
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <div class="text-secondary fw-bold mt-2" style="font-size: 0.7rem;"><i class="bi bi-dash-circle me-1"></i>Monto Original: ${{ s.monto }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <div class="debt-action">
+                                            <div class="d-flex flex-column align-items-md-end align-items-start w-100">
+                                                <div class="d-flex w-100 justify-content-between justify-content-md-end align-items-center mb-2 gap-2">
+                                                    <span class="text-muted fw-bold d-md-none small">Saldo pendiente:</span>
+                                                    
+                                                    {% if s.monto_pagado > 0 %}
+                                                    <form action="{% url 'revertir_cobro_sancion' s.id %}" method="POST" class="m-0" onsubmit="return confirm('⚠️ ¿Estás seguro de anular EL ÚLTIMO ABONO de esta sanción?');">
+                                                        {% csrf_token %} <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm py-0 px-2" title="Anular Último Abono">
+                                                            <i class="bi bi-arrow-counterclockwise"></i> Reversar
+                                                        </button>
+                                                    </form>
+                                                    {% endif %}
+                                                    <h4 class="fw-black text-danger m-0 fs-4">${{ s.saldo }}</h4>
+                                                </div>
+                                                
+                                                <form action="{% url 'cobrar_sancion' s.id %}" method="post" class="m-0 w-100 d-flex justify-content-md-end" onsubmit="guardarEstadoAcordeon('collapse-{{ grupo.grouper.id }}')">
+                                                    {% csrf_token %}
+                                                    <div class="input-group pay-input-group shadow-sm">
+                                                        <span class="input-group-text bg-white border-end-0 text-muted fw-bold" style="font-size: 1.15rem;">$</span>
+                                                        <input type="number" name="monto_abono" class="form-control border-start-0 pay-input" step="0.01" min="0.01" max="{{ s.saldo }}" value="{{ s.saldo }}" required>
+                                                        <button type="submit" class="btn btn-success btn-pay" onclick="return confirm('¿Registrar pago a esta cuenta?');" title="Cobrar Deuda">PAGAR</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="section-paid">
+                            <h6 class="section-title"><i class="bi bi-check2-all me-2"></i>Cuentas Saldadas</h6>
+                            
+                            <div class="paid-list-container">
+                                {% for s in grupo.list %}
+                                    {% if s.pagada %}
+                                    <div class="debt-item-paid">
+                                        <div class="d-flex align-items-center gap-3" style="min-width: 0; width: 70%;">
+                                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex justify-content-center align-items-center flex-shrink-0" style="width: 28px; height: 28px;">
+                                                <i class="bi bi-check-lg" style="font-size: 0.8rem;"></i>
+                                            </div>
+                                            <div class="text-truncate">
+                                                <div class="fw-bold text-dark text-truncate" style="font-size: 0.8rem;">{{ s.descripcion }}</div>
+                                                <div class="text-muted" style="font-size: 0.65rem;">
+                                                    {% if s.historial_abonos.all %}
+                                                        Cancelado el {{ s.historial_abonos.last.fecha|date:"d M Y" }}
+                                                    {% else %}
+                                                        Cuenta Saldada
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="fw-black text-success d-flex align-items-center gap-2" style="font-size: 0.85rem;">
+                                            ${{ s.monto }}
+                                            
+                                            <form action="{% url 'revertir_cobro_sancion' s.id %}" method="POST" class="m-0" onsubmit="return confirm('⚠️ ¿Estás seguro de anular el pago de esta cuenta?');">
+                                                {% csrf_token %} <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm py-0 px-1" title="Anular Pago">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5 rounded-4 border border-dashed bg-white">
+            <i class="bi bi-inboxes fs-1 d-block mb-3 text-muted opacity-25"></i>
+            <h5 class="fw-bold text-dark">Sistema Financiero Limpio</h5>
+            <p class="text-muted mb-0">No existen registros de deudas o pagos en este momento.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        // 1. Ocultar sub-secciones (Pendientes o Pagadas) si están vacías
+        document.querySelectorAll('.pending-list-container').forEach(container => {
+            if (container.children.length === 0 || container.innerHTML.trim() === '') {
+                container.innerHTML = '<div class="empty-state-micro">No hay deudas pendientes en este momento.</div>';
+            }
+        });
+
+        document.querySelectorAll('.paid-list-container').forEach(container => {
+            if (container.children.length === 0 || container.innerHTML.trim() === '') {
+                container.parentElement.style.display = 'none'; // Si no hay pagadas, ocultamos la sección entera
+            }
+        });
+
+        // 2. Restaurar Acordeón y Scroll tras un pago
+        let openId = sessionStorage.getItem('openAccordion');
+        let scrollPos = sessionStorage.getItem('scrollPosFinanzas');
+
+        if (openId) {
+            let collapseDiv = document.getElementById(openId);
+            let toggleButton = document.querySelector(`[data-bs-target="#${openId}"]`);
+            
+            if (collapseDiv && toggleButton) {
+                collapseDiv.classList.add('show');
+                toggleButton.classList.remove('collapsed');
+                toggleButton.setAttribute('aria-expanded', 'true');
+            }
+            sessionStorage.removeItem('openAccordion');
+        }
+
+        if (scrollPos) {
+            setTimeout(() => {
+                window.scrollTo(0, parseInt(scrollPos));
+            }, 100);
+            sessionStorage.removeItem('scrollPosFinanzas');
+        }
+    });
+
+    function guardarEstadoAcordeon(collapseId) {
+        sessionStorage.setItem('openAccordion', collapseId);
+        sessionStorage.setItem('scrollPosFinanzas', window.scrollY);
+    }
+</script>
+
+{% endblock %}

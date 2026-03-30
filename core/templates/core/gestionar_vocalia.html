@@ -1,0 +1,735 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Mesa de Control | {{ partido.equipo_local.nombre }} vs {{ partido.equipo_visita.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* --- ESTILOS "NEXT LEVEL CONTROL" OPTIMIZADO MÓVIL --- */
+    :root {
+        --clean-bg: #F4F7FA;
+        --clean-surface: #FFFFFF;
+        --clean-border: #CBD5E1;
+        --text-main: #1E293B;
+        --primary-navy: #0A192F;
+        --primary-blue: #1D4ED8;
+        --accent-blue: #3B82F6;
+        --accent-green: #10B981;
+        --accent-orange: #F59E0B;
+        --accent-red: #EF4444;
+    }
+
+    body { background-color: var(--clean-bg); color: var(--text-main); }
+
+    /* Fix para Inputs */
+    .clean-input {
+        background-color: #ffffff !important;
+        color: var(--primary-navy) !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 10px;
+        padding: 0.6rem;
+        font-weight: 600 !important;
+    }
+    .clean-input:focus { border-color: var(--primary-blue) !important; box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.1) !important; outline: none; }
+
+    /* Marcador LED NEXT LEVEL */
+    .scoreboard-led {
+        background: linear-gradient(135deg, var(--primary-navy) 0%, #1e293b 100%);
+        border-radius: 16px; padding: 1.2rem; color: white;
+        box-shadow: 0 10px 25px rgba(10, 25, 47, 0.2);
+        border-bottom: 5px solid var(--primary-blue);
+        position: sticky;
+        top: 10px;
+        z-index: 100;
+    }
+    .score-digit {
+        font-size: 3.5rem; font-weight: 900; font-family: 'JetBrains Mono', monospace;
+        background: rgba(255,255,255,0.05); padding: 0 15px; border-radius: 12px;
+        text-shadow: 0 0 15px rgba(16, 185, 129, 0.4); line-height: 1;
+        color: #10B981;
+    }
+    .team-name-score { font-size: 1.1rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; letter-spacing: 0.5px; }
+    
+    /* Paneles Clean */
+    .clean-panel {
+        background-color: var(--clean-surface); border: 1px solid var(--clean-border);
+        border-radius: 16px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02); overflow: hidden;
+    }
+    .team-title { background-color: #f8fafc; border-bottom: 1px solid var(--clean-border); padding: 10px 15px; }
+
+    /* --- FICHAS DINÁMICAS COMPACTAS --- */
+    .player-card {
+        background: white; border: 1px solid var(--clean-border); border-radius: 12px;
+        padding: 8px 10px; margin-bottom: 8px; transition: all 0.2s;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 5px;
+    }
+    .player-card:active { transform: scale(0.98); }
+    .dorsal-circle { width: 30px; height: 30px; font-size: 0.85rem; flex-shrink: 0; }
+    .player-name-box { flex-grow: 1; min-width: 0; }
+    .player-name { font-size: 0.9rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--primary-navy); }
+    
+    /* Estado Expulsado */
+    .player-card.expulsado { background: #fef2f2; border-color: #fca5a5; opacity: 0.8; }
+    .player-card.expulsado .player-name { color: #991b1b !important; text-decoration: line-through; }
+
+    /* Controles Numéricos (Stepper) Compactos */
+    .stat-stepper {
+        display: flex; align-items: center; background: #f8fafc;
+        border: 1px solid var(--clean-border); border-radius: 8px; overflow: hidden;
+    }
+    .stat-val { padding: 0 8px; font-weight: 900; font-size: 0.95rem; color: var(--primary-navy); min-width: 25px; text-align: center; }
+    .btn-step { border: none; background: transparent; padding: 4px 8px; font-weight: 900; text-decoration: none; display: flex; align-items: center; }
+    .btn-step.add { background: #dcfce7; color: #166534; }
+    .btn-step.sub { background: #fee2e2; color: #991b1b; }
+    .btn-step.disabled { background: #f1f5f9; color: #cbd5e1; pointer-events: none; }
+
+    /* Botones de Tarjetas Compactos */
+    .btn-card {
+        width: 28px; height: 28px; border-radius: 6px; border: none; font-size: 0.8rem;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .btn-ta { background: var(--accent-orange); color: white; }
+    .btn-tr { background: var(--accent-red); color: white; }
+    .btn-undo-card { color: #ef4444; font-weight: 900; padding: 0 6px; font-size: 1rem; text-decoration: none; display: flex; align-items: center; }
+
+    /* --- FICHAS DE BANCA COMPACTAS --- */
+    .bench-player {
+        display: flex; align-items: center; gap: 8px; background: white; border: 1px dashed #cbd5e1; 
+        border-radius: 10px; padding: 6px 10px; text-decoration: none; color: #475569;
+    }
+    .bench-player:active { background: #f0f9ff; border-color: var(--accent-blue); border-style: solid; }
+
+    /* Bitácora */
+    .timeline-container { background: var(--clean-surface); border-radius: 16px; border: 1px solid var(--clean-border); }
+    .log-card {
+        background: #ffffff; border: 1px solid var(--clean-border); border-radius: 6px;
+        border-left: 3px solid #cbd5e1; margin-bottom: 0.3rem; padding: 6px !important;
+    }
+    .log-gol { border-left-color: var(--accent-green); }
+    .log-ta { border-left-color: var(--accent-orange); }
+    .log-tr { border-left-color: var(--accent-red); }
+    .log-star { border-left-color: #FBBF24; background-color: #FFFBEB; }
+
+    /* Cajas de Firma */
+    .signature-box {
+        border: 2px solid #cbd5e1; background: #f8fafc; border-radius: 12px;
+        padding: 10px; text-align: center; transition: all 0.3s;
+    }
+    .signature-box.signed {
+        border-color: var(--accent-green); background: #dcfce7;
+    }
+
+    /* Optimizaciones para Móvil (< 768px) */
+    @media (max-width: 768px) {
+        .score-digit { font-size: 2.5rem; padding: 0 10px; }
+        .scoreboard-led { padding: 0.8rem; position: sticky; top: 0; z-index: 1000; border-radius: 0 0 16px 16px; margin-inline: -15px; }
+        .player-card { flex-wrap: wrap; }
+        .controls-wrapper { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--clean-border); }
+        .team-title h6 { font-size: 1rem !important; }
+        .container-fluid { padding-inline: 15px !important; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid px-0 animate__animated animate__fadeIn">
+
+    <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+        <a href="{% url 'programar_partidos' %}?torneo={{ partido.torneo.id }}" class="text-secondary fw-bold text-decoration-none" style="font-size: 0.9rem;">
+            <i class="bi bi-chevron-left"></i> Volver a Partidos
+        </a>
+        <span class="badge bg-light text-dark border">{{ partido.torneo.nombre|truncatechars:20 }}</span>
+    </div>
+
+    <div class="scoreboard-led d-flex align-items-center justify-content-between mb-3 shadow-lg">
+        <div class="text-center">
+            <div class="team-name-score fw-black text-uppercase m-0">{{ partido.equipo_local.nombre }}</div>
+            <span class="badge bg-primary mt-1 rounded-pill" style="font-size: 0.6rem;">LOCAL</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 px-3">
+            <span class="score-digit text-success">{{ partido.goles_local }}</span>
+            <div class="text-center">
+                <div class="badge bg-danger rounded-pill px-2 py-1 mb-1 animate__animated animate__pulse animate__infinite" style="font-size: 0.6rem;">EN VIVO</div>
+            </div>
+            <span class="score-digit text-success">{{ partido.goles_visita }}</span>
+        </div>
+        <div class="text-center">
+            <div class="team-name-score fw-black text-uppercase m-0">{{ partido.equipo_visita.nombre }}</div>
+            <span class="badge bg-warning text-dark mt-1 rounded-pill" style="font-size: 0.6rem;">VISITA</span>
+        </div>
+    </div>
+
+    <div class="row g-2 mb-3 px-2 px-md-0">
+        <div class="col-6">
+            <div class="clean-panel text-center p-2" style="border-top: 3px solid var(--primary-blue);">
+                <div class="fw-bold text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">FALTAS LOCAL</div>
+                <div class="d-flex justify-content-center align-items-center gap-3 my-1">
+                    <button class="btn btn-sm btn-light border fw-bold text-danger py-0 px-2 shadow-sm" onclick="updateFaltas('local', -1)">-</button>
+                    <span id="faltasLocalVal" class="fs-3 fw-black text-dark" style="font-family: 'JetBrains Mono', monospace;">0</span>
+                    <button class="btn btn-sm btn-light border fw-bold text-success py-0 px-2 shadow-sm" onclick="updateFaltas('local', 1)">+</button>
+                </div>
+                <div id="castigoLocal" class="badge bg-danger w-100 d-none animate__animated animate__flash animate__infinite mb-1">¡TIRO DE CASTIGO!</div>
+                <button class="btn btn-link text-muted p-0 text-decoration-none d-block w-100" style="font-size: 0.65rem;" onclick="updateFaltas('local', 'reset')">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reiniciar
+                </button>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="clean-panel text-center p-2" style="border-top: 3px solid var(--accent-orange);">
+                <div class="fw-bold text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">FALTAS VISITA</div>
+                <div class="d-flex justify-content-center align-items-center gap-3 my-1">
+                    <button class="btn btn-sm btn-light border fw-bold text-danger py-0 px-2 shadow-sm" onclick="updateFaltas('visita', -1)">-</button>
+                    <span id="faltasVisitaVal" class="fs-3 fw-black text-dark" style="font-family: 'JetBrains Mono', monospace;">0</span>
+                    <button class="btn btn-sm btn-light border fw-bold text-success py-0 px-2 shadow-sm" onclick="updateFaltas('visita', 1)">+</button>
+                </div>
+                <div id="castigoVisita" class="badge bg-danger w-100 d-none animate__animated animate__flash animate__infinite mb-1">¡TIRO DE CASTIGO!</div>
+                <button class="btn btn-link text-muted p-0 text-decoration-none d-block w-100" style="font-size: 0.65rem;" onclick="updateFaltas('visita', 'reset')">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reiniciar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <button class="btn btn-light w-100 fw-bold border shadow-sm d-md-none mb-2 text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBitacora">
+                <i class="bi bi-clock-history me-1"></i> Ver Eventos del Partido ({{ eventos|length }})
+            </button>
+            <div class="collapse d-md-block" id="collapseBitacora">
+                <div class="timeline-container d-flex overflow-auto shadow-sm p-2 gap-2" style="max-height: 80px; align-items: center;">
+                    {% for ev in eventos %}
+                    <div class="log-card position-relative flex-shrink-0 {% if ev.tipo == 'GOL' %}log-gol{% elif ev.tipo == 'TA' %}log-ta{% elif ev.tipo in 'TR,DA' %}log-tr{% elif ev.tipo == 'STAR' %}log-star{% endif %}" style="width: 140px;">
+                        <a href="{% url 'eliminar_evento' ev.id %}" class="position-absolute top-0 end-0 text-muted p-1 lh-1" onclick="return confirm('¿Borrar registro?')" title="Corregir">
+                            <i class="bi bi-x fs-6"></i>
+                        </a>
+                        <div class="pt-1 lh-1">
+                            {% if ev.tipo == 'GOL' %}<span class="text-success fw-black" style="font-size: 0.65rem;">⚽ GOL</span>
+                            {% elif ev.tipo == 'TA' %}<span class="text-warning fw-black" style="font-size: 0.65rem;">🟨 AMARILLA</span>
+                            {% elif ev.tipo == 'TR' %}<span class="text-danger fw-black" style="font-size: 0.65rem;">🟥 ROJA DIR.</span>
+                            {% elif ev.tipo == 'DA' %}<span class="text-danger fw-black" style="font-size: 0.65rem;">🟥 ROJA ACUM.</span>
+                            {% elif ev.tipo == 'STAR' %}<span class="text-warning fw-black" style="font-size: 0.65rem;">⭐ MVP</span>{% endif %}
+                            <div class="text-dark mt-1 fw-bold text-truncate" style="font-size: 0.75rem;">{{ ev.jugador.nombres }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted w-100 small fw-medium opacity-50 py-2">Sin eventos registrados</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="clean-panel h-100 border-top border-4" style="border-top-color: var(--accent-blue) !important;">
+                <div class="team-title d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-black text-primary text-truncate"><i class="bi bi-shield-fill me-1"></i>{{ partido.equipo_local.nombre }}</h6>
+                </div>
+                
+                <div class="p-2">
+                    <div class="fw-black text-success small text-uppercase mb-2 ps-1" style="font-size: 0.7rem;"><i class="bi bi-person-check-fill"></i> En Cancha</div>
+                    <div class="mb-3">
+                        {% for j in jugadores_local %}
+                            {% if j.id in asistencias_ids %}
+                            <div class="player-card shadow-sm {% if j.tr_match > 0 or j.da_match > 0 %}expulsado{% endif %}">
+                                <div class="d-flex align-items-center gap-2 player-name-box">
+                                    <div class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center fw-bold dorsal-circle">{{ j.dorsal }}</div>
+                                    <div style="min-width: 0;">
+                                        <div class="player-name">{{ j.nombres }}</div>
+                                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" class="text-danger fw-bold" style="font-size: 0.65rem; text-decoration: none;" onclick="return confirm('¿Sacar de cancha? Anulará sus goles y tarjetas.');">
+                                            <i class="bi bi-box-arrow-right me-1"></i>Sacar
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="controls-wrapper">
+                                    {% if j.tr_match > 0 or j.da_match > 0 %}
+                                        <div class="d-flex align-items-center bg-light border rounded pe-2 py-1 shadow-sm">
+                                            {% if j.tr_match > 0 %}
+                                                <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TR' %}" class="btn-undo-card border-end pe-1 me-1" onclick="guardarScroll()">-</a>
+                                                <span class="text-danger fw-black" style="font-size: 0.65rem;">ROJA DIR.</span>
+                                            {% else %}
+                                                <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="btn-undo-card border-end pe-1 me-1" onclick="guardarScroll()">-</a>
+                                                <span class="text-danger fw-black" style="font-size: 0.65rem;">ROJA ACUM.</span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <div class="stat-stepper shadow-sm">
+                                            {% if j.goles_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'GOL' %}" onclick="guardarScroll()" class="btn-step sub">-</a>
+                                            {% else %}<span class="btn-step disabled">-</span>{% endif %}
+                                            <span class="stat-val">{{ j.goles_match }}</span>
+                                            <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
+                                                {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="GOL">
+                                                <button type="submit" class="btn-step add">⚽</button>
+                                            </form>
+                                        </div>
+
+                                        <div class="stat-stepper shadow-sm ms-1">
+                                            {% if j.star_match > 0 %}
+                                                <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'STAR' %}" onclick="guardarScroll()" class="btn-step sub text-warning" style="font-size:1.1rem; padding:0 6px;">⭐</a>
+                                            {% else %}
+                                                <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
+                                                    {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="STAR">
+                                                    <button type="submit" class="btn-step add text-muted" style="background: transparent; border: 1px dashed #cbd5e1; font-size:1.1rem; padding:0 6px;" title="Asignar MVP">☆</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="d-flex gap-1 ms-1">
+                                            <div class="bg-light border rounded p-1 d-flex align-items-center">
+                                                {% if j.ta_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="btn-undo-card" onclick="guardarScroll()">-</a>{% endif %}
+                                                <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
+                                                    {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="TA">
+                                                    <button type="submit" class="btn-card btn-ta shadow-sm position-relative">🟨
+                                                        {% if j.ta_match > 0 %}<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark border border-white" style="font-size: 0.55rem;">{{ j.ta_match }}</span>{% endif %}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            <div class="bg-light border rounded p-1 d-flex align-items-center">
+                                                <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
+                                                    {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="TR">
+                                                    <button type="submit" class="btn-card btn-tr shadow-sm" onclick="return confirm('¿Expulsar jugador roja directa?');">🟥</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="fw-black text-muted small text-uppercase mb-2 border-top pt-2 ps-1" style="font-size: 0.7rem;"><i class="bi bi-clock"></i> Banca</div>
+                    <div class="row g-1">
+                        {% for j in jugadores_local %}
+                            {% if j.id not in asistencias_ids %}
+                            <div class="col-6">
+                                <a href="{% url 'toggle_asistencia' partido.id j.id %}" onclick="guardarScroll()" class="bench-player shadow-sm">
+                                    <span class="badge bg-primary px-1">{{ j.dorsal }}</span>
+                                    <span class="fw-bold text-truncate" style="font-size: 0.75rem;">{{ j.nombres }}</span>
+                                </a>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="clean-panel h-100 border-top border-4" style="border-top-color: var(--accent-orange) !important;">
+                <div class="team-title d-flex justify-content-between align-items-center flex-row-reverse">
+                    <h6 class="mb-0 fw-black text-warning text-dark text-truncate"><i class="bi bi-shield-fill me-1"></i>{{ partido.equipo_visita.nombre }}</h6>
+                </div>
+                
+                <div class="p-2">
+                    <div class="fw-black text-success small text-uppercase mb-2 ps-1" style="font-size: 0.7rem;"><i class="bi bi-person-check-fill"></i> En Cancha</div>
+                    <div class="mb-3">
+                        {% for j in jugadores_visita %}
+                            {% if j.id in asistencias_ids %}
+                            <div class="player-card shadow-sm {% if j.tr_match > 0 or j.da_match > 0 %}expulsado{% endif %}">
+                                <div class="d-flex align-items-center gap-2 player-name-box">
+                                    <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold dorsal-circle">{{ j.dorsal }}</div>
+                                    <div style="min-width: 0;">
+                                        <div class="player-name">{{ j.nombres }}</div>
+                                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" class="text-danger fw-bold" style="font-size: 0.65rem; text-decoration: none;" onclick="return confirm('¿Sacar de cancha? Anulará sus goles y tarjetas.');">
+                                            <i class="bi bi-box-arrow-right me-1"></i>Sacar
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="controls-wrapper">
+                                    {% if j.tr_match > 0 or j.da_match > 0 %}
+                                        <div class="d-flex align-items-center bg-light border rounded pe-2 py-1 shadow-sm">
+                                            {% if j.tr_match > 0 %}
+                                                <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TR' %}" class="btn-undo-card border-end pe-1 me-1" onclick="guardarScroll()">-</a>
+                                                <span class="text-danger fw-black" style="font-size: 0.65rem;">ROJA DIR.</span>
+                                            {% else %}
+                                                <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="btn-undo-card border-end pe-1 me-1" onclick="guardarScroll()">-</a>
+                                                <span class="text-danger fw-black" style="font-size: 0.65rem;">ROJA ACUM.</span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <div class="stat-stepper shadow-sm">
+                                            {% if j.goles_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'GOL' %}" onclick="guardarScroll()" class="btn-step sub">-</a>
+                                            {% else %}<span class="btn-step disabled">-</span>{% endif %}
+                                            <span class="stat-val">{{ j.goles_match }}</span>
+                                            <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
+                                                {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="GOL">
+                                                <button type="submit" class="btn-step add">⚽</button>
+                                            </form>
+                                        </div>
+
+                                        <div class="stat-stepper shadow-sm ms-1">
+                                            {% if j.star_match > 0 %}
+                                                <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'STAR' %}" onclick="guardarScroll()" class="btn-step sub text-warning" style="font-size:1.1rem; padding:0 6px;">⭐</a>
+                                            {% else %}
+                                                <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
+                                                    {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="STAR">
+                                                    <button type="submit" class="btn-step add text-muted" style="background: transparent; border: 1px dashed #cbd5e1; font-size:1.1rem; padding:0 6px;" title="Asignar MVP">☆</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="d-flex gap-1 ms-1">
+                                            <div class="bg-light border rounded p-1 d-flex align-items-center">
+                                                {% if j.ta_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="btn-undo-card" onclick="guardarScroll()">-</a>{% endif %}
+                                                <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
+                                                    {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="TA">
+                                                    <button type="submit" class="btn-card btn-ta shadow-sm position-relative">🟨
+                                                        {% if j.ta_match > 0 %}<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark border border-white" style="font-size: 0.55rem;">{{ j.ta_match }}</span>{% endif %}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            <div class="bg-light border rounded p-1 d-flex align-items-center">
+                                                <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
+                                                    {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="TR">
+                                                    <button type="submit" class="btn-card btn-tr shadow-sm" onclick="return confirm('¿Expulsar jugador roja directa?');">🟥</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="fw-black text-muted small text-uppercase mb-2 border-top pt-2 ps-1" style="font-size: 0.7rem;"><i class="bi bi-clock"></i> Banca</div>
+                    <div class="row g-1">
+                        {% for j in jugadores_visita %}
+                            {% if j.id not in asistencias_ids %}
+                            <div class="col-6">
+                                <a href="{% url 'toggle_asistencia' partido.id j.id %}" onclick="guardarScroll()" class="bench-player shadow-sm">
+                                    <span class="badge bg-warning text-dark px-1">{{ j.dorsal }}</span>
+                                    <span class="fw-bold text-truncate" style="font-size: 0.75rem;">{{ j.nombres }}</span>
+                                </a>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-5">
+        
+        <div class="col-lg-6">
+            <div class="clean-panel mb-3 border-danger shadow-sm" style="border-width: 2px;">
+                <div class="card-header bg-danger text-white border-bottom py-2 px-3">
+                    <h6 class="mb-0 fw-black fs-6"><i class="bi bi-wallet2 me-2"></i>Deudas Pendientes (Cobro en Mesa)</h6>
+                </div>
+                <div class="card-body p-3 bg-white">
+                    {% if deudas_pendientes %}
+                        <div class="table-responsive border rounded" style="max-height: 200px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem; color: var(--text-main);">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Equipo</th><th>Motivo</th><th>Deuda</th><th>Abonar ($)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white align-middle">
+                                    {% for deuda in deudas_pendientes %}
+                                    <tr>
+                                        <td class="fw-bold ps-2">{{ deuda.equipo.nombre|truncatechars:12 }}</td>
+                                        <td class="text-muted">{{ deuda.descripcion|truncatechars:18 }}</td>
+                                        <td class="fw-bold text-danger">${{ deuda.saldo }}</td>
+                                        <td class="text-end pe-2">
+                                            <div class="d-flex gap-1 justify-content-end align-items-center">
+                                                
+                                                {% if deuda.monto_pagado > 0 %}
+                                                <form action="{% url 'revertir_cobro_sancion' deuda.id %}" method="POST" class="m-0" onsubmit="return confirm('⚠️ ¿Estás seguro de anular EL ÚLTIMO ABONO de esta sanción?');">
+                                                    {% csrf_token %} <button type="submit" class="btn btn-sm btn-danger fw-bold" title="Reversar Último Abono">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                <form method="post" class="d-flex gap-1 m-0" onsubmit="return confirm('¿Confirmar cobro de este dinero en la mesa de control?')">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="cobrar_deuda" value="1">
+                                                    <input type="hidden" name="sancion_id" value="{{ deuda.id }}">
+                                                    <input type="number" step="0.01" max="{{ deuda.saldo }}" name="monto_abono" class="form-control form-control-sm border-danger text-center" placeholder="Total" style="width: 70px;">
+                                                    <button type="submit" class="btn btn-sm btn-success fw-bold"><i class="bi bi-check-lg"></i></button>
+                                                </form>
+
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-2 small fw-bold">
+                            <i class="bi bi-emoji-sunglasses fs-5 d-block mb-1"></i> Ambos equipos están al día.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="clean-panel shadow-sm">
+                <div class="card-header bg-white border-bottom py-3 px-3">
+                    <h6 class="mb-0 fw-black text-dark fs-6"><i class="bi bi-cash-coin text-success me-2"></i>Multas Administrativas</h6>
+                </div>
+                <div class="card-body p-3 bg-white">
+                    <form method="post" id="formMulta" class="mb-3">
+                        {% csrf_token %}<input type="hidden" name="nueva_multa" value="1">
+                        <select name="equipo_multa" class="form-select clean-input mb-2" required>
+                            <option value="{{ partido.equipo_local.id }}">{{ partido.equipo_local.nombre }}</option>
+                            <option value="{{ partido.equipo_visita.id }}">{{ partido.equipo_visita.nombre }}</option>
+                        </select>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" class="btn btn-sm btn-light border py-1 px-3 fw-bold text-dark" onclick="setMulta('Barra agresiva', '5.00')">Barra ($5)</button>
+                            <button type="button" class="btn btn-sm btn-light border py-1 px-3 fw-bold text-dark" onclick="setMulta('Invasión de cancha', '5.00')">Invasión ($5)</button>
+                        </div>
+                        <div class="d-flex gap-2 mb-2">
+                            <input type="text" name="motivo_multa" id="inputMotivo" class="form-control clean-input" placeholder="Escribe el motivo..." required>
+                            <input type="number" step="0.01" name="monto_multa" id="inputMonto" class="form-control clean-input fw-bold text-danger w-25 text-center" placeholder="$0.00" required>
+                        </div>
+                        <button type="submit" class="btn btn-dark btn-sm w-100 fw-bold shadow-sm py-2">Aplicar Multa al Equipo</button>
+                    </form>
+                    
+                    {% if multas %}
+                        <div class="table-responsive border rounded" style="max-height: 120px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem; color: var(--text-main);">
+                                <tbody class="bg-white">
+                                    {% for m in multas %}
+                                    <tr>
+                                        <td class="fw-bold ps-2">{{ m.equipo.nombre|truncatechars:12 }}</td>
+                                        <td class="text-muted">{{ m.motivo }}</td>
+                                        <td class="fw-bold text-danger">${{ m.monto }}</td>
+                                        <td class="text-end pe-2"><a href="{% url 'eliminar_multa' m.id %}" class="text-danger" onclick="return confirm('¿Borrar multa?')"><i class="bi bi-trash"></i></a></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="clean-panel h-100 border-primary shadow-sm" style="border-width: 2px;">
+                <div class="card-header bg-dark text-white py-3 px-3 text-center">
+                    <h6 class="m-0 fw-black text-uppercase" style="letter-spacing: 1px;">Oficializar Cierre de Acta</h6>
+                </div>
+                <div class="card-body p-3 bg-white">
+                    <form method="post" id="actaForm" onsubmit="return validarFinalizacion(event)">
+                        {% csrf_token %}<input type="hidden" name="guardar_informe" value="1">
+                        
+                        {% if partido.etapa in '4TOS,SEMI,TERC,FINAL' %}
+                        <div class="bg-warning bg-opacity-10 border border-warning rounded p-3 mb-3 text-center">
+                            <span class="d-block fw-bold text-dark mb-2"><i class="bi bi-bullseye"></i> Tiros Penales (En caso de Empate)</span>
+                            <div class="d-flex justify-content-center align-items-center gap-3">
+                                <input type="number" name="penales_local" class="form-control text-center fw-black w-25" value="{{ partido.penales_local|default:0 }}" min="0">
+                                <span class="fw-black text-muted">VS</span>
+                                <input type="number" name="penales_visita" class="form-control text-center fw-black w-25" value="{{ partido.penales_visita|default:0 }}" min="0">
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label class="fw-bold text-dark small mb-1"><i class="bi bi-clipboard-data me-1 text-primary"></i>Informe del Vocal (Mesa)</label>
+                            <textarea name="informe_vocal" class="form-control clean-input" rows="3" placeholder="Escribe aquí las novedades de la mesa, balones, comportamiento del público...">{{ partido.informe_vocal }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold text-dark small mb-1"><i class="bi bi-whistle me-1 text-danger"></i>Informe del Árbitro Central</label>
+                            <textarea name="informe_arbitro" class="form-control clean-input" rows="3" placeholder="Escribe aquí los motivos de expulsiones, reclamos en cancha...">{{ partido.informe_arbitro }}</textarea>
+                        </div>
+                        
+                        <div class="row g-2 mb-4 mt-2">
+                            <div class="col-6">
+                                <div class="signature-box position-relative {% if partido.validado_local %}signed{% endif %}">
+                                    <div class="form-check form-switch d-inline-block m-0">
+                                        <input class="form-check-input" type="checkbox" name="validado_local" id="vl" style="width:3em;height:1.5em; cursor: pointer;" {% if partido.validado_local %}checked{% endif %} onchange="toggleSignatureStyle(this)">
+                                    </div>
+                                    <label class="d-block fw-black mt-2 text-dark" for="vl" style="font-size: 0.75rem;">CAPITÁN LOCAL</label>
+                                    <small class="text-primary fw-bold text-truncate d-block mt-1" style="font-size: 0.65rem;">{{ partido.equipo_local.nombre }}</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="signature-box position-relative {% if partido.validado_visita %}signed{% endif %}">
+                                    <div class="form-check form-switch d-inline-block m-0">
+                                        <input class="form-check-input" type="checkbox" name="validado_visita" id="vv" style="width:3em;height:1.5em; cursor: pointer;" {% if partido.validado_visita %}checked{% endif %} onchange="toggleSignatureStyle(this)">
+                                    </div>
+                                    <label class="d-block fw-black mt-2 text-dark" for="vv" style="font-size: 0.75rem;">CAPITÁN VISITA</label>
+                                    <small class="text-warning fw-bold text-truncate d-block mt-1 text-dark" style="font-size: 0.65rem;">{{ partido.equipo_visita.nombre }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex flex-column gap-2">
+                            <button type="submit" name="guardar_y_volver" value="1" class="btn btn-outline-secondary py-2 fw-bold rounded-pill shadow-sm" onclick="ignorarValidacion=true;">
+                                <i class="bi bi-save2 me-1"></i> Guardar Borrador (Sin Cerrar)
+                            </button>
+                            <div class="d-flex gap-2 mt-1">
+                                <a href="{% url 'generar_acta_pdf' partido.id %}" target="_blank" class="btn btn-light border fw-bold rounded-pill shadow-sm d-flex align-items-center justify-content-center" style="width: 25%;" title="Ver Acta PDF">
+                                    <i class="bi bi-file-pdf-fill text-danger fs-5"></i>
+                                </a>
+                                <button type="submit" class="btn btn-primary fw-black shadow-sm rounded-pill py-2" style="width: 75%; letter-spacing: 1px; font-size: 1.1rem;">
+                                    FINALIZAR
+                                </button>
+                            </div>
+                            
+                            <button type="button" class="btn btn-danger mt-3 fw-bold shadow-sm rounded-pill py-2" data-bs-toggle="modal" data-bs-target="#modalWO" onclick="ignorarValidacion=true;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Declarar W.O. (Walkover)
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalWO" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-danger text-white border-0" style="border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title fw-black"><i class="bi bi-exclamation-triangle-fill me-2"></i>Declarar Walkover (W.O.)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="declarar_wo" value="1">
+                <div class="modal-body p-4">
+                    <p class="text-muted small fw-bold mb-3">Selecciona el tipo de W.O. Esto finalizará el partido y asignará los puntos automáticamente.</p>
+                    
+                    <div class="form-check mb-3 p-3 border rounded bg-light" style="cursor: pointer;">
+                        <input class="form-check-input ms-1" type="radio" name="tipo_wo" value="LOCAL" id="woLocal" required>
+                        <label class="form-check-label fw-bold ms-2 text-dark" for="woLocal" style="cursor: pointer;">
+                            🏆 W.O a favor de <span class="text-primary">{{ partido.equipo_local.nombre }}</span><br>
+                            <small class="text-muted fw-normal">Gana 3-0. El equipo visitante NO se presentó.</small>
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3 p-3 border rounded bg-light" style="cursor: pointer;">
+                        <input class="form-check-input ms-1" type="radio" name="tipo_wo" value="VISITA" id="woVisita">
+                        <label class="form-check-label fw-bold ms-2 text-dark" for="woVisita" style="cursor: pointer;">
+                            🏆 W.O a favor de <span class="text-warning text-dark">{{ partido.equipo_visita.nombre }}</span><br>
+                            <small class="text-muted fw-normal">Gana 0-3. El equipo local NO se presentó.</small>
+                        </label>
+                    </div>
+
+                    <div class="form-check p-3 border rounded" style="background-color: #fef2f2; border-color: #fca5a5!important; cursor: pointer;">
+                        <input class="form-check-input ms-1" type="radio" name="tipo_wo" value="DOBLE" id="woDoble">
+                        <label class="form-check-label fw-bold ms-2 text-danger" for="woDoble" style="cursor: pointer;">
+                            ❌ Doble W.O (Ninguno se presentó)<br>
+                            <small class="text-muted fw-normal">El partido termina 0-0. Ningún equipo suma puntos (Ambos pierden).</small>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light rounded-bottom">
+                    <button type="button" class="btn btn-secondary fw-bold rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger fw-black rounded-pill px-4" onclick="return confirm('¿Estás seguro de declarar W.O? Esta acción es irreversible y cerrará el partido oficialmente.')">Aplicar W.O.</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // LÓGICA DEL CONTADOR DE FALTAS (INDOOR)
+    // ==========================================
+    const partidoId = "{{ partido.id }}";
+    
+    function initFaltas() {
+        let fl = parseInt(sessionStorage.getItem('faltas_local_' + partidoId)) || 0;
+        let fv = parseInt(sessionStorage.getItem('faltas_visita_' + partidoId)) || 0;
+        renderFaltas('local', fl);
+        renderFaltas('visita', fv);
+    }
+
+    function updateFaltas(equipo, action) {
+        let key = 'faltas_' + equipo + '_' + partidoId;
+        let current = parseInt(sessionStorage.getItem(key)) || 0;
+        
+        if (action === 'reset') {
+            current = 0;
+        } else {
+            current += action;
+            if (current < 0) current = 0;
+        }
+        
+        sessionStorage.setItem(key, current);
+        renderFaltas(equipo, current);
+    }
+
+    function renderFaltas(equipo, value) {
+        // Actualiza el número visual
+        document.getElementById('faltas' + equipo.charAt(0).toUpperCase() + equipo.slice(1) + 'Val').innerText = value;
+        
+        // Muestra u oculta la alerta de Tiro de Castigo
+        const badge = document.getElementById('castigo' + equipo.charAt(0).toUpperCase() + equipo.slice(1));
+        if (value >= 6) {
+            badge.classList.remove('d-none');
+        } else {
+            badge.classList.add('d-none');
+        }
+    }
+    
+    // Inicializar al cargar la página
+    document.addEventListener('DOMContentLoaded', initFaltas);
+
+    // ==========================================
+    // RESTO DE FUNCIONES DE VOCALÍA
+    // ==========================================
+    function setMulta(motivo, monto) {
+        document.getElementById('inputMotivo').value = motivo;
+        document.getElementById('inputMonto').value = monto;
+    }
+    
+    function guardarScroll() { sessionStorage.setItem('scrollPos', window.scrollY); }
+    document.addEventListener("DOMContentLoaded", function() {
+        let scrollPos = sessionStorage.getItem('scrollPos');
+        if (scrollPos) { window.scrollTo(0, scrollPos); sessionStorage.removeItem('scrollPos'); }
+    });
+
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted) { window.location.reload(); }
+    });
+
+    let formModificado = false;
+    let ignorarValidacion = false; 
+
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(ta => {
+        ta.addEventListener('input', () => { formModificado = true; });
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+        if (formModificado) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    function toggleSignatureStyle(checkbox) {
+        formModificado = true;
+        const box = checkbox.closest('.signature-box');
+        if (checkbox.checked) {
+            box.classList.add('signed');
+        } else {
+            box.classList.remove('signed');
+        }
+    }
+
+    function validarFinalizacion(e) {
+        formModificado = false; 
+        if (ignorarValidacion) return true;
+
+        const vl = document.getElementById('vl').checked;
+        const vv = document.getElementById('vv').checked;
+
+        if (!vl || !vv) {
+            return confirm('⚠️ ¡FALTAN FIRMAS DE CAPITANES!\n\nUno o ambos equipos no han validado el acta.\n\n¿Estás completamente seguro de que deseas FINALIZAR y CERRAR el partido de todos modos?');
+        }
+
+        return confirm('¿Seguro que deseas FINALIZAR?\n\nSe cerrará el acta del partido y se aplicarán todas las estadísticas y sanciones en el torneo.');
+    }
+</script>
+{% endblock %}

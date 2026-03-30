@@ -1,0 +1,141 @@
+{% extends 'core/base.html' %}
+
+{% block contenido %}
+<style>
+    .clean-panel {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        overflow: hidden;
+    }
+    .score-input {
+        width: 80px;
+        height: 80px;
+        font-size: 2.5rem;
+        font-weight: 800;
+        text-align: center;
+        background-color: #f8fafc;
+        border: 2px solid #cbd5e1;
+        border-radius: 12px;
+        color: #0f172a;
+        transition: all 0.2s;
+    }
+    .score-input:focus {
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+        outline: none;
+    }
+    .team-name {
+        font-weight: 800;
+        color: #334155;
+        font-size: 1.1rem;
+        margin-top: 10px;
+        letter-spacing: -0.3px;
+    }
+</style>
+
+<div class="row justify-content-center animate__animated animate__fadeInUp">
+    <div class="col-md-8 col-lg-6">
+        
+        <div class="clean-panel">
+            <div class="bg-light border-bottom text-center py-4">
+                <h5 class="text-dark fw-bold mb-2"><i class="bi bi-bullseye text-primary me-2"></i>Registrar Marcador Manual</h5>
+                <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-1 rounded-pill fw-bold">
+                    {{ partido.torneo.nombre }} - {{ partido.get_etapa_display }}
+                </span>
+            </div>
+            
+            <div class="card-body p-4 p-md-5">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="d-flex align-items-center justify-content-between mb-5">
+                        
+                        <div class="text-center w-50 px-2">
+                            {% if partido.equipo_local.escudo %}
+                                <img src="{{ partido.equipo_local.escudo.url }}" width="75" height="75" class="mb-2 rounded-circle shadow-sm" style="object-fit: cover; border: 3px solid #fff;">
+                            {% else %}
+                                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-2 shadow-sm border" style="width: 75px; height: 75px;">
+                                    <i class="bi bi-shield-fill fs-1 text-secondary opacity-25"></i>
+                                </div>
+                            {% endif %}
+                            <div class="team-name text-truncate" title="{{ partido.equipo_local.nombre }}">{{ partido.equipo_local.nombre }}</div>
+                            <span class="text-primary small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 1px;">Local</span>
+                            
+                            <input type="number" name="goles_local" class="score-input mx-auto" value="{{ partido.goles_local }}" min="0" required>
+                        </div>
+
+                        <div class="d-flex flex-column align-items-center">
+                            <span class="badge bg-dark rounded-pill mb-2 px-3 py-2 shadow-sm">VS</span>
+                            <div style="height: 50px; width: 2px; background-color: #e2e8f0; border-radius: 2px;"></div>
+                        </div>
+
+                        <div class="text-center w-50 px-2">
+                            {% if partido.equipo_visita.escudo %}
+                                <img src="{{ partido.equipo_visita.escudo.url }}" width="75" height="75" class="mb-2 rounded-circle shadow-sm" style="object-fit: cover; border: 3px solid #fff;">
+                            {% else %}
+                                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-2 shadow-sm border" style="width: 75px; height: 75px;">
+                                    <i class="bi bi-shield-fill fs-1 text-secondary opacity-25"></i>
+                                </div>
+                            {% endif %}
+                            <div class="team-name text-truncate" title="{{ partido.equipo_visita.nombre }}">{{ partido.equipo_visita.nombre }}</div>
+                            <span class="text-warning small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 1px;">Visita</span>
+                            
+                            <input type="number" name="goles_visita" class="score-input mx-auto" value="{{ partido.goles_visita }}" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="bg-danger bg-opacity-10 border border-danger-subtle rounded-3 p-3 mb-4 d-flex align-items-center justify-content-center gap-3 transition-all" id="wo-container">
+                        <div class="form-check form-switch m-0 d-flex align-items-center gap-2">
+                            <input class="form-check-input shadow-sm" type="checkbox" name="wo" id="woCheck" style="width: 3em; height: 1.5em; cursor: pointer;">
+                            <label class="form-check-label text-danger fw-bold m-0" for="woCheck" style="cursor: pointer; padding-top: 4px;">
+                                Terminar por W.O. (Inasistencia)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-3">
+                        <button type="submit" class="btn btn-dark btn-lg fw-bold rounded-3 shadow-sm py-3" style="font-size: 1.1rem;">
+                            <i class="bi bi-check2-circle me-2"></i> GUARDAR MARCADOR
+                        </button>
+                        <a href="{% url 'programar_partidos' %}?torneo={{ partido.torneo.id }}" class="btn btn-light border text-muted fw-bold rounded-3 py-2">
+                            Cancelar y Volver
+                        </a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Magia para el W.O. (Bloquea los inputs y pone 3-0 automáticamente)
+    document.getElementById('woCheck').addEventListener('change', function() {
+        const inputs = document.querySelectorAll('.score-input');
+        const container = document.getElementById('wo-container');
+        
+        if(this.checked) {
+            inputs[0].value = 3;
+            inputs[1].value = 0;
+            inputs.forEach(i => {
+                i.readOnly = true;
+                i.style.backgroundColor = "#e2e8f0";
+                i.style.color = "#ef4444";
+            });
+            container.classList.replace('bg-opacity-10', 'bg-opacity-25');
+        } else {
+            inputs[0].value = {{ partido.goles_local }};
+            inputs[1].value = {{ partido.goles_visita }};
+            inputs.forEach(i => {
+                i.readOnly = false;
+                i.style.backgroundColor = "#f8fafc";
+                i.style.color = "#0f172a";
+            });
+            container.classList.replace('bg-opacity-25', 'bg-opacity-10');
+        }
+    });
+</script>
+{% endblock %}

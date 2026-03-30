@@ -1,0 +1,58 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Confirmar Cancelación | NEXT LEVEL{% endblock %}
+
+{% block contenido %}
+<div class="container animate__animated animate__fadeInUp">
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="card card-pro border-0 shadow-lg rounded-4 overflow-hidden position-relative">
+                <div class="position-absolute top-0 start-0 w-100" style="height: 5px; background-color: #EF4444;"></div>
+                
+                <div class="card-body text-center p-4 p-md-5 mt-2">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm mb-3" style="width: 70px; height: 70px; background-color: #FEF2F2; border: 4px solid #FEE2E2;">
+                        <i class="bi bi-exclamation-triangle-fill fs-1 text-danger"></i>
+                    </div>
+                    
+                    <h3 class="fw-black mb-2" style="color: var(--primary-navy); letter-spacing: -0.5px;">Confirmar Cancelación</h3>
+                    <h6 class="text-muted mb-4 fw-medium">Estás a punto de cancelar de forma permanente:</h6>
+                    
+                    <div class="p-3 mb-4 rounded-3 fw-bold fs-5 text-dark shadow-sm" style="background-color: var(--bg-body); border: 1px dashed #CBD5E1;">
+                        {{ tipo }}
+                    </div>
+
+                    <div class="bg-light rounded-4 p-4 border border-secondary-subtle shadow-sm mb-4 text-start">
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.85rem;"><i class="bi bi-receipt-cutoff me-2"></i>Multa por cancelación:</span>
+                            <span class="fw-bold text-danger">-${{ multa }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-1">
+                            <span class="text-muted fw-bold text-uppercase" style="font-size: 0.85rem;"><i class="bi bi-cash-coin me-2"></i>Monto a Reembolsar:</span>
+                            <span class="fw-black fs-3" style="color: var(--primary-blue);">${{ reembolso }}</span>
+                        </div>
+                    </div>
+
+                    {% if extra_info %}
+                        <div class="alert alert-info border-0 rounded-3 small text-start fw-medium mb-4 shadow-sm" style="background-color: #EFF6FF; color: #1E3A8A;">
+                            <i class="bi bi-info-circle-fill me-2 fs-6 align-middle"></i> {{ extra_info }}
+                        </div>
+                    {% endif %}
+
+                    <form method="post" class="mt-2">
+                        {% csrf_token %}
+                        <div class="d-grid gap-3 d-md-flex justify-content-center">
+                            <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold transition-all w-100 w-md-auto" style="border-color: #CBD5E1;">
+                                <i class="bi bi-arrow-left me-1"></i> Volver
+                            </a>
+                            <button type="submit" class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm w-100 w-md-auto transition-all" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                                <i class="bi bi-trash3-fill me-1"></i> Confirmar Cancelación
+                            </button>
+                        </div>
+                    </form>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

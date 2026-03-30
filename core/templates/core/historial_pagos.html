@@ -1,0 +1,135 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Historial de Pagos | NEXT LEVEL{% endblock %}
+
+{% block contenido %}
+<div class="row animate__animated animate__fadeIn">
+    <div class="col-12 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center border-bottom pb-3">
+        <div class="mb-3 mb-md-0">
+            <h2 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">
+                <i class="bi bi-journal-text me-2" style="color: var(--primary-blue);"></i>Historial de Pagos
+            </h2>
+            <p class="text-muted small fw-medium mb-0 mt-1">
+                Seguimiento de transacciones para: <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2">{{ equipo.nombre|upper }}</span>
+            </p>
+        </div>
+        <a href="{% url 'gestionar_finanzas' %}" class="btn btn-outline-secondary fw-bold rounded-pill px-4 shadow-sm transition-all" style="border-color: #CBD5E1;">
+            <i class="bi bi-arrow-left me-1"></i> Volver a Finanzas
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-pro border-0 shadow-sm mb-4 text-center p-4 p-lg-5 rounded-4 overflow-hidden position-relative">
+            <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background: linear-gradient(to right, var(--primary-navy), var(--primary-blue));"></div>
+            
+            {% if equipo.escudo %}
+                <img src="{{ equipo.escudo.url }}" class="mx-auto rounded-circle mb-3 border border-2 border-white shadow-sm p-1" width="110" height="110" style="object-fit: cover; background-color: var(--bg-body);">
+            {% else %}
+                <div class="mx-auto rounded-circle d-flex align-items-center justify-content-center text-white fw-bold mb-3 shadow-sm" style="width: 110px; height: 110px; font-size: 2.5rem; background-color: var(--primary-navy);">
+                    {{ equipo.nombre|slice:":1" }}
+                </div>
+            {% endif %}
+            
+            <h4 class="fw-black text-dark mb-4">{{ equipo.nombre }}</h4>
+            
+            <div class="p-3 rounded-4 mb-4 shadow-inner" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white">
+                    <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Abonado:</span>
+                    <span class="fw-black text-success fs-5">${{ equipo.total_pagado }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Pendiente:</span>
+                    <span class="fw-black text-danger fs-5">${{ equipo.deuda_pendiente }}</span>
+                </div>
+            </div>
+
+            {% if equipo.deuda_pendiente > 0 %}
+            <div class="d-grid">
+                <a href="{% url 'registrar_pago' %}?equipo={{ equipo.id }}" class="btn text-white fw-bold rounded-pill py-2 shadow-sm transition-all" style="background-color: var(--primary-blue);" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                    <i class="bi bi-plus-circle-fill me-2"></i> NUEVO ABONO
+                </a>
+            </div>
+            {% else %}
+            <div class="alert alert-success py-3 mb-0 rounded-4 border-0 shadow-sm d-flex align-items-center justify-content-center">
+                <i class="bi bi-patch-check-fill fs-5 me-2"></i> <span class="fw-bold">EQUIPO AL DÍA</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card card-pro border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-header border-bottom py-3 d-flex align-items-center justify-content-between bg-white">
+                <h6 class="mb-0 fw-black text-dark text-uppercase small" style="letter-spacing: 1px;">
+                    <i class="bi bi-list-ul me-2" style="color: var(--primary-blue);"></i>Detalle de Transacciones
+                </h6>
+                <span class="badge bg-light text-dark border border-secondary-subtle rounded-pill fw-medium">{{ pagos.count }} registros</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="small text-muted text-uppercase" style="background-color: #F8FAFC; letter-spacing: 0.5px;">
+                            <tr>
+                                <th class="ps-4 py-3 border-0">Fecha / Ref.</th>
+                                <th class="py-3 border-0">Monto</th>
+                                <th class="py-3 border-0 text-center">Archivos</th>
+                                <th class="py-3 border-0">Observación</th>
+                            </tr>
+                        </thead>
+                        <tbody class="border-top-0">
+                            {% for pago in pagos %}
+                            <tr class="transition-all">
+                                <td class="ps-4">
+                                    <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">{{ pago.fecha|date:"d M, Y" }}</span>
+                                    <code class="text-muted" style="font-size: 0.7rem;">ID: #{{ pago.id|stringformat:"04d" }}</code>
+                                </td>
+                                <td>
+                                    <span class="fw-black fs-5" style="color: var(--primary-blue);">${{ pago.monto }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                                        <a href="{% url 'generar_recibo_pago_pdf' pago.id %}" target="_blank" class="btn btn-sm btn-white border border-secondary-subtle" title="Descargar Recibo Oficial PDF">
+                                            <i class="bi bi-file-pdf-fill text-danger fs-5"></i>
+                                        </a>
+                                        
+                                        {% if pago.comprobante %}
+                                            <a href="{{ pago.comprobante.url }}" target="_blank" class="btn btn-sm btn-white border border-secondary-subtle border-start-0" title="Ver Comprobante de Transferencia">
+                                                <i class="bi bi-image-fill text-primary fs-5"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-muted fw-medium" style="font-size: 0.8rem; max-width: 250px; line-height: 1.2;">
+                                        {{ pago.observacion|default:"Abono a cuenta de torneo" }}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5">
+                                    <div class="py-5">
+                                        <i class="bi bi-cash-stack fs-1 text-muted opacity-25 d-block mb-3"></i>
+                                        <p class="text-muted fw-medium mb-0">No se registran transacciones previas para este equipo.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Efecto hover en filas */
+    tbody tr:hover { background-color: var(--bg-body) !important; }
+    
+    /* Sombras internas para cajas de texto */
+    .shadow-inner {
+        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+    }
+</style>
+{% endblock %}

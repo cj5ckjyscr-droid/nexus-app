@@ -1,0 +1,274 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Gestión de Torneos | NEXT LEVEL{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ==========================================
+       ESTILOS PREMIUM - GESTIÓN TORNEOS NEXT LEVEL
+       ========================================== */
+    :root {
+        --clean-bg: #F4F7FA;
+        --clean-surface: #FFFFFF;
+        --clean-border: #CBD5E1;
+        --text-main: #1E293B;
+        --primary-blue: #1D4ED8;
+        --primary-navy: #0A192F;
+        --accent-green: #10B981;
+        --accent-gold: #F59E0B;
+        --accent-red: #EF4444;
+    }
+
+    body { background-color: var(--clean-bg); }
+
+    /* Tarjetas Generales */
+    .card-pro {
+        border: 0; border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        background: var(--clean-surface);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        overflow: hidden;
+    }
+    .card-pro:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px rgba(29, 78, 216, 0.08);
+    }
+
+    .form-panel { border-top: 5px solid var(--primary-navy); }
+    .form-panel.edit-mode { border-top-color: var(--primary-blue); }
+
+    /* Estilos de Inputs Limpios */
+    .clean-input {
+        width: 100%; padding: 0.6rem 1rem;
+        border: 1px solid var(--clean-border);
+        border-radius: 10px; background-color: #F8FAFC;
+        color: var(--text-main); font-weight: 600; font-size: 0.85rem;
+        transition: all 0.3s ease;
+    }
+    .clean-input:focus {
+        border-color: var(--primary-blue); background-color: #fff;
+        outline: none; box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15);
+    }
+    
+    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: var(--primary-navy); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; display: block; }
+
+    /* Switches (Interruptores) */
+    .form-switch .form-check-input {
+        width: 3rem; height: 1.5rem; cursor: pointer;
+        background-color: #CBD5E1; border-color: #CBD5E1;
+    }
+    .form-switch .form-check-input:checked {
+        background-color: var(--primary-blue); border-color: var(--primary-blue);
+    }
+
+    /* Tarjetas de Torneos Compactas */
+    .tournament-card { 
+        border-left: 4px solid var(--primary-blue); 
+        border-radius: 12px;
+    }
+    .tournament-card.inactive { 
+        border-left-color: var(--clean-border); 
+        opacity: 0.85; 
+        filter: grayscale(80%); 
+    }
+    .tournament-card.inactive:hover { opacity: 1; filter: grayscale(20%); }
+    
+    .status-badge { font-size: 0.6rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.5px; }
+    
+    .stat-box { text-align: center; padding: 6px 2px; }
+    .stat-val { font-size: 0.9rem; font-weight: 900; color: var(--primary-navy); }
+    .stat-label { font-size: 0.55rem; color: #64748B; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Cabecera de Categoría */
+    .cat-header {
+        background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
+        color: #ffffff;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+
+    /* Botones de acción circular */
+    .btn-circle-action {
+        width: 28px; height: 28px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        border: none; transition: all 0.2s; text-decoration: none;
+    }
+    .btn-circle-action:hover { transform: scale(1.15); filter: brightness(0.95); }
+    .btn-edit { background: #EFF6FF; color: var(--primary-blue); }
+    .btn-delete { background: #FEE2E2; color: #B91C1C; }
+
+    @media (max-width: 768px) {
+        .card-pro { border-radius: 12px; }
+        .sticky-top { position: static !important; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="row g-4 animate__animated animate__fadeIn pb-5">
+    
+    <div class="col-lg-4">
+        <div class="card card-pro form-panel shadow-sm sticky-top {% if editando %}edit-mode{% endif %}" style="top: 90px; z-index: 10;">
+            
+            <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center mt-1">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; background: {% if editando %}#EFF6FF; color: var(--primary-blue);{% else %}#F4F7FA; color: var(--primary-navy);{% endif %}">
+                    <i class="bi {% if editando %}bi-pencil-fill{% else %}bi-trophy-fill{% endif %} fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="fw-black text-dark mb-0 fs-6">{% if editando %}Editar Torneo{% else %}Nuevo Torneo{% endif %}</h5>
+                    <small class="text-muted fw-medium" style="font-size: 0.75rem;">{% if editando %}{{ torneo_edit.nombre }}{% else %}Configura el campeonato{% endif %}</small>
+                </div>
+            </div>
+
+            <div class="card-body p-4 bg-white">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3">
+                        {% for field in form %}
+                            {% if field.field.widget.input_type == 'checkbox' %}
+                                <div class="col-12 mt-3">
+                                    <div class="form-check form-switch bg-light border border-secondary-subtle rounded-3 p-3 d-flex justify-content-between align-items-center mb-0 shadow-sm">
+                                        <div>
+                                            <label class="form-check-label fw-bold text-dark d-block m-0 text-uppercase" for="{{ field.id_for_label }}" style="font-size: 0.8rem; letter-spacing: 0.5px;">{{ field.label }}</label>
+                                            {% if field.help_text %}<small class="text-muted d-block lh-sm mt-1" style="font-size: 0.7rem;">{{ field.help_text }}</small>{% endif %}
+                                        </div>
+                                        <div class="ms-3">{{ field }}</div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="col-12">
+                                    <label class="form-label-pro">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.help_text %}<div class="text-muted mt-1" style="font-size: 0.7rem;"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>{% endif %}
+                                    {% if field.errors %}<div class="text-danger mt-1 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors.0 }}</div>{% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4 pt-4 border-top">
+                        <button type="submit" class="btn py-2 fw-bold shadow-sm rounded-pill text-white transition-all" style="background-color: {% if editando %}var(--primary-blue){% else %}var(--primary-navy){% endif %}; font-size: 0.9rem;">
+                            <i class="bi bi-save2 me-2"></i> {% if editando %}Guardar Cambios{% else %}Crear Torneo{% endif %}
+                        </button>
+                        {% if editando %}
+                            <a href="{% url 'gestionar_torneos' %}" class="btn btn-light border py-2 text-muted fw-bold rounded-pill transition-all" style="font-size: 0.85rem;">Cancelar Edición</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4 px-1 pb-2 border-bottom">
+            <h5 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">
+                <i class="bi bi-ui-checks-grid me-2" style="color: var(--primary-blue);"></i>Torneos Registrados
+            </h5>
+            <span class="badge rounded-pill shadow-sm fs-6" style="background-color: var(--primary-navy);">{{ torneos.count }}</span>
+        </div>
+
+        {% if torneos %}
+            {% regroup torneos by categoria as categorias_agrupadas %}
+
+            {% for cat in categorias_agrupadas %}
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="cat-header fw-black shadow-sm">
+                            <i class="bi bi-bookmark-star-fill text-warning me-1"></i> 
+                            CATEGORÍA: {{ cat.grouper.nombre|default:"SIN ASIGNAR"|upper }}
+                        </div>
+                        <div class="ms-3 flex-grow-1 border-top border-dashed"></div>
+                    </div>
+
+                    <div class="row g-3">
+                        {% for t in cat.list %}
+                        <div class="col-md-6">
+                            <div class="card card-pro tournament-card h-100 {% if not t.activo %}inactive{% endif %} p-3">
+                                
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="text-secondary fw-bold" style="font-size: 0.7rem;">
+                                        <i class="bi bi-calendar-event me-1"></i>Inició: {{ t.fecha_inicio|date:"d M Y" }}
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <a href="{% url 'editar_torneo' t.id %}" class="btn-circle-action btn-edit shadow-sm" title="Editar Torneo">
+                                            <i class="bi bi-pencil-fill" style="font-size: 0.7rem;"></i>
+                                        </a>
+                                        <a href="{% url 'eliminar_torneo' t.id %}" class="btn-circle-action btn-delete shadow-sm" title="Eliminar Torneo" onclick="return confirm('¡ADVERTENCIA!\n\n¿Seguro de eliminar el torneo \'{{ t.nombre }}\'?');">
+                                            <i class="bi bi-trash3-fill" style="font-size: 0.7rem;"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <h6 class="fw-black text-dark mb-2 text-truncate" style="font-size: 1rem;" title="{{ t.nombre }}">
+                                    {{ t.nombre }}
+                                </h6>
+
+                                <div class="d-flex flex-wrap gap-1 mb-3">
+                                    {% if t.activo %}
+                                        <span class="badge status-badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-play-circle-fill me-1"></i>En Curso</span>
+                                    {% else %}
+                                        <span class="badge status-badge bg-secondary bg-opacity-10 text-secondary border border-secondary"><i class="bi bi-stop-circle-fill me-1"></i>Finalizado</span>
+                                    {% endif %}
+
+                                    {% if t.inscripcion_abierta %}
+                                        <span class="badge status-badge bg-primary bg-opacity-10 text-primary border border-primary"><i class="bi bi-door-open-fill me-1"></i>Abierto</span>
+                                    {% else %}
+                                        <span class="badge status-badge bg-danger bg-opacity-10 text-danger border border-danger"><i class="bi bi-door-closed-fill me-1"></i>Cerrado</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="bg-light rounded-3 border mt-auto">
+                                    <div class="row g-0">
+                                        <div class="col-5 stat-box border-end">
+                                            <div class="stat-val text-dark">
+                                                {% if t.cobro_por_jugador %}
+                                                    ${{ t.costo_inscripcion_jugador }}
+                                                {% else %}
+                                                    ${{ t.costo_inscripcion }}
+                                                {% endif %}
+                                            </div>
+                                            <div class="stat-label">{% if t.cobro_por_jugador %}Insc/Jug{% else %}Inscrip.{% endif %}</div>
+                                        </div>
+                                        <div class="col-3 stat-box border-end">
+                                            <div class="stat-val text-dark">${{ t.costo_amarilla }}</div>
+                                            <div class="stat-label">TA (🟨)</div>
+                                        </div>
+                                        <div class="col-4 stat-box">
+                                            <div class="stat-val text-dark">${{ t.costo_roja }}</div>
+                                            <div class="stat-label">TR (🟥)</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+
+        {% else %}
+            <div class="text-center py-5 rounded-4 border border-dashed bg-white shadow-sm mt-2">
+                <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border" style="width: 80px; height: 80px;">
+                    <i class="bi bi-trophy text-muted opacity-50" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="text-dark fw-bold mt-2">No hay torneos registrados</h5>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('form input[type="text"], form input[type="number"], form input[type="date"], form select');
+        inputs.forEach(input => {
+            if (!input.classList.contains('form-check-input')) {
+                input.classList.add('clean-input');
+            }
+        });
+    });
+</script>
+{% endblock %}

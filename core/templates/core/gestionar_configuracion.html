@@ -1,0 +1,31 @@
+{% extends 'core/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block contenido %}
+<div class="row justify-content-center animate__animated animate__fadeInUp">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-0 rounded-4 shadow-lg bg-white mt-4">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 text-center">
+                <div class="icon-box-lg mx-auto bg-primary bg-opacity-10 text-primary mb-3" style="width:60px; height:60px; border-radius:15px; display:flex; align-items:center; justify-content:center; font-size:1.8rem;">
+                    <i class="bi bi-image"></i>
+                </div>
+                <h4 class="fw-black text-dark m-0">Ajustes del Sistema</h4>
+                <p class="text-muted small mt-1">Sube el logo principal y configura valores base.</p>
+            </div>
+            
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {{ form|crispy }}
+                    
+                    <button type="submit" class="btn btn-sport w-100 mt-3 py-3 rounded-pill shadow-sm">
+                        <i class="bi bi-cloud-upload-fill me-2"></i>Guardar Cambios
+                    </button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-light w-100 mt-2 rounded-pill fw-bold text-muted">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

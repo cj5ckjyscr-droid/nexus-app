@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Fixture - {{ torneo.nombre }} | NEXT LEVEL</title>
+    <style>
+        @page { 
+            size: A4; 
+            margin: 1.5cm; 
+            @frame footer {
+                -pdf-frame-content: footer_content;
+                bottom: 1cm;
+                margin-left: 1.5cm;
+                margin-right: 1.5cm;
+                height: 1cm;
+            }
+        }
+        body { 
+            font-family: Helvetica, sans-serif; 
+            font-size: 11pt; 
+            color: #1E293B;
+        }
+        
+        /* Encabezado */
+        .header { 
+            text-align: center; 
+            border-bottom: 3px solid #1D4ED8; /* Azul Rey */
+            padding-bottom: 15px; 
+            margin-bottom: 25px;
+        }
+        .empresa { 
+            font-size: 22px; 
+            font-weight: 900; 
+            color: #0A192F; /* Azul Marino */
+            letter-spacing: 2px;
+        }
+        .subtitulo { 
+            font-size: 12px; 
+            color: #64748B; 
+            margin-top: 5px; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .titulo-doc { 
+            font-size: 16px; 
+            font-weight: 900; 
+            margin-top: 12px; 
+            color: #1D4ED8;
+            text-transform: uppercase;
+        }
+
+        /* Contenedor de Jornada */
+        .jornada { 
+            margin-bottom: 25px; 
+            border: 1px solid #CBD5E1; 
+            background-color: #FFFFFF;
+            /* Evita que la jornada se corte entre dos páginas al imprimir */
+            page-break-inside: avoid;
+        }
+        .jornada-title { 
+            background-color: #0A192F; /* Azul Marino */
+            color: #FFFFFF; 
+            padding: 8px; 
+            text-align: center; 
+            font-weight: bold; 
+            font-size: 12pt; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+        }
+        
+        /* Tabla de Partidos */
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+        td { 
+            padding: 8px 5px; 
+            border-bottom: 1px solid #E2E8F0; 
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .local { 
+            text-align: right; 
+            width: 42%; 
+            font-weight: bold; 
+            color: #0A192F;
+        }
+        .vs { 
+            text-align: center; 
+            width: 16%; 
+            color: #1D4ED8; 
+            font-size: 10px;
+            font-weight: bold;
+            background-color: #F4F7FA;
+        }
+        .visita { 
+            text-align: left; 
+            width: 42%; 
+            font-weight: bold; 
+            color: #0A192F;
+        }
+        .descanso { 
+            color: #94A3B8; 
+            font-style: italic; 
+            font-weight: normal; 
+        }
+
+        /* Footer del PDF */
+        #footer_content { 
+            text-align: center; 
+            font-size: 9px; 
+            color: #64748B;
+            border-top: 1px solid #CBD5E1;
+            padding-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="header">
+        <div class="empresa">NEXT LEVEL</div>
+        <div class="subtitulo">FIXTURE OFICIAL DEL TORNEO</div>
+        <div class="titulo-doc">{{ torneo.nombre }}</div>
+    </div>
+    
+    {% for jornada in fixture %}
+    <div class="jornada">
+        <div class="jornada-title">FECHA {{ jornada.numero_fecha }}</div>
+        <table>
+            {% for partido in jornada.partidos %}
+            <tr>
+                <td class="local">
+                    {% if partido.local %}{{ partido.local.nombre }}{% else %}<span class="descanso">DESCANSO</span>{% endif %}
+                </td>
+                <td class="vs">VS</td>
+                <td class="visita">
+                    {% if partido.visita %}{{ partido.visita.nombre }}{% else %}<span class="descanso">DESCANSO</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endfor %}
+
+    <div id="footer_content">
+        <strong>NEXT LEVEL</strong> - Documento de programación deportiva. | Teléfono Administrativo: 0963395614<br>
+        Desarrollado por Deyvi Rivera - Soporte Técnico: 0987408528
+    </div>
+
+</body>
+</html>

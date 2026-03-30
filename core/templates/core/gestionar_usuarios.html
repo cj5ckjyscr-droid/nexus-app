@@ -1,0 +1,158 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Gestión de Usuarios | NEXT LEVEL{% endblock %}
+
+{% block contenido %}
+<div class="row animate__animated animate__fadeInUp">
+    
+    <div class="col-12 mb-4">
+        <div class="d-flex align-items-center justify-content-between pb-3 border-bottom">
+            <div>
+                <h3 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">
+                    <i class="bi bi-people-fill me-2" style="color: var(--primary-blue);"></i>Gestión de Usuarios
+                </h3>
+                <p class="text-muted small mb-0 mt-1">Administra los permisos y roles de todos los registrados en NEXT LEVEL.</p>
+            </div>
+            <div class="d-none d-md-block">
+                <span class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm fs-6">
+                    Total Usuarios: <strong style="color: var(--primary-blue);">{{ perfiles|length }}</strong>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 mb-5">
+        <div class="card card-pro border-0 shadow-sm overflow-hidden rounded-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="white-space: nowrap;">
+                        <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+                            <tr>
+                                <th class="ps-4 py-3">Datos del Usuario</th>
+                                <th>Contacto</th>
+                                <th class="text-center">Rol Actual</th>
+                                <th class="text-end pe-4" style="min-width: 250px;">Asignar Nuevo Rol</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in perfiles %}
+                            <tr class="border-bottom transition-all" style="border-color: rgba(0,0,0,0.03) !important;">
+                                
+                                <td class="ps-4 py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="text-white fw-bold rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 45px; height: 45px; font-size: 1.2rem; background-color: var(--primary-navy);">
+                                            {{ p.usuario.first_name|first|default:p.usuario.username|first|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark fs-6">
+                                                {{ p.usuario.first_name }} {{ p.usuario.last_name }}
+                                            </div>
+                                            <small class="text-muted fw-medium">@{{ p.usuario.username }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <td>
+                                    <div class="text-secondary small fw-medium mb-1">
+                                        <i class="bi bi-envelope-at me-1"></i> {{ p.usuario.email|default:"Sin correo" }}
+                                    </div>
+                                    {% if p.telefono %}
+                                        <div class="small fw-bold" style="color: #25D366;">
+                                            <i class="bi bi-whatsapp me-1"></i> {{ p.telefono }}
+                                        </div>
+                                    {% else %}
+                                        <div class="text-muted small" style="font-size: 0.7rem;">Sin teléfono</div>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if p.rol == 'ORG' %}
+                                        <span class="badge px-3 py-2 rounded-pill fw-bold" style="background-color: var(--primary-navy); color: white;"><i class="bi bi-shield-lock-fill me-1"></i> Organizador</span>
+                                    {% elif p.rol == 'VOC' %}
+                                        <span class="badge bg-warning bg-opacity-10 text-dark border border-warning px-3 py-2 rounded-pill fw-bold"><i class="bi bi-clipboard-data-fill me-1 text-warning"></i> Vocal</span>
+                                    {% elif p.rol == 'DIR' %}
+                                        <span class="badge px-3 py-2 rounded-pill fw-bold text-white" style="background-color: var(--primary-blue);"><i class="bi bi-person-badge-fill me-1"></i> Dirigente</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-3 py-2 rounded-pill fw-bold"><i class="bi bi-person me-1"></i> Aficionado</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="text-end pe-4">
+                                    <form method="post" class="d-flex justify-content-end align-items-center gap-2 m-0">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="perfil_id" value="{{ p.id }}">
+                                        
+                                        <select name="nuevo_rol" class="form-select form-select-sm border-secondary-subtle bg-light text-dark fw-medium shadow-sm w-auto cursor-pointer" style="border-radius: 8px;">
+                                            <option value="FAN" {% if p.rol == 'FAN' %}selected{% endif %}>Aficionado</option>
+                                            <option value="DIR" {% if p.rol == 'DIR' %}selected{% endif %}>Dirigente</option>
+                                            <option value="VOC" {% if p.rol == 'VOC' %}selected{% endif %}>Vocal Mesa</option>
+                                            <option value="ORG" {% if p.rol == 'ORG' %}selected{% endif %}>Organizador</option>
+                                        </select>
+                                        
+                                        <button type="submit" class="btn btn-sm fw-bold px-3 shadow-sm text-white transition-all" style="background-color: var(--primary-navy); border-radius: 8px;" onclick="return confirm('¿Confirmas el cambio de permisos para {{ p.usuario.username }}?');" title="Guardar Nuevo Rol">
+                                            <i class="bi bi-arrow-repeat me-1"></i> Actualizar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5">
+                                    <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3 border shadow-sm" style="width: 80px; height: 80px;">
+                                        <i class="bi bi-people text-muted opacity-50" style="font-size: 2.5rem;"></i>
+                                    </div>
+                                    <h5 class="fw-bold text-dark mb-1">Sin usuarios</h5>
+                                    <p class="text-muted small mb-0">No hay otros usuarios registrados aparte de ti en NEXT LEVEL.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert bg-white border border-secondary-subtle d-flex align-items-start small text-muted p-4 rounded-4 mt-4 shadow-sm" style="border-left: 5px solid var(--primary-blue) !important;">
+            <i class="bi bi-info-circle-fill me-3 mt-1 fs-4" style="color: var(--primary-blue);"></i>
+            <div>
+                <strong class="d-block text-dark mb-2" style="font-size: 1rem;">Guía de Permisos del Sistema:</strong>
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-3">
+                        <span class="badge mb-1" style="background-color: var(--primary-navy);">Organizador</span>
+                        <p class="mb-0">Acceso total al sistema, cobros, torneos y configuración.</p>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <span class="badge mb-1" style="background-color: var(--primary-blue);">Vocal Mesa</span>
+                        <p class="mb-0">Acceso a la Mesa de Control para arbitrar partidos y tarjetas.</p>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <span class="badge bg-primary mb-1">Dirigente</span>
+                        <p class="mb-0">Puede inscribir a su equipo, fichar jugadores y revisar deudas.</p>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <span class="badge bg-secondary mb-1">Aficionado</span>
+                        <p class="mb-0">Solo puede alquilar canchas y ver estadísticas públicas.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Efecto hover suave para la tabla */
+    tbody tr:hover {
+        background-color: var(--bg-body) !important;
+    }
+    
+    /* Personalización del selector */
+    select.cursor-pointer {
+        cursor: pointer;
+    }
+    select:focus {
+        border-color: var(--primary-blue) !important;
+        box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1) !important;
+    }
+</style>
+{% endblock %}

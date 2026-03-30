@@ -1,0 +1,178 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Seguridad y Usuarios | NEXT LEVEL{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos Premium Clean Minimalist NEXT LEVEL */
+    .card-pro {
+        border: 0;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        background: #fff;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+    }
+    .card-pro:hover {
+        box-shadow: 0 12px 30px rgba(29, 78, 216, 0.1) !important;
+    }
+    
+    tbody tr:hover { background-color: var(--bg-body) !important; }
+    
+    .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .hover-lift:hover { transform: translateY(-2px); }
+    
+    /* Select minimalista azul */
+    .select-pro {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .select-pro:focus {
+        border-color: var(--primary-blue) !important;
+        box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15) !important;
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid px-0 animate__animated animate__fadeInUp">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
+        <div class="mb-3 mb-md-0">
+            <span class="badge bg-primary bg-opacity-10 fw-bold px-3 py-2 mb-2 rounded-pill border border-primary border-opacity-25" style="color: var(--primary-blue) !important;">
+                <i class="bi bi-shield-lock-fill me-1"></i> Panel de Seguridad NEXT LEVEL
+            </span>
+            <h2 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">Gestión de Usuarios</h2>
+            <p class="text-muted small mt-1 mb-0">Administra los niveles de acceso y permisos en la plataforma.</p>
+        </div>
+        
+        <div>
+            <a href="{% url 'crear_usuario' %}" class="btn text-white fw-bold rounded-pill px-4 py-2 shadow-sm hover-lift" style="background-color: var(--primary-blue);">
+                <i class="bi bi-person-plus-fill me-2"></i>Agregar Usuario
+            </a>
+        </div>
+    </div>
+
+    <div class="card card-pro border-0 shadow-sm overflow-hidden mb-5">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="white-space: nowrap;">
+                    <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+                        <tr>
+                            <th class="ps-4 py-3">Datos del Usuario</th>
+                            <th>Contacto</th>
+                            <th>Permisos</th>
+                            <th>Estado</th>
+                            <th>Registro</th>
+                            <th class="text-end pe-4" style="min-width: 250px;">Administrar Rol</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr class="border-bottom transition-all" style="border-color: rgba(0,0,0,0.03) !important;">
+                            
+                            <td class="ps-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="text-white fw-black rounded-circle d-inline-flex align-items-center justify-content-center me-3 shadow-sm" style="background-color: var(--primary-navy); width: 45px; height: 45px; font-size: 1.2rem;">
+                                        {{ u.username|slice:":1"|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-black text-dark fs-6">{{ u.username }}</div>
+                                        <small class="text-muted fw-medium">{{ u.get_full_name|default:"Sin nombre registrado" }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <div class="text-secondary small fw-medium">
+                                    <i class="bi bi-envelope-at me-1 opacity-75"></i>{{ u.email|default:"Sin correo" }}
+                                </div>
+                            </td>
+                            
+                            <td>
+                                {% if u.perfil.rol == 'ORG' %}
+                                    <span class="badge px-3 py-1 rounded-pill shadow-sm" style="background-color: var(--primary-navy); border: 1px solid var(--primary-navy);"><i class="bi bi-gear-wide-connected me-1"></i> Organizador</span>
+                                {% elif u.perfil.rol == 'DIR' %}
+                                    <span class="badge px-3 py-1 rounded-pill shadow-sm" style="background-color: var(--primary-blue); border: 1px solid var(--primary-blue);"><i class="bi bi-person-badge me-1"></i> Dirigente</span>
+                                {% elif u.perfil.rol == 'VOC' %}
+                                    <span class="badge bg-warning text-dark border border-warning px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-clipboard-data me-1"></i> Vocal Mesa</span>
+                                {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-person me-1"></i> Aficionado</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td>
+                                {% if u.is_active %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i> Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-2 py-1 rounded-pill"><i class="bi bi-x-circle-fill me-1"></i> Inactivo</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-muted small fw-medium">
+                                <i class="bi bi-calendar3 me-1 opacity-50"></i> {{ u.date_joined|date:"d M, Y" }}
+                            </td>
+                            
+                            <td class="text-end pe-4">
+                                <form method="post" action="{% url 'admin_gestion_usuarios' %}" class="d-flex justify-content-end gap-2 m-0 align-items-center">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="perfil_id" value="{{ u.perfil.id }}">
+                                    
+                                    <select name="nuevo_rol" class="form-select form-select-sm border-secondary-subtle bg-light text-dark fw-medium shadow-sm select-pro" style="width: auto; padding-right: 2rem;">
+                                        <option value="ORG" {% if u.perfil.rol == 'ORG' %}selected{% endif %}>Organizador</option>
+                                        <option value="DIR" {% if u.perfil.rol == 'DIR' %}selected{% endif %}>Dirigente</option>
+                                        <option value="VOC" {% if u.perfil.rol == 'VOC' %}selected{% endif %}>Vocal Mesa</option>
+                                        <option value="FAN" {% if u.perfil.rol == 'FAN' %}selected{% endif %}>Aficionado</option>
+                                    </select>
+                                    
+                                    <button type="submit" class="btn btn-sm text-white fw-bold px-3 shadow-sm hover-lift" title="Guardar Nuevo Rol" onclick="return confirm('¿Confirmas el cambio de permisos para el usuario @{{ u.username }}?');" style="background-color: var(--primary-navy);">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Actualizar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow-inner border" style="width: 80px; height: 80px;">
+                                    <i class="bi bi-people text-muted opacity-50" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark">No hay usuarios registrados</h5>
+                                <p class="text-muted small mb-0">Eres el único usuario en el sistema.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="alert bg-light border border-secondary-subtle rounded-4 p-4 shadow-sm">
+        <div class="d-flex align-items-start">
+            <i class="bi bi-info-circle-fill fs-4 me-3 mt-1" style="color: var(--primary-blue);"></i>
+            <div>
+                <h6 class="fw-bold text-dark mb-2">Guía de Permisos del Sistema NEXT LEVEL</h6>
+                <div class="row g-3 small text-muted">
+                    <div class="col-md-6 col-lg-3">
+                        <span class="badge mb-1" style="background-color: var(--primary-navy);"><i class="bi bi-gear-wide-connected"></i> Organizador</span>
+                        <br>Acceso total. Crea torneos, cobra deudas y edita toda la información.
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <span class="badge mb-1" style="background-color: var(--primary-blue);"><i class="bi bi-person-badge"></i> Dirigente</span>
+                        <br>Puede inscribir a su propio equipo, fichar jugadores y gestionar su club.
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <span class="badge bg-warning text-dark border border-warning mb-1"><i class="bi bi-clipboard-data"></i> Vocal Mesa</span>
+                        <br>Acceso a la "Mesa de Control" para pitar partidos, anotar goles y tarjetas.
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary mb-1"><i class="bi bi-person"></i> Aficionado</span>
+                        <br>Usuario básico. Solo puede reservar canchas y ver estadísticas públicas.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

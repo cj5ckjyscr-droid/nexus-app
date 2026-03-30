@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+{% load humanize %}
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Comprobante de Pago | NEXT LEVEL</title>
+    <style>
+        @page { 
+            size: A5 landscape; /* Formato medio oficio horizontal */
+            margin: 1cm; 
+        }
+        body { 
+            font-family: Helvetica, Arial, sans-serif; 
+            color: #1E293B; 
+            font-size: 12px;
+        }
+        
+        /* Encabezado */
+        .header { 
+            text-align: center; 
+            border-bottom: 3px solid #1D4ED8; /* Azul Rey */
+            padding-bottom: 10px; 
+            margin-bottom: 20px;
+        }
+        .empresa { 
+            font-size: 18px; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            color: #0A192F; /* Azul Marino */
+            letter-spacing: 1px;
+        }
+        .subtitulo { font-size: 10px; color: #64748B; margin-top: 3px; }
+        .titulo-doc { 
+            font-size: 16px; 
+            font-weight: 900; 
+            margin-top: 12px; 
+            border: 2px solid #1D4ED8; 
+            color: #1D4ED8;
+            display: inline-block; 
+            padding: 6px 18px; 
+            background-color: #F4F7FA;
+            border-radius: 4px;
+        }
+
+        /* Datos Generales */
+        .info-grid {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .info-label { font-weight: bold; color: #0A192F; width: 15%; }
+        .info-val { border-bottom: 1px dotted #94A3B8; width: 35%; padding-bottom: 2px; color: #334155;}
+
+        /* Tabla de Valores */
+        .tabla-valores {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .tabla-valores th {
+            background-color: #0A192F; /* Azul Marino */
+            color: #FFFFFF;
+            border: 1px solid #0A192F;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+        .tabla-valores td {
+            border: 1px solid #CBD5E1;
+            padding: 10px;
+            color: #1E293B;
+        }
+        .col-concepto { width: 70%; }
+        .col-monto { width: 30%; text-align: right; font-weight: bold; }
+        
+        /* Totales */
+        .total-row td { border: none; padding: 4px 8px; }
+        .gran-total { 
+            font-size: 16px; 
+            background-color: #F4F7FA; 
+            border: 2px solid #1D4ED8 !important;
+            color: #0A192F;
+        }
+
+        /* Firmas */
+        .firmas { margin-top: 40px; width: 100%; }
+        .firma-box { 
+            border-top: 1px solid #0A192F; 
+            width: 35%; 
+            text-align: center; 
+            padding-top: 5px; 
+            font-size: 10px;
+            color: #0A192F;
+        }
+
+        /* Footer del PDF */
+        .footer { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            text-align: center; 
+            font-size: 9px; 
+            color: #64748B;
+            border-top: 1px solid #E2E8F0;
+            padding-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="header">
+        <div class="empresa">SISTEMA DE GESTIÓN DEPORTIVA - NEXT LEVEL</div>
+        <div class="subtitulo">RUC: 1234567890001 | Contacto Oficial: 0963395614</div>
+        <div class="titulo-doc">RECIBO DE CAJA #{{ pago.id|stringformat:"05d" }}</div>
+    </div>
+
+    <table class="info-grid">
+        <tr>
+            <td class="info-label">Fecha:</td>
+            <td class="info-val">{{ pago.fecha|date:"d/m/Y H:i" }}</td>
+            <td class="info-label">Equipo:</td>
+            <td class="info-val" style="font-weight: 900; text-transform: uppercase; color: #1D4ED8;">{{ pago.equipo.nombre }}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Recibimos de:</td>
+            <td class="info-val">{{ pago.equipo.dirigente.get_full_name|default:"Dirigente Encargado" }}</td>
+            <td class="info-label">Estado:</td>
+            <td class="info-val" style="font-weight: bold; color: #10B981;">CANCELADO / PAGADO</td>
+        </tr>
+    </table>
+
+    <table class="tabla-valores">
+        <thead>
+            <tr>
+                <th class="col-concepto">Concepto / Descripción</th>
+                <th class="col-monto">Valor</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="height: 50px; vertical-align: top;">
+                    <strong>{{ pago.observacion|default:"Pago por servicios deportivos / cancha" }}</strong>
+                    <br><br>
+                    <small style="color: #64748B;"><i>Correspondiente a gestión del torneo actual.</i></small>
+                </td>
+                <td style="vertical-align: top; text-align: right; font-size: 14px;">
+                    ${{ subtotal|floatform:2 }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table style="width: 100%; margin-bottom: 20px;">
+        <tr>
+            <td style="width: 60%;"></td> <td style="width: 40%;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr class="total-row">
+                        <td style="text-align: right; font-weight: bold; color: #0A192F;">Subtotal:</td>
+                        <td style="text-align: right;">$ {{ subtotal|floatform:2 }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td style="text-align: right; color: #64748B;">IVA ({{ iva_porcentaje }}%):</td>
+                        <td style="text-align: right; color: #64748B;">$ {{ iva_monto|floatform:2 }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="gran-total" style="text-align: right; font-weight: 900;">TOTAL PAGADO:</td>
+                        <td class="gran-total" style="text-align: right; font-weight: 900;">$ {{ total|floatform:2 }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="firmas">
+        <tr>
+            <td style="width: 10%;"></td>
+            <td class="firma-box">
+                <strong style="color: #1D4ED8;">NEXT LEVEL</strong><br>
+                Firma Autorizada / Tesorería
+            </td>
+            <td style="width: 10%;"></td>
+            <td class="firma-box">
+                <strong>{{ pago.equipo.nombre }}</strong><br>
+                Recibí Conforme
+            </td>
+            <td style="width: 10%;"></td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Documento generado electrónicamente el {% now "d/m/Y H:i" %}. Válido como comprobante de pago interno.<br>
+        Desarrollado por Deyvi Rivera - Soporte Técnico: 0987408528
+    </div>
+
+</body>
+</html>

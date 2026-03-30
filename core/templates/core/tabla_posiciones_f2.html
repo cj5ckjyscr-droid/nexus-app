@@ -1,0 +1,67 @@
+{% extends 'core/base.html' %}
+
+{% block contenido %}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <h2 class="text-neon m-0">Tabla de Posiciones - Fase 2 (Grupos)</h2>
+    
+    {% if es_organizador and not cuartos_generados %}
+        <form action="{% url 'generar_cuartos_final' torneo.id %}" method="post" class="m-0 bg-dark border border-secondary rounded-4 p-2 px-3 d-flex flex-wrap align-items-center justify-content-center gap-3 shadow-sm">
+            {% csrf_token %}
+            
+            <div class="form-check form-switch m-0 text-white">
+                <input class="form-check-input bg-secondary border-secondary" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_f3" style="cursor: pointer;">
+                <label class="form-check-label fw-bold small ms-1" for="ida_vuelta_f3" style="cursor: pointer;">¿Ida y Vuelta?</label>
+            </div>
+            
+            <button type="submit" class="btn btn-warning btn-sm fw-bold px-3 rounded-pill shadow-sm" onclick="return confirm('¿Seguro que deseas generar los Cuartos de Final cruzando los grupos (1A vs 4B, etc)?')">
+                <i class="bi bi-magic me-1"></i> Generar Cuartos
+            </button>
+        </form>
+    {% elif es_organizador and cuartos_generados %}
+        <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill">
+            <i class="bi bi-check-circle-fill me-1"></i> Cuartos Generados
+        </span>
+    {% endif %}
+</div>
+
+<div class="alert alert-info border-info bg-dark text-info mb-4 shadow-sm">
+    <i class="bi bi-info-circle text-info me-2"></i> 
+    <strong>Los 4 primeros de cada grupo clasifican a Cuartos de Final.</strong>
+    <br>
+    <small class="opacity-75 ms-4">* Incluye puntos de bonificación arrastrados desde la Fase 1.</small>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card bg-dark border-secondary shadow-sm h-100 rounded-4 overflow-hidden">
+            <div class="card-header bg-primary text-white text-center fw-black py-3" style="letter-spacing: 1px;">
+                GRUPO A <span class="fw-normal small opacity-75">(Impares)</span>
+            </div>
+            <div class="card-body p-0">
+                {% include 'core/tabla_partial.html' with tabla=tabla_a %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card bg-dark border-secondary shadow-sm h-100 rounded-4 overflow-hidden">
+            <div class="card-header bg-warning text-dark text-center fw-black py-3" style="letter-spacing: 1px;">
+                GRUPO B <span class="fw-normal small opacity-75">(Pares)</span>
+            </div>
+            <div class="card-body p-0">
+                {% include 'core/tabla_partial.html' with tabla=tabla_b %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Efecto hover en el switch para que resalte cuando se activa */
+    .form-switch .form-check-input:checked {
+        background-color: #f59e0b; /* Naranja/Warning */
+        border-color: #f59e0b;
+    }
+</style>
+
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Editar Partido | NEXT LEVEL{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center animate__animated animate__fadeInUp mt-4 mb-5">
+    <div class="col-md-8 col-lg-6">
+        <div class="card card-pro border-0 shadow-lg rounded-4 overflow-hidden">
+            
+            <div class="card-header text-white py-4 border-0 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, var(--primary-navy), var(--primary-blue));">
+                <h4 class="fw-black mb-0" style="letter-spacing: 0.5px;">
+                    <i class="bi bi-pencil-square text-white opacity-75 me-2"></i>Editar Partido
+                </h4>
+                
+                {% if partido.estado == 'JUG' or partido.estado == 'FINALIZADO' %}
+                    <span class="badge bg-success bg-opacity-25 text-white border border-success px-3 py-2 rounded-pill shadow-sm">JUGADO</span>
+                {% elif partido.estado == 'WO' %}
+                    <span class="badge bg-danger bg-opacity-25 text-white border border-danger px-3 py-2 rounded-pill shadow-sm">W.O.</span>
+                {% else %}
+                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm border border-warning">PENDIENTE</span>
+                {% endif %}
+            </div>
+            
+            <div class="card-body p-4 p-md-5 bg-white">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-uppercase" style="color: var(--primary-navy); font-size: 0.85rem; letter-spacing: 0.5px;">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger small mt-1 fw-bold"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+                        {% endif %}
+                        {% if field.help_text %}
+                            <div class="form-text text-muted mt-1" style="font-size: 0.75rem;">{{ field.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <div class="d-grid gap-3 mt-5">
+                        <button type="submit" class="btn btn-sport btn-lg w-100 fw-bold shadow-sm" style="border-radius: 12px;">
+                            <i class="bi bi-save me-2"></i> Guardar Cambios
+                        </button>
+                        <a href="{% url 'programar_partidos' %}?torneo={{ partido.torneo.id }}" class="btn btn-light border-secondary-subtle w-100 fw-bold rounded-pill transition-all text-dark">
+                            <i class="bi bi-arrow-left me-2"></i> Cancelar y Volver
+                        </a>
+                    </div>
+                </form>
+
+                {% if partido.estado == 'JUG' or partido.estado == 'WO' %}
+                <hr class="my-5" style="border-color: #E2E8F0;">
+                
+                <div class="alert border-0 rounded-4 p-4 shadow-sm" style="background-color: #FEF2F2; border-left: 5px solid #EF4444 !important;">
+                    <h6 class="text-danger fw-black mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i> Zona de Corrección Administrativa</h6>
+                    <p class="small text-danger mb-3 fw-medium" style="opacity: 0.85;">Si el resultado fue ingresado por error, puedes reiniciar el partido. Esto borrará goles, tarjetas y asistencias permanentemente.</p>
+                    <a href="{% url 'reiniciar_partido' partido.id %}" class="btn btn-outline-danger fw-bold rounded-pill w-100 transition-all" onclick="return confirm('⚠️ ¿ESTÁS SEGURO?\n\nSe borrarán todos los goles y tarjetas de este partido y volverá a estar pendiente.')">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reiniciar Partido
+                    </a>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+    /* Estilos automáticos para los inputs de Django */
+    input.form-control, select.form-select, textarea.form-control {
+        border-radius: 10px !important;
+        border: 1px solid #CBD5E1 !important;
+        padding: 10px 15px !important;
+        background-color: #F8FAFC !important;
+        color: var(--text-main) !important;
+        transition: all 0.3s ease !important;
+    }
+    input.form-control:focus, select.form-select:focus, textarea.form-control:focus {
+        background-color: #FFFFFF !important;
+        border-color: var(--primary-blue) !important;
+        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15) !important;
+    }
+    /* Estilo para checkbox y radio buttons si los hay */
+    input[type="checkbox"].form-check-input, input[type="radio"].form-check-input {
+        width: 1.2rem;
+        height: 1.2rem;
+        margin-top: 0.15rem;
+        border-color: #CBD5E1;
+        cursor: pointer;
+    }
+    input[type="checkbox"].form-check-input:checked, input[type="radio"].form-check-input:checked {
+        background-color: var(--primary-blue);
+        border-color: var(--primary-blue);
+    }
+</style>
+{% endblock %}
+{% endblock %}

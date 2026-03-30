@@ -1,0 +1,201 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Marketing y Galería | NEXT LEVEL{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hover Premium NEXT LEVEL */
+    .card-pro { transition: box-shadow 0.3s ease, transform 0.3s ease; }
+    .card-pro:hover { box-shadow: 0 10px 30px rgba(29, 78, 216, 0.08) !important; }
+    
+    .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .hover-lift:hover { transform: translateY(-2px); }
+    
+    /* Re-estilizando inputs de Django */
+    form input[type="text"], form input[type="url"], form input[type="number"] {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        border: 1px solid #CBD5E1;
+        border-radius: 10px;
+        background-color: #F8FAFC;
+        color: var(--text-main);
+        font-weight: 500;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+    }
+    form input[type="text"]:focus, form input[type="url"]:focus, form input[type="number"]:focus {
+        border-color: var(--primary-blue);
+        background-color: #FFFFFF;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15);
+    }
+    
+    /* Input file nativo */
+    form input[type="file"]::file-selector-button {
+        border: none;
+        background: var(--primary-navy);
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        margin-right: 10px;
+        color: #ffffff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    form input[type="file"]::file-selector-button:hover { background: var(--primary-blue); }
+    form input[type="file"] { font-size: 0.85rem; color: #64748B; }
+    
+    /* Estilo para el switch (checkbox) */
+    .form-switch .form-check-input {
+        width: 2.2rem; height: 1.1rem; cursor: pointer;
+        background-color: #CBD5E1; border-color: #CBD5E1;
+    }
+    .form-switch .form-check-input:checked {
+        background-color: var(--primary-blue); border-color: var(--primary-blue);
+    }
+    
+    /* Form label */
+    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: var(--primary-navy); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; display: block; }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid px-0 animate__animated animate__fadeInUp">
+    
+    <div class="row mb-4 align-items-center border-bottom pb-3">
+        <div class="col-md-8">
+            <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-2 mb-2 rounded-pill border border-primary border-opacity-25" style="color: var(--primary-blue) !important;">
+                <i class="bi bi-images me-1"></i> Contenido Visual
+            </span>
+            <h2 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">Centro de Marketing</h2>
+            <p class="text-muted small mt-1 mb-0">Sube fotos de las instalaciones y gestiona tus auspiciantes oficiales.</p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        
+        <div class="col-lg-6">
+            <div class="card card-pro border-0 shadow-sm border-top border-4 h-100 rounded-4 overflow-hidden" style="border-color: var(--primary-navy) !important;">
+                <div class="card-header bg-white pt-4 pb-2 border-0">
+                    <h5 class="fw-black text-dark m-0" style="letter-spacing: -0.5px;">
+                        <i class="bi bi-camera-fill me-2" style="color: var(--primary-navy);"></i>Galería de Instalaciones
+                    </h5>
+                </div>
+                
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data" class="bg-light p-4 rounded-4 mb-4 border border-secondary-subtle shadow-sm">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label-pro">Seleccionar Imagen</label>
+                                {{ form_foto.imagen }}
+                            </div>
+                            <div class="col-8">
+                                <label class="form-label-pro">Título / Leyenda</label>
+                                {{ form_foto.titulo }}
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label-pro">Orden</label>
+                                {{ form_foto.orden }}
+                            </div>
+                            <div class="col-12 d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                                <div class="form-check form-switch m-0 d-flex align-items-center">
+                                    {{ form_foto.activa }}
+                                    <label class="form-check-label small fw-bold ms-2 text-dark">Visible en App</label>
+                                </div>
+                                <button type="submit" name="btn_foto" class="btn text-white fw-bold shadow-sm rounded-pill px-4 hover-lift" style="background-color: var(--primary-navy); font-size: 0.85rem;">
+                                    <i class="bi bi-cloud-arrow-up-fill me-1"></i> Subir Foto
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <h6 class="fw-bold text-muted mb-3" style="font-size: 0.85rem;">Imágenes Actuales</h6>
+                    <div class="row g-3">
+                        {% for foto in fotos %}
+                        <div class="col-6">
+                            <div class="position-relative rounded-4 overflow-hidden border shadow-sm group">
+                                <img src="{{ foto.imagen.url }}" class="img-fluid w-100" style="height: 130px; object-fit: cover;" alt="Foto NEXT LEVEL">
+                                <div class="position-absolute bottom-0 w-100 p-2 text-center" style="background: linear-gradient(to top, rgba(10, 25, 47, 0.9), transparent);">
+                                    <span class="text-white fw-bold small d-block text-truncate" style="text-shadow: 0 1px 2px rgba(0,0,0,0.8);">{{ foto.titulo|default:"Sin título" }}</span>
+                                </div>
+                                <a href="{% url 'eliminar_foto' foto.id %}" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 rounded-circle shadow-sm" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;" onclick="return confirm('¿Seguro que deseas eliminar esta foto de la galería?');" title="Eliminar foto">
+                                    <i class="bi bi-trash3-fill"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center py-4 bg-light rounded-4 border border-dashed">
+                            <i class="bi bi-images fs-2 text-muted opacity-25 d-block mb-2"></i>
+                            <p class="text-muted small fw-medium mb-0">Aún no hay fotos en la galería pública.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card card-pro border-0 shadow-sm border-top border-4 h-100 rounded-4 overflow-hidden" style="border-color: var(--primary-blue) !important;">
+                <div class="card-header bg-white pt-4 pb-2 border-0">
+                    <h5 class="fw-black text-dark m-0" style="letter-spacing: -0.5px;">
+                        <i class="bi bi-star-fill me-2" style="color: var(--primary-blue);"></i>Auspiciantes y Publicidad
+                    </h5>
+                </div>
+                
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data" class="bg-light p-4 rounded-4 mb-4 border border-secondary-subtle shadow-sm">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label-pro">Logo / Banner de Empresa</label>
+                                {{ form_publi.imagen }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label-pro">Nombre del Auspiciante</label>
+                                {{ form_publi.empresa }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label-pro">Enlace Web (URL opcional)</label>
+                                {{ form_publi.enlace }}
+                            </div>
+                            <div class="col-12 d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                                <div class="form-check form-switch m-0 d-flex align-items-center">
+                                    {{ form_publi.activa }}
+                                    <label class="form-check-label small fw-bold ms-2 text-dark">Anuncio Activo</label>
+                                </div>
+                                <button type="submit" name="btn_publi" class="btn text-white fw-bold shadow-sm rounded-pill px-4 hover-lift" style="background-color: var(--primary-blue); font-size: 0.85rem;">
+                                    <i class="bi bi-megaphone-fill me-1"></i> Crear Anuncio
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <h6 class="fw-bold text-muted mb-3" style="font-size: 0.85rem;">Marcas Actuales</h6>
+                    <div class="list-group rounded-4 shadow-sm border-secondary-subtle">
+                        {% for p in publicidades %}
+                        <div class="list-group-item d-flex align-items-center p-3 border-0 border-bottom">
+                            <div class="bg-white border rounded-3 p-1 me-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 70px; height: 50px;">
+                                <img src="{{ p.imagen.url }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            </div>
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <h6 class="mb-1 fw-bold text-dark text-truncate">{{ p.empresa }}</h6>
+                                <a href="{{ p.enlace }}" target="_blank" class="small text-decoration-none text-truncate d-inline-block" style="max-width: 180px; color: var(--primary-blue);">{{ p.enlace|default:"Sin enlace web" }}</a>
+                            </div>
+                            <a href="{% url 'eliminar_publicidad' p.id %}" class="btn btn-sm btn-outline-danger rounded-circle p-2 ms-2 hover-lift" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;" onclick="return confirm('¿Retirar este anuncio publicitario permanentemente?');" title="Quitar Auspiciante">
+                                <i class="bi bi-trash3-fill"></i>
+                            </a>
+                        </div>
+                        {% empty %}
+                        <div class="list-group-item text-center py-4 bg-light border-0">
+                            <i class="bi bi-shop fs-3 text-muted opacity-25 d-block mb-2"></i>
+                            <p class="text-muted small fw-medium mb-0">No hay auspiciantes registrados.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

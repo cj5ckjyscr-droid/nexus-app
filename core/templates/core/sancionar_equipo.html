@@ -1,0 +1,118 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Lista Negra | NEXT LEVEL{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ✨ AQUÍ ESTABA EL ERROR: Faltaban las variables de color para que los fondos funcionen */
+    :root {
+        --accent-red-bg: #DC2626;
+        --accent-red-dark: #991B1B;
+        --text-dark-strict: #0F172A;
+        --text-muted-strict: #475569;
+    }
+
+    /* Blindaje del Input de Fecha */
+    input[type=date] {
+        border-radius: 10px !important;
+        padding: 12px 15px !important;
+        border: 2px solid #FCA5A5 !important;
+        background-color: #FEF2F2 !important;
+        color: #7F1D1D !important; /* Letra roja oscura garantizada */
+        font-weight: 900 !important;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    input[type=date]:focus {
+        border-color: var(--accent-red-bg) !important;
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15) !important;
+        background-color: #FFFFFF !important;
+        outline: none;
+    }
+    
+    @media (max-width: 576px) {
+        .card-body { padding: 1.25rem !important; }
+        .alert { padding: 1rem !important; }
+        .btn-action { font-size: 0.85rem !important; padding: 0.8rem !important; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center animate__animated animate__fadeIn mt-4 px-2">
+    <div class="col-md-8 col-lg-5">
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden" style="border: 2px solid #FECACA !important; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.1) !important;">
+            
+            <div class="card-header text-center py-4 border-bottom-0" style="background: linear-gradient(135deg, var(--accent-red-bg) 0%, var(--accent-red-dark) 100%) !important;">
+                <i class="bi bi-shield-slash-fill mb-2 d-block" style="font-size: 2.5rem; color: #FFFFFF !important;"></i>
+                <h4 class="fw-black mb-0" style="color: #FFFFFF !important; letter-spacing: -0.5px;">Tribunal de Disciplina</h4>
+                <p class="small mb-0 fw-bold mt-1" style="color: #FECACA !important;">Ingreso a la Lista Negra</p>
+            </div>
+            
+            <div class="card-body p-4" style="background-color: #FFFFFF !important;">
+                
+                <div class="text-center mb-4 pb-3 border-bottom">
+                    <div class="d-inline-flex justify-content-center align-items-center rounded-circle mb-2" style="width: 50px; height: 50px; background-color: #FEE2E2 !important;">
+                        <i class="bi bi-x-octagon-fill fs-3" style="color: var(--accent-red-bg) !important;"></i>
+                    </div>
+                    <h5 class="fw-black mb-1" style="color: var(--text-dark-strict) !important; letter-spacing: -0.5px;">{{ equipo.nombre|upper }}</h5>
+                    <p class="small fw-bold mb-0" style="color: var(--text-muted-strict) !important;">
+                        <i class="bi bi-person-badge me-1"></i>DT: {{ equipo.dirigente.first_name }} {{ equipo.dirigente.last_name }}
+                    </p>
+                </div>
+
+                <div class="alert border rounded-3 p-3 mb-4 shadow-sm" style="background-color: #FEF2F2 !important; border-color: #FCA5A5 !important;">
+                    <h6 class="fw-black mb-2" style="color: var(--accent-red-dark) !important; font-size: 0.8rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>IMPACTO GLOBAL:
+                    </h6>
+                    <ul class="small mb-0 ps-3 fw-bold" style="color: var(--text-dark-strict) !important; line-height: 1.5; font-size: 0.75rem;">
+                        <li class="mb-1">Equipo <strong>expulsado</strong> de competiciones.</li>
+                        <li class="mb-1">Dirigente <strong>bloqueado</strong> para nuevos registros.</li>
+                        <li><strong>Ningún jugador</strong> podrá ser fichado por otro club.</li>
+                    </ul>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-black text-uppercase mb-2" style="color: var(--accent-red-bg) !important; font-size: 0.75rem; letter-spacing: 0.5px;">
+                            <i class="bi bi-calendar-x me-1"></i>{{ form.sancionado_hasta.label }}
+                        </label>
+                        {{ form.sancionado_hasta }}
+                        
+                        <div class="mt-2 p-2 rounded-3 border" style="background-color: #F8FAFC !important; border-color: #E2E8F0 !important;">
+                            <div class="fw-bold d-flex align-items-start" style="color: var(--text-muted-strict) !important; font-size: 0.7rem; line-height: 1.4;">
+                                <i class="bi bi-info-circle-fill me-2 mt-1" style="color: var(--accent-red-bg) !important;"></i>
+                                <span>{{ form.sancionado_hasta.help_text }}</span>
+                            </div>
+                            <hr class="my-2" style="border-color: #CBD5E1 !important;">
+                            <div class="fw-bold d-flex align-items-center" style="color: var(--text-dark-strict) !important; font-size: 0.7rem;">
+                                <i class="bi bi-eraser-fill me-2" style="color: #2563EB !important;"></i> 
+                                Para LEVANTAR la sanción, borra la fecha.
+                            </div>
+                        </div>
+                        
+                        {% if form.sancionado_hasta.errors %}
+                            <div class="small fw-black mt-2 px-2 py-1 rounded" style="background-color: #FEE2E2 !important; color: var(--accent-red-dark) !important;">
+                                <i class="bi bi-exclamation-circle me-1"></i>{{ form.sancionado_hasta.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4 pt-2">
+                        <button type="submit" class="btn btn-action fw-black rounded-pill py-3 shadow-sm transition-all" style="background-color: var(--accent-red-bg) !important; color: #FFFFFF !important; font-size: 0.9rem;" onclick="return confirm('⚠️ ATENCIÓN: Esta acción bloqueará al equipo, al dirigente y a todos sus jugadores en el sistema global. ¿Proceder?');">
+                            <i class="bi bi-gavel me-2"></i> Ejecutar Sentencia
+                        </button>
+                        
+                        <a href="{% url 'gestionar_equipos' %}" class="btn btn-action fw-bold rounded-pill py-2" style="background-color: #F1F5F9 !important; border: 1px solid #CBD5E1 !important; color: var(--text-dark-strict) !important; font-size: 0.85rem;">
+                            Cancelar y Volver
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

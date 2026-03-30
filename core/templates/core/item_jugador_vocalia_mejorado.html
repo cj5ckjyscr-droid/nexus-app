@@ -1,0 +1,191 @@
+<style>
+    /* Estilos Premium NEXT LEVEL para la fila de jugador */
+    .player-row {
+        background: #ffffff;
+        border-bottom: 1px solid #e2e8f0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .player-row:hover { background: var(--bg-body, #f4f7fa); } 
+    
+    /* --- ESTADO AUSENTE (BANCA) --- */
+    .player-row.absent {
+        background: #f8fafc;
+        opacity: 0.7;
+        filter: grayscale(100%);
+    }
+    .player-row.absent .action-btn {
+        pointer-events: none;
+        opacity: 0.3;
+        box-shadow: none;
+    }
+
+    /* Toggle NEXT LEVEL */
+    .attendance-switch {
+        width: 3.2em !important;
+        height: 1.6em !important;
+        cursor: pointer;
+        background-color: #cbd5e1 !important; 
+        border: none !important;
+        transition: all 0.3s;
+    }
+    .attendance-switch:checked {
+        background-color: var(--primary-blue, #1D4ED8) !important; 
+        box-shadow: 0 0 12px rgba(29, 78, 216, 0.3);
+    }
+
+    /* Diseño de Contadores Clean */
+    .stat-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 32px; height: 26px; border-radius: 8px;
+        font-weight: 800; font-size: 0.75rem; padding: 0 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .stat-gol { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .stat-ta { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .stat-tr { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    
+    /* Botones de Acción Premium */
+    .action-btn {
+        width: 42px; height: 42px; padding: 0; margin-left: 6px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 12px; border: none; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+        transition: all 0.2s ease;
+    }
+    .action-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .action-btn:active { transform: scale(0.92); }
+    
+    .btn-gol { background: #10b981; color: white; }
+    .btn-ta { background: var(--accent-orange, #f59e0b); color: white; }
+    .btn-tr { background: var(--accent-red, #ef4444); color: white; }
+
+    .dorsal-box {
+        width: 45px; height: 45px; min-width: 45px;
+        background-color: var(--primary-navy, #0A192F);
+        color: white; font-weight: 900; font-size: 1.2rem;
+        border-radius: 12px; border: 2px solid white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+</style>
+
+<div class="d-flex flex-column rounded-4 overflow-hidden shadow-sm border">
+    {% for j in lista %}
+    
+    <div class="player-row p-3 d-flex flex-column flex-xl-row align-items-center justify-content-between gap-3 {% if j.asis_match == 0 and j.goles_match == 0 and j.ta_match == 0 and j.tr_match == 0 %}absent{% endif %}" id="row-{{ j.id }}">
+        
+        <div class="d-flex align-items-center w-100">
+            <form action="{% url 'toggle_asistencia' partido.id j.id %}" method="post" class="me-3 d-flex flex-column align-items-center justify-content-center" onsubmit="guardarScroll()">
+                {% csrf_token %}
+                <div class="form-check form-switch" title="Habilitar jugador">
+                    <input class="form-check-input m-0 attendance-switch" type="checkbox" id="attendance-{{ j.id }}" onchange="this.form.submit()" 
+                    {% if j.asis_match > 0 or j.goles_match > 0 or j.ta_match > 0 or j.tr_match > 0 %}checked{% endif %}>
+                </div>
+                <label class="form-check-label text-muted fw-bold mt-1 text-center" style="font-size: 0.55rem; letter-spacing: 0.5px;" for="attendance-{{ j.id }}">
+                    {% if j.asis_match > 0 %}CANCHA{% else %}BANCA{% endif %}
+                </label>
+            </form>
+
+            <div class="d-flex align-items-center justify-content-center dorsal-box me-3">
+                {{ j.dorsal|default:"#" }}
+            </div>
+            
+            <div class="d-flex flex-column flex-grow-1 text-truncate">
+                <span class="text-dark fw-black text-truncate" style="font-size: 1.05rem; letter-spacing: -0.2px;">{{ j.nombres }} {{ j.apellidos }}</span>
+                
+                <div class="d-flex mt-1 gap-2 align-items-center">
+                    {% if j.goles_match > 0 %}
+                        <span class="stat-badge stat-gol" title="Goles"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem;"></i>{{ j.goles_match }}</span>
+                    {% endif %}
+                    {% if j.ta_match > 0 %}
+                        <span class="stat-badge stat-ta" title="Amarillas"><i class="bi bi-square-fill me-1" style="font-size:0.6rem;"></i>{{ j.ta_match }}</span>
+                    {% endif %}
+                    {% if j.tr_match > 0 %}
+                        <span class="stat-badge stat-tr" title="Rojas"><i class="bi bi-square-fill me-1" style="font-size:0.6rem;"></i>{{ j.tr_match }}</span>
+                    {% endif %}
+                    
+                    {% if j.goles_match == 0 and j.ta_match == 0 and j.tr_match == 0 %}
+                        <span class="text-muted fw-medium" style="font-size: 0.75rem;" id="msg-{{ j.id }}">
+                            {% if j.asis_match > 0 %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size: 0.65rem;">ACTIVO</span>
+                            {% else %}
+                                <i class="bi bi-dash-lg"></i>
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-nowrap bg-light p-1 rounded-4 border shadow-inner">
+            <form method="post" action="{% url 'registrar_incidencia' partido.id %}" class="m-0 p-0" onsubmit="guardarScroll()">
+                {% csrf_token %}
+                <input type="hidden" name="jugador_id" value="{{ j.id }}">
+                <input type="hidden" name="tipo" value="GOL">
+                <button type="submit" class="action-btn btn-gol shadow-sm" title="Anotar Gol" {% if j.asis_match == 0 %}disabled{% endif %}>
+                    ⚽
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'registrar_incidencia' partido.id %}" class="m-0 p-0" onsubmit="guardarScroll()">
+                {% csrf_token %}
+                <input type="hidden" name="jugador_id" value="{{ j.id }}">
+                <input type="hidden" name="tipo" value="TA">
+                <button type="submit" class="action-btn btn-ta shadow-sm" title="Amonestar Amarilla" onclick="return confirm('¿Amonestar con Amarilla a {{ j.nombres }}?');" {% if j.asis_match == 0 %}disabled{% endif %}>
+                    <i class="bi bi-file-fill fs-5"></i>
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'registrar_incidencia' partido.id %}" class="m-0 p-0" onsubmit="guardarScroll()">
+                {% csrf_token %}
+                <input type="hidden" name="jugador_id" value="{{ j.id }}">
+                <input type="hidden" name="tipo" value="TR">
+                <button type="submit" class="action-btn btn-tr shadow-sm" title="Expulsar (Roja Directa)" onclick="return confirm('¿Expulsar con Roja Directa a {{ j.nombres }}?');" {% if j.asis_match == 0 %}disabled{% endif %}>
+                    <i class="bi bi-file-fill fs-5"></i>
+                </button>
+            </form>
+        </div>
+        
+    </div>
+    {% empty %}
+    <div class="p-5 text-center text-muted border-0 bg-white">
+        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+            <i class="bi bi-person-x fs-1 opacity-25"></i>
+        </div>
+        <h6 class="fw-black text-dark">Nómina Vacía</h6>
+        <p class="small mb-0 px-4">Este equipo aún no ha inscrito jugadores en el sistema oficial.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    // 1. FUNCIÓN PARA GUARDAR LA POSICIÓN (Se ejecuta al presionar un botón)
+    window.guardarScroll = function() {
+        sessionStorage.setItem('scrollCancha', window.scrollY);
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        // 2. MAGIA: RESTAURAR EL SCROLL APENAS CARGUE LA PÁGINA
+        let scrollPos = sessionStorage.getItem('scrollCancha');
+        if (scrollPos) {
+            setTimeout(function() {
+                window.scrollTo({ top: parseInt(scrollPos), behavior: 'instant' });
+            }, 10);
+            sessionStorage.removeItem('scrollCancha'); 
+        }
+
+        // 3. Lógica visual de los candados
+        document.querySelectorAll('.attendance-switch').forEach(toggle => {
+            const jugadorId = toggle.id.replace('attendance-', '');
+            const row = document.getElementById('row-' + jugadorId);
+            
+            if (!toggle.checked) {
+                row.classList.add('absent');
+                row.querySelectorAll('.action-btn').forEach(btn => btn.disabled = true);
+            } else {
+                row.classList.remove('absent');
+                row.querySelectorAll('.action-btn').forEach(btn => btn.disabled = false);
+            }
+        });
+    });
+</script>

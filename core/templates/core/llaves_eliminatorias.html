@@ -1,0 +1,243 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Fase Final | NEXT LEVEL{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-navy: #0A192F;
+        --primary-blue: #1D4ED8;
+        --accent-gold: #F59E0B;
+    }
+    body { background-color: #F4F7FA; }
+
+    /* Tarjetas de Llave NEXT LEVEL */
+    .bracket-card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+        overflow: hidden;
+        margin-bottom: 25px;
+        transition: transform 0.3s ease;
+    }
+    .bracket-card:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(29, 78, 216, 0.1); }
+
+    .bracket-header {
+        padding: 10px 15px;
+        font-weight: 800;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Filas de Equipos */
+    .team-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 20px;
+        border-bottom: 1px solid #F1F5F9;
+    }
+    .team-row:last-of-type { border-bottom: none; }
+
+    /* Marcador Digital */
+    .score-box {
+        font-weight: 900;
+        font-size: 1.4rem;
+        background: #F8FAFC;
+        min-width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: var(--primary-navy);
+        border: 1px solid #E2E8F0;
+    }
+    
+    .penalties { font-size: 0.7rem; color: var(--accent-gold); font-weight: 900; margin-right: 5px; }
+    .shield-mini { width: 35px; height: 35px; object-fit: contain; margin-right: 12px; }
+    
+    /* Estilos por Etapa */
+    .header-final { background: linear-gradient(135deg, #B45309 0%, var(--accent-gold) 100%); color: white; }
+    .header-semis { background-color: var(--primary-blue); color: white; }
+    .header-cuartos { background-color: var(--primary-navy); color: white; }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container py-4 animate__animated animate__fadeIn">
+    
+    <div class="text-center mb-5">
+        <div class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-2 mb-3 rounded-pill border border-primary border-opacity-25">
+            <i class="bi bi-diagram-3 me-1"></i> LLAVES DE ELIMINACIÓN DIRECTA
+        </div>
+        <h2 class="fw-black text-dark mb-1" style="font-size: 2.5rem; letter-spacing: -1px;">Fase Final</h2>
+        <p class="text-muted fw-bold text-uppercase" style="letter-spacing: 2px; font-size: 0.9rem;">{{ torneo.nombre }}</p>
+    </div>
+
+    {% if final or tercer %}
+    <div class="row justify-content-center mb-5 g-4">
+        {% if final %}
+        <div class="col-lg-6">
+            <div class="bracket-card" style="border: 3px solid var(--accent-gold);">
+                <div class="bracket-header header-final">
+                    <span><i class="bi bi-trophy-fill me-2"></i>PARTIDO DE CAMPEONATO</span>
+                    <span class="badge bg-white text-dark rounded-pill">GRAN FINAL</span>
+                </div>
+                
+                {% with match=final %}
+                <div class="team-row">
+                    <div class="d-flex align-items-center fw-black text-dark fs-5">
+                        {% if match.equipo_local.escudo %}<img src="{{ match.equipo_local.escudo.url }}" class="shield-mini">{% else %}<i class="bi bi-shield-fill text-muted opacity-25 me-2 fs-3"></i>{% endif %}
+                        {{ match.equipo_local.nombre }}
+                    </div>
+                    <div class="d-flex align-items-center">
+                        {% if match.hubo_penales %}<span class="penalties">P: {{ match.penales_local }}</span>{% endif %}
+                        <div class="score-box shadow-sm">{{ match.goles_local }}</div>
+                    </div>
+                </div>
+
+                <div class="team-row">
+                    <div class="d-flex align-items-center fw-black text-dark fs-5">
+                        {% if match.equipo_visita.escudo %}<img src="{{ match.equipo_visita.escudo.url }}" class="shield-mini">{% else %}<i class="bi bi-shield-fill text-muted opacity-25 me-2 fs-3"></i>{% endif %}
+                        {{ match.equipo_visita.nombre }}
+                    </div>
+                    <div class="d-flex align-items-center">
+                        {% if match.hubo_penales %}<span class="penalties">P: {{ match.penales_visita }}</span>{% endif %}
+                        <div class="score-box shadow-sm">{{ match.goles_visita }}</div>
+                    </div>
+                </div>
+                {% endwith %}
+                <div class="bg-light text-center py-2 text-muted small fw-bold border-top">Sede Oficial NEXT LEVEL</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if tercer %}
+        <div class="col-lg-5">
+            <div class="bracket-card" style="border: 2px dashed #94A3B8;">
+                <div class="bracket-header bg-secondary text-white">
+                    <span><i class="bi bi-award me-2"></i>HONOR AL MÉRITO</span>
+                    <span>3ER PUESTO</span>
+                </div>
+                
+                {% with match=tercer %}
+                <div class="team-row">
+                    <div class="d-flex align-items-center fw-bold text-dark">
+                        {% if match.equipo_local.escudo %}<img src="{{ match.equipo_local.escudo.url }}" class="shield-mini">{% else %}<i class="bi bi-shield-fill text-muted opacity-25 me-2 fs-4"></i>{% endif %}
+                        {{ match.equipo_local.nombre }}
+                    </div>
+                    <div class="d-flex align-items-center">
+                        {% if match.hubo_penales %}<span class="penalties">P: {{ match.penales_local }}</span>{% endif %}
+                        <div class="score-box" style="font-size: 1.1rem; height: 35px; min-width: 35px;">{{ match.goles_local }}</div>
+                    </div>
+                </div>
+
+                <div class="team-row">
+                    <div class="d-flex align-items-center fw-bold text-dark">
+                        {% if match.equipo_visita.escudo %}<img src="{{ match.equipo_visita.escudo.url }}" class="shield-mini">{% else %}<i class="bi bi-shield-fill text-muted opacity-25 me-2 fs-4"></i>{% endif %}
+                        {{ match.equipo_visita.nombre }}
+                    </div>
+                    <div class="d-flex align-items-center">
+                        {% if match.hubo_penales %}<span class="penalties">P: {{ match.penales_visita }}</span>{% endif %}
+                        <div class="score-box" style="font-size: 1.1rem; height: 35px; min-width: 35px;">{{ match.goles_visita }}</div>
+                    </div>
+                </div>
+                {% endwith %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-6">
+            <h5 class="fw-black text-dark mb-4 border-start border-4 border-primary ps-3" style="color: var(--primary-navy) !important;">Cuartos de Final</h5>
+            {% for c in cuartos %}
+            <div class="bracket-card">
+                <div class="bracket-header header-cuartos">
+                    <span>LLAVE {{ forloop.counter }}</span>
+                    <span class="badge bg-white bg-opacity-20">{% if c.numero_fecha == 1 %}IDA{% else %}VUELTA{% endif %}</span>
+                </div>
+                <div class="team-row">
+                    <div class="d-flex align-items-center fw-bold text-dark">
+                        {% if c.equipo_local.escudo %}<img src="{{ c.equipo_local.escudo.url }}" class="shield-mini">{% else %}<i class="bi bi-shield-fill text-muted opacity-25 me-2"></i>{% endif %}
+                        {{ c.equipo_local.nombre }}
+                    </div>
+                    <div class="score-box {% if c.estado == 'PROG' %}text-muted bg-light border-0{% endif %}">
+                        {% if c.estado == 'PROG' %}-{% else %}{{ c.goles_local }}{% endif %}
+                    </div>
+                </div>
+                <div class="team-row">
+                    <div class="d-flex align-items-center fw-bold text-dark">
+                        {% if c.equipo_visita.escudo %}<img src="{{ c.equipo_visita.escudo.url }}" class="shield-mini">{% else %}<i class="bi bi-shield-fill text-muted opacity-25 me-2"></i>{% endif %}
+                        {{ c.equipo_visita.nombre }}
+                    </div>
+                    <div class="score-box {% if c.estado == 'PROG' %}text-muted bg-light border-0{% endif %}">
+                        {% if c.estado == 'PROG' %}-{% else %}{{ c.goles_visita }}{% endif %}
+                    </div>
+                </div>
+                <div class="bg-light text-center py-2 text-muted fw-bold" style="font-size: 0.65rem;">
+                    {% if c.estado == 'JUG' %}<i class="bi bi-check-circle-fill text-success"></i> FINALIZADO{% else %}<i class="bi bi-calendar-event"></i> {{ c.fecha_hora|date:"d M Y - H:i"|default:"Por programar" }}{% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="alert bg-white border border-dashed rounded-4 text-center py-4 text-muted fw-medium shadow-sm">
+                <i class="bi bi-hourglass-split d-block fs-3 mb-2 opacity-50"></i>
+                Esperando definición de Cuartos de Final
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="col-lg-6">
+            <h5 class="fw-black text-dark mb-4 border-start border-4 border-primary ps-3" style="color: var(--primary-blue) !important;">Semifinales</h5>
+            {% for s in semis %}
+            <div class="bracket-card">
+                <div class="bracket-header header-semis">
+                    <span>SEMIFINAL {{ forloop.counter }}</span>
+                    <span class="badge bg-white bg-opacity-20 text-uppercase">Único</span>
+                </div>
+                <div class="team-row">
+                    <div class="d-flex align-items-center fw-bold text-dark">
+                        {% if s.equipo_local.escudo %}<img src="{{ s.equipo_local.escudo.url }}" class="shield-mini">{% else %}<i class="bi bi-shield-fill text-muted opacity-25 me-2"></i>{% endif %}
+                        {{ s.equipo_local.nombre }}
+                    </div>
+                    <div class="score-box {% if s.estado == 'PROG' %}text-muted bg-light border-0{% endif %}">
+                        {% if s.estado == 'PROG' %}-{% else %}{{ s.goles_local }}{% endif %}
+                    </div>
+                </div>
+                <div class="team-row">
+                    <div class="d-flex align-items-center fw-bold text-dark">
+                        {% if s.equipo_visita.escudo %}<img src="{{ s.equipo_visita.escudo.url }}" class="shield-mini">{% else %}<i class="bi bi-shield-fill text-muted opacity-25 me-2"></i>{% endif %}
+                        {{ s.equipo_visita.nombre }}
+                    </div>
+                    <div class="score-box {% if s.estado == 'PROG' %}text-muted bg-light border-0{% endif %}">
+                        {% if s.estado == 'PROG' %}-{% else %}{{ s.goles_visita }}{% endif %}
+                    </div>
+                </div>
+                <div class="bg-light text-center py-2 text-muted fw-bold" style="font-size: 0.65rem;">
+                    {% if s.estado == 'JUG' %}<i class="bi bi-check-circle-fill text-success"></i> FINALIZADO{% else %}<i class="bi bi-calendar-event"></i> {{ s.fecha_hora|date:"d M Y - H:i"|default:"Por programar" }}{% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="alert bg-white border border-dashed rounded-4 text-center py-4 text-muted fw-medium shadow-sm">
+                <i class="bi bi-hourglass-split d-block fs-3 mb-2 opacity-50"></i>
+                Esperando definición de Semifinales
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+        </a>
+    </div>
+</div>
+{% endblock %}

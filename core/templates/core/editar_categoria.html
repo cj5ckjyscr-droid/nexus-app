@@ -1,0 +1,37 @@
+{% extends 'core/base.html' %}
+
+{% block contenido %}
+<div class="row justify-content-center animate__animated animate__fadeInUp">
+    <div class="col-md-6 col-lg-5">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="fw-black text-dark m-0"><i class="bi bi-pencil-square text-primary me-2"></i>Editar Categoría</h5>
+            <a href="{% url 'gestionar_categorias' %}" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold">Volver</a>
+        </div>
+
+        <div class="card border-0 rounded-4 shadow-sm bg-white">
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">Nombre de la Categoría</label>
+                        <input type="text" name="nombre" class="form-control" value="{{ categoria.nombre }}" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-muted small">Color del Carnet</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <input type="color" name="color_carnet" class="form-control form-control-color border-0 shadow-sm" value="{{ categoria.color_carnet|default:'#1D4ED8' }}" title="Elige un color">
+                            <span class="text-muted small">Este color se usará en el encabezado de los carnets de esta categoría.</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold py-2 shadow-sm">
+                        <i class="bi bi-save-fill me-1"></i> Guardar Cambios
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

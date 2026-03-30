@@ -1,0 +1,136 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Horarios y Tarifas | NEXT LEVEL{% endblock %}
+
+{% block contenido %}
+<div class="row g-4 animate__animated animate__fadeInUp">
+    
+    <div class="col-lg-4">
+        <div class="card card-pro border-0 shadow-sm sticky-top rounded-4 overflow-hidden" style="top: 100px;">
+            <div class="card-header text-white border-0 pt-4 pb-3 px-4" style="background: linear-gradient(135deg, var(--primary-navy), var(--primary-blue));">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white bg-opacity-25 rounded-3 p-2 me-3 shadow-sm d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                        <i class="bi bi-clock-fill fs-4 text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-black text-white mb-0" style="letter-spacing: 0.5px;">Nuevo Horario</h5>
+                        <small class="text-white-50 fw-medium">Configura bloques y precios</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4 bg-white">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-bold text-uppercase" style="letter-spacing: 1px;">{{ field.label }}</label>
+                        
+                        {% if field.field.widget.input_type == 'checkbox' %}
+                            <div class="form-check form-switch bg-light border border-secondary-subtle rounded-3 p-3 d-flex justify-content-between align-items-center mb-0 shadow-sm">
+                                <label class="form-check-label fw-bold text-dark m-0" for="{{ field.id_for_label }}" style="font-size: 0.85rem;">Habilitar Reserva</label>
+                                <div class="ms-3">{{ field }}</div>
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+                        
+                        {% if field.errors %}
+                            <div class="text-danger mt-1 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    <button type="submit" class="btn w-100 py-2 fw-bold mt-2 shadow-sm text-white transition-all" style="background-color: var(--primary-blue); border-radius: 10px;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                        <i class="bi bi-plus-circle-fill me-2"></i> Agregar Horario
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center mb-4 px-1 pb-2 border-bottom">
+            <h4 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;"><i class="bi bi-list-check me-2" style="color: var(--primary-blue);"></i> Tarifario Actual</h4>
+        </div>
+        
+        <div class="row g-4">
+            {% for h in horarios %}
+            <div class="col-md-6 col-xl-4">
+                <div class="card card-pro border-0 shadow-sm text-center position-relative overflow-hidden h-100 rounded-4" style="transition: transform 0.3s, box-shadow 0.3s;">
+                    <div class="position-absolute top-0 w-100" style="height: 5px; background: {% if h.activo %}#10B981{% else %}#EF4444{% endif %};"></div>
+                    
+                    <div class="card-body p-4 d-flex flex-column">
+                        
+                        <div class="mb-3 mt-2">
+                            <span class="fs-1 fw-black" style="color: var(--primary-navy);">${{ h.precio }}</span>
+                        </div>
+                        
+                        <div class="text-muted fw-bold mb-3 d-flex justify-content-center align-items-center gap-2" style="font-size: 1.1rem;">
+                            <i class="bi bi-clock"></i> {{ h.hora_inicio|time:"H:i" }} - {{ h.hora_fin|time:"H:i" }}
+                        </div>
+                        
+                        <div class="mb-4">
+                            {% if h.activo %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-1 shadow-sm"><i class="bi bi-check-circle-fill me-1"></i> Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-3 py-1 shadow-sm"><i class="bi bi-x-circle-fill me-1"></i> Inactivo</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mt-auto pt-3 border-top">
+                            <a href="{% url 'eliminar_horario' h.id %}" class="btn btn-sm btn-outline-danger w-100 rounded-pill fw-bold transition-all" onclick="return confirm('¿Seguro que deseas eliminar este bloque de horario permanentemente?');">
+                                <i class="bi bi-trash3-fill me-1"></i> Eliminar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% empty %}
+            <div class="col-12 text-center py-5 bg-white rounded-4 border border-dashed shadow-sm">
+                <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border" style="width: 80px; height: 80px;">
+                    <i class="bi bi-calendar-x text-muted opacity-50" style="font-size: 2.5rem;"></i>
+                </div>
+                <h5 class="text-dark fw-bold mt-2">No hay horarios configurados</h5>
+                <p class="text-muted small mb-0">Crea bloques de horas para que tus clientes puedan reservar las instalaciones de NEXT LEVEL.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Hover para las tarjetas de precio */
+    .card-pro:hover { box-shadow: 0 10px 25px rgba(29, 78, 216, 0.08) !important; transform: translateY(-4px); }
+    
+    /* Estilos globales para inputs */
+    form input, form select, form textarea {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        border: 1px solid #CBD5E1;
+        border-radius: 10px;
+        background-color: #F8FAFC;
+        color: var(--text-main);
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+    form input:focus, form select:focus, form textarea:focus {
+        border-color: var(--primary-blue);
+        background-color: #FFFFFF;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15);
+    }
+    
+    /* Estilo para el switch (checkbox) */
+    .form-switch .form-check-input {
+        width: 2.5rem; height: 1.2rem; cursor: pointer;
+        background-color: #CBD5E1; border-color: #CBD5E1;
+    }
+    .form-switch .form-check-input:checked {
+        background-color: var(--primary-blue); border-color: var(--primary-blue);
+    }
+</style>
+{% endblock %}

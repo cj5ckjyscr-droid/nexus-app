@@ -1,0 +1,183 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Carnets | {{ equipo.nombre }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --color-cat: {{ color_categoria }}; /* Se inyecta el color de la DB dinámicamente */
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #cbd5e1;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .btn-imprimir {
+            display: block; width: 250px; margin: 0 auto 30px auto;
+            background: #0f172a; color: white; border: none; padding: 15px;
+            font-size: 1.1rem; font-weight: bold; border-radius: 10px;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        /* Contenedor tipo Hoja A4 para que se agrupen bien */
+        .hoja-impresion {
+            display: flex; flex-wrap: wrap; gap: 10px;
+            justify-content: center; max-width: 21cm; margin: 0 auto;
+        }
+
+        /* --- DISEÑO DEL CARNET (TAMAÑO CR80 ESTÁNDAR) --- */
+        .carnet {
+            width: 5.4cm; height: 8.6cm;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            /* Importante para no partir carnets entre páginas al imprimir */
+            page-break-inside: avoid;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Cabecera con corte en diagonal usando clip-path */
+        .carnet-header {
+            background-color: var(--color-cat);
+            height: 2.8cm;
+            clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%);
+            position: relative;
+        }
+
+        .logos-top {
+            display: flex; justify-content: space-between;
+            padding: 8px 10px; position: absolute; top: 0; width: 100%; box-sizing: border-box;
+        }
+
+        .logo-img {
+            height: 26px; width: 26px; object-fit: contain;
+            background: white; border-radius: 50%; padding: 2px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* Foto del Jugador flotando entre la cabecera y el cuerpo */
+        .foto-container {
+            position: absolute; top: 1.2cm; left: 50%; transform: translateX(-50%);
+            width: 3.2cm; height: 3.2cm;
+            border-radius: 50%; border: 3px solid white;
+            background: #f1f5f9; overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10;
+        }
+        .foto-container img { width: 100%; height: 100%; object-fit: cover; }
+        .foto-placeholder { font-size: 30px; display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; }
+
+        /* Información del Jugador */
+        .carnet-body {
+            padding-top: 1.8cm; text-align: center; px-1;
+        }
+        
+        .jugador-nombre {
+            font-family: 'Montserrat', sans-serif; font-weight: 900;
+            font-size: 13px; color: #0f172a; margin: 0; text-transform: uppercase;
+            line-height: 1.1; padding: 0 5px;
+        }
+        
+        .jugador-cedula {
+            font-size: 9px; color: #64748b; margin: 4px 0 8px 0; font-weight: 600;
+        }
+        
+        .equipo-nombre {
+            font-weight: 800; font-size: 11px; color: var(--color-cat);
+            margin: 0; text-transform: uppercase;
+        }
+
+        /* Banner inferior con la categoría y dorsal */
+        .carnet-footer {
+            position: absolute; bottom: 0; width: 100%;
+            background: #0f172a; color: white; display: flex;
+            align-items: center; justify-content: space-between;
+            height: 22px; padding: 0 10px; box-sizing: border-box;
+        }
+
+        .cat-badge { font-size: 9px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase;}
+        
+        .dorsal {
+            background: var(--color-cat); color: white; font-family: 'Montserrat', sans-serif;
+            font-size: 14px; font-weight: 900; height: 26px; width: 26px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; position: absolute; right: 8px; bottom: 8px;
+            border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .torneo-title {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            color: white; font-size: 7px; font-weight: bold; opacity: 0.9;
+            text-transform: uppercase; white-space: nowrap;
+        }
+
+        /* Reglas estrcitas para la impresora */
+        @media print {
+            body { background-color: white !important; margin: 0; padding: 0; }
+            .btn-imprimir { display: none !important; }
+            .hoja-impresion { gap: 2px; justify-content: flex-start; }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="btn-imprimir" onclick="window.print()">
+        🖨️ Imprimir Carnets
+    </button>
+
+    <div class="hoja-impresion">
+        {% for jugador in jugadores %}
+        <div class="carnet">
+            
+            <div class="carnet-header">
+                <div class="torneo-title">{{ equipo.torneo.nombre|truncatechars:20 }}</div>
+                <div class="logos-top">
+                    <img src="{{ config_global.logo_sistema.url }}" class="logo-img" onerror="this.style.display='none'">    
+                    {% if equipo.escudo %}
+                        <img src="{{ equipo.escudo.url }}" class="logo-img">
+                    {% else %}
+                        <div class="logo-img" style="background:#e2e8f0;"></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="foto-container">
+                {% if jugador.foto %}
+                    <img src="{{ jugador.foto.url }}" alt="Foto">
+                {% else %}
+                    <div class="foto-placeholder">👤</div>
+                {% endif %}
+            </div>
+
+            <div class="carnet-body">
+                <p class="jugador-nombre">{{ jugador.nombres }}</p>
+                <p class="jugador-cedula">ID: {{ jugador.cedula }}</p>
+                <p class="equipo-nombre">{{ equipo.nombre }}</p>
+            </div>
+
+            <div class="carnet-footer">
+                <span class="cat-badge">{{ nombre_categoria }}</span>
+            </div>
+            
+            <div class="dorsal">{{ jugador.dorsal|default:"-" }}</div>
+        </div>
+        {% empty %}
+        <div style="text-align:center; width: 100%;">
+            <h3 style="color: #64748b;">No hay jugadores activos en este equipo para imprimir.</h3>
+        </div>
+        {% endfor %}
+    </div>
+
+</body>
+</html>
