@@ -1,89 +1,160 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Nuevo Usuario | NEXT LEVEL{% endblock %}
-
-{% block contenido %}
-<div class="row justify-content-center animate__animated animate__fadeInUp mt-4">
-    <div class="col-md-8 col-lg-6">
-        <div class="card card-pro border-0 shadow-lg rounded-4 overflow-hidden">
-            
-            <div class="card-header text-white text-center py-4 border-0" style="background: linear-gradient(135deg, var(--primary-navy), var(--primary-blue));">
-                <h3 class="fw-black mb-0" style="letter-spacing: 0.5px;">
-                    <i class="bi bi-person-plus-fill text-white opacity-75 me-2"></i>Nuevo Usuario
-                </h3>
-                <small class="text-white-50 fw-medium">Crear cuenta administrativa o de gestión</small>
-            </div>
-            
-            <div class="card-body p-4 p-md-5 bg-white">
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    {% for field in form %}
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-uppercase" style="color: var(--primary-navy); font-size: 0.85rem; letter-spacing: 0.5px;">
-                            {{ field.label }}
-                        </label>
-                        
-                        {{ field }}
-                        
-                        {% if field.errors %}
-                            <div class="text-danger small mt-1 fw-bold">
-                                <i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}
-                            </div>
-                        {% endif %}
-                        
-                        {% if field.help_text %}
-                            <div class="form-text text-muted mt-1" style="font-size: 0.75rem;">
-                                {{ field.help_text }}
-                            </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-
-                    <div class="d-grid gap-3 mt-5">
-                        <button type="submit" class="btn btn-sport btn-lg w-100 fw-bold shadow-sm" style="border-radius: 12px;">
-                            <i class="bi bi-save me-2"></i> Guardar Usuario
-                        </button>
-                        
-                        <a href="{% url 'dashboard' %}" class="btn btn-light border-secondary-subtle w-100 fw-bold rounded-pill transition-all text-dark">
-                            <i class="bi bi-arrow-left me-2"></i> Cancelar y Volver
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+{% block title %}Nuevo Usuario | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Estilos automáticos para los inputs de Django */
-    input.form-control, select.form-select, textarea.form-control {
-        border-radius: 10px !important;
-        border: 1px solid #CBD5E1 !important;
-        padding: 10px 15px !important;
-        background-color: #F8FAFC !important;
-        color: var(--text-main) !important;
-        transition: all 0.3s ease !important;
+    /* =========================================================
+       ESTÉTICA FEY - FORMULARIOS (LIGHT MODE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed;
+        top: -10%; left: -10%;
+        width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1;
+        pointer-events: none;
     }
-    input.form-control:focus, select.form-select:focus, textarea.form-control:focus {
-        background-color: #FFFFFF !important;
-        border-color: var(--primary-blue) !important;
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15) !important;
+
+    .fey-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0;
+        border-radius: 24px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.05);
+        position: relative;
+        overflow: hidden;
     }
     
-    /* Para los checkboxes (si los hay) */
-    input[type="checkbox"].form-check-input {
-        width: 1.2rem;
-        height: 1.2rem;
-        margin-top: 0.1rem;
-        border-color: #CBD5E1;
-        cursor: pointer;
+    .fey-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 6px;
+        background: linear-gradient(90deg, var(--brand-primary), #0EA5E9);
     }
-    input[type="checkbox"].form-check-input:checked {
-        background-color: var(--primary-blue);
-        border-color: var(--primary-blue);
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.2rem);
+        letter-spacing: -0.03em;
+        color: #0F172A;
+        line-height: 1.1;
+    }
+
+    /* Magia para que los inputs de Django se vean hermosos automáticamente */
+    input.form-control, select.form-select, textarea.form-control, input[type="text"], input[type="email"], input[type="password"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 14px !important;
+        padding: 12px 16px !important;
+        font-weight: 500 !important;
+        color: #0F172A !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.01) !important;
+        width: 100%;
+    }
+    
+    input.form-control:focus, select.form-select:focus, textarea.form-control:focus, input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+        background-color: #FFFFFF !important;
+        border-color: var(--brand-primary) !important;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15) !important;
+        outline: none !important;
+        transform: translateY(-1px);
+    }
+
+    input.form-control::placeholder {
+        color: #94A3B8 !important;
+        font-weight: 400 !important;
+    }
+
+    /* Checkboxes modernos */
+    input[type="checkbox"] {
+        width: 1.2rem; height: 1.2rem;
+        border-radius: 4px; border: 1px solid #CBD5E1;
+        cursor: pointer; accent-color: var(--brand-primary);
+        transition: all 0.2s ease;
+    }
+
+    /* Botón Secundario */
+    .btn-light-pro {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        color: #64748B;
+        transition: all 0.2s ease;
+    }
+    .btn-light-pro:hover {
+        background: #F8FAFC; border-color: #CBD5E1;
+        color: #0F172A; transform: translateY(-2px);
+    }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 576px) {
+        .fey-card { padding: 24px; border-radius: 20px; }
     }
 </style>
 {% endblock %}
+
+{% block contenido %}
+<div class="ambient-glow"></div>
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 150px); padding: 20px 0;">
+    <div class="w-100 reveal-up" style="max-width: 550px;">
+        
+        <div class="fey-card">
+            
+            <div class="text-center mb-4 pb-2 border-bottom">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-person-plus-fill fs-2"></i>
+                </div>
+                <h2 class="fey-title mb-2">Nuevo Usuario</h2>
+                <p class="text-muted small fw-medium m-0">Crea una cuenta administrativa o de gestión para tu complejo.</p>
+            </div>
+            
+            <form method="post" class="m-0">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-slate-900 mb-2" style="font-size: 0.85rem; letter-spacing: 0.5px;">
+                        {{ field.label }}
+                    </label>
+                    
+                    {{ field }}
+                    
+                    {% if field.errors %}
+                        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-2 mt-2 text-danger small fw-bold d-flex align-items-center shadow-sm">
+                            <i class="bi bi-exclamation-circle-fill me-2"></i> {{ field.errors|striptags }}
+                        </div>
+                    {% endif %}
+                    
+                    {% if field.help_text %}
+                        <div class="text-muted mt-2 fw-medium" style="font-size: 0.75rem; line-height: 1.4;">
+                            <i class="bi bi-info-circle me-1 opacity-50"></i> {{ field.help_text }}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <div class="d-flex flex-column gap-3 mt-5 pt-3 border-top">
+                    <button type="submit" class="btn btn-nexus w-100 rounded-pill py-3 fw-bold shadow-sm" style="font-size: 1rem;">
+                        <i class="bi bi-save me-2"></i> Guardar Usuario
+                    </button>
+                    
+                    <a href="{% url 'admin_gestion_usuarios' %}" class="btn btn-light-pro w-100 rounded-pill py-3 fw-bold text-center text-decoration-none">
+                        <i class="bi bi-arrow-left me-1"></i> Cancelar y Volver
+                    </a>
+                </div>
+            </form>
+            
+        </div>
+
+    </div>
+</div>
 {% endblock %}

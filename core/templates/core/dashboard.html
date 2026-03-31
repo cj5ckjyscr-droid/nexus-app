@@ -1,309 +1,330 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Panel de Gestión | {{ mi_complejo.nombre|default:"NEXUS" }}{% endblock %}
+{% block title %}Panel de Gestión | {{ mi_complejo.nombre|default:"NEXUS SPORTOPS" }}{% endblock %}
 
-{% block contenido %}
+{% block extra_css %}
 <style>
-    /* ==========================================
-       ESTILOS ULTRA-LIMPIOS (ALTO CONTRASTE 2026)
-       ========================================== */
-    .text-slate-900 { color: #0F172A !important; } /* Texto casi negro, máxima lectura */
-    .text-slate-600 { color: #475569 !important; } /* Texto secundario gris oscuro */
-    .bg-slate-50 { background-color: #F8FAFC !important; } /* Fondo súper claro (Gris hielo) */
-    
-    .panel-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 16px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
-    }
-    .panel-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
-        border-color: #CBD5E1;
+    /* =========================================================
+       ESTÉTICA FEY - DASHBOARD (LIGHT MODE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
     }
 
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
+    }
+
+    /* Bento App Icons (Oficina de Control) */
     .btn-tool {
-        display: block;
-        text-decoration: none;
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 16px;
-        padding: 1.5rem 1rem;
-        text-align: center;
-        transition: all 0.2s ease;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-decoration: none; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0; border-radius: 24px; padding: 24px 16px;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02); height: 100%; position: relative; overflow: hidden;
     }
     .btn-tool:hover {
-        background-color: #F8FAFC;
-        border-color: #4F46E5; /* Borde índigo al pasar el mouse */
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.1);
+        transform: translateY(-5px); border-color: var(--brand-primary);
+        box-shadow: 0 15px 35px rgba(79, 70, 229, 0.1); background: #FFFFFF;
     }
-    
-    .btn-tool i {
-        font-size: 2rem;
-        margin-bottom: 10px;
-        display: block;
-    }
-    .btn-tool span {
-        color: #0F172A;
-        font-weight: 700;
-        font-size: 0.95rem;
-        display: block;
-    }
+    .btn-tool i { font-size: 2.2rem; margin-bottom: 12px; transition: transform 0.3s ease; }
+    .btn-tool:hover i { transform: scale(1.1); }
+    .btn-tool span { color: #0F172A; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.95rem; text-align: center; line-height: 1.2; }
 
-    /* Cartelera de Partidos */
+    /* Cartelera de Partidos Horizontal */
+    .fey-panel {
+        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0; border-radius: 24px; padding: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02); margin-bottom: 30px;
+    }
     .match-item {
-        background: #FFFFFF; /* Fondo blanco en lugar del marrón */
-        border: 1px solid #E2E8F0;
-        border-radius: 16px;
-        padding: 15px;
-        min-width: 280px;
-        margin-right: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        transition: all 0.3s ease;
+        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 20px;
+        padding: 20px; min-width: 320px; margin-right: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: all 0.3s ease;
     }
-    .match-item:hover {
-        border-color: #0EA5E9; /* Cyan al hover */
-        transform: translateY(-2px);
-    }
-
+    .match-item:hover { border-color: #0EA5E9; transform: translateY(-3px); box-shadow: 0 10px 25px rgba(14, 165, 233, 0.1); }
+    
     .shield-box {
-        width: 45px; height: 45px;
-        border-radius: 50%;
-        border: 1px solid #E2E8F0;
-        display: flex; align-items: center; justify-content: center;
-        background: #F8FAFC;
-        margin: 0 auto 8px auto;
-        overflow: hidden;
+        width: 50px; height: 50px; border-radius: 50%; border: 1px solid #E2E8F0;
+        display: flex; align-items: center; justify-content: center; background: #F8FAFC;
+        margin: 0 auto 10px auto; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     .shield-box img { width: 100%; height: 100%; object-fit: cover; }
     
-    .scroll-x {
-        display: flex;
-        overflow-x: auto;
-        padding-bottom: 15px;
-        scrollbar-width: none; /* Firefox */
-    }
-    .scroll-x::-webkit-scrollbar { display: none; /* Chrome/Safari/Edge */ }
-</style>
+    .scroll-x { display: flex; overflow-x: auto; padding-bottom: 20px; padding-top: 5px; scrollbar-width: none; }
+    .scroll-x::-webkit-scrollbar { display: none; }
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom animate__animated animate__fadeIn">
-    <div>
-        {% if user.perfil.rol == 'ORG' %}
-            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 mb-2 px-3 py-2 rounded-pill fw-bold">
-                <i class="bi bi-shield-lock-fill me-1"></i> Organizador Principal
-            </span>
-            <h2 class="fw-black text-slate-900 m-0" style="font-family: 'Outfit', sans-serif;">{{ mi_complejo.nombre }}</h2>
-        {% elif user.perfil.rol == 'DIR' %}
-            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 mb-2 px-3 py-2 rounded-pill fw-bold">
-                <i class="bi bi-person-badge-fill me-1"></i> Dirigente de Equipo
-            </span>
-            <h2 class="fw-black text-slate-900 m-0" style="font-family: 'Outfit', sans-serif;">{{ mi_equipo.nombre|default:"Sin Equipo" }}</h2>
-        {% endif %}
-        
-        <p class="text-slate-600 mt-1 mb-0 fw-medium">
-            Bienvenido, <span class="text-primary fw-bold">{{ user.first_name|default:user.username }}</span>.
-        </p>
-    </div>
+    /* Alertas Premium */
+    .alert-premium { border-radius: 20px; border-left-width: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 576px) {
+        .btn-tool { padding: 16px 10px; border-radius: 20px; }
+        .btn-tool i { font-size: 1.8rem; }
+        .btn-tool span { font-size: 0.85rem; }
+        .fey-panel { padding: 20px; border-radius: 20px; }
+        .match-item { min-width: 280px; padding: 15px; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="ambient-glow"></div>
+
+<div class="container-fluid px-0 pb-5">
     
-    <div class="mt-3 mt-md-0">
-        <div class="bg-white border rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center">
-            <i class="bi bi-calendar2-week text-primary me-2"></i>
-            <span class="fw-bold text-slate-900 text-capitalize">{% now "l, d de F" %}</span>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom reveal-up">
+        <div class="mb-3 mb-md-0">
+            {% if user.perfil.rol == 'ORG' %}
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 mb-2 px-3 py-2 rounded-pill fw-bold">
+                    <i class="bi bi-shield-lock-fill me-1"></i> Súper Organizador
+                </span>
+                <h2 class="fey-title m-0">{{ mi_complejo.nombre }}</h2>
+            {% elif user.perfil.rol == 'DIR' %}
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 mb-2 px-3 py-2 rounded-pill fw-bold">
+                    <i class="bi bi-person-badge-fill me-1"></i> Dirigente Deportivo
+                </span>
+                <h2 class="fey-title m-0">{{ mi_equipo.nombre|default:"Sin Equipo" }}</h2>
+            {% endif %}
+            
+            <p class="text-muted mt-1 mb-0 fw-medium">
+                ¡Hola, <span class="text-primary fw-bold">{{ user.first_name|default:user.username }}</span>! Bienvenido a tu panel.
+            </p>
+        </div>
+        
+        <div>
+            <div class="bg-white border rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center">
+                <i class="bi bi-calendar2-week text-primary me-2"></i>
+                <span class="fw-bold text-dark text-capitalize" style="font-size: 0.9rem;">{% now "l, d M" %}</span>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="row mb-4 animate__animated animate__fadeInUp">
-    
-    {% if user.perfil.rol == 'DIR' and tengo_deudas %}
-    <div class="col-12 mb-3">
-        <div class="alert alert-danger bg-white border border-danger border-start border-5 shadow-sm d-flex align-items-center justify-content-between m-0">
-            <div class="d-flex align-items-center">
-                <div class="bg-danger bg-opacity-10 p-2 rounded-circle me-3">
-                    <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+    <div class="row g-3 mb-4 reveal-up" style="animation-delay: 0.1s;">
+        
+        {% if user.perfil.rol == 'DIR' and tengo_deudas %}
+        <div class="col-12">
+            <div class="alert alert-danger bg-white alert-premium border-danger d-flex flex-column flex-md-row align-items-md-center justify-content-between m-0">
+                <div class="d-flex align-items-center mb-3 mb-md-0">
+                    <div class="bg-danger bg-opacity-10 p-3 rounded-circle me-3 text-danger d-flex align-items-center justify-content-center">
+                        <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Alerta de Suspensión</h6>
+                        <p class="text-muted small m-0 mt-1">Tu equipo mantiene una deuda de <strong class="text-danger fs-6">${{ monto_deuda }}</strong>.</p>
+                    </div>
                 </div>
-                <div>
-                    <h6 class="fw-bold text-slate-900 m-0">Deuda Pendiente con el Torneo</h6>
-                    <p class="text-slate-600 small m-0">Tienes un saldo de <strong class="text-danger">${{ monto_deuda }}</strong></p>
+                <button class="btn btn-outline-danger fw-bold rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#modalDeudasDir">Pagar ahora</button>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if user.perfil.rol == 'ORG' %}
+            {% if deudas %}
+            <div class="col-md-6">
+                <div class="alert alert-info bg-white alert-premium border-info d-flex flex-column flex-xl-row align-items-xl-center justify-content-between m-0 h-100">
+                    <div class="d-flex align-items-center mb-3 mb-xl-0">
+                        <div class="bg-info bg-opacity-10 p-3 rounded-circle me-3 text-info d-flex align-items-center justify-content-center">
+                            <i class="bi bi-cash-stack fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Cuentas por Cobrar</h6>
+                            <p class="text-muted small m-0 mt-1">Tienes un total de <strong class="text-info fs-6">${{ total_por_cobrar }}</strong> en la calle.</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline-info fw-bold rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#modalDeudasOrg">Gestionar</button>
                 </div>
             </div>
-            <button class="btn btn-outline-danger fw-bold rounded-pill btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalDeudasDir">Ver Detalle</button>
-        </div>
+            {% endif %}
+
+            {% if equipos_pendientes.count > 0 %}
+            <div class="col-md-6">
+                <div class="alert alert-warning bg-white alert-premium border-warning d-flex flex-column flex-xl-row align-items-xl-center justify-content-between m-0 h-100">
+                    <div class="d-flex align-items-center mb-3 mb-xl-0">
+                        <div class="bg-warning bg-opacity-10 p-3 rounded-circle me-3 text-warning d-flex align-items-center justify-content-center">
+                            <i class="bi bi-shield-fill-exclamation fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Solicitudes Nuevas</h6>
+                            <p class="text-muted small m-0 mt-1">Tienes <strong class="text-warning fs-6">{{ equipos_pendientes.count }}</strong> equipos esperando revisión.</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-warning text-dark fw-bold rounded-pill px-4 shadow-sm">Aprobar</a>
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
     </div>
-    {% endif %}
 
     {% if user.perfil.rol == 'ORG' %}
-        {% if deudas %}
-        <div class="col-md-6 mb-3">
-            <div class="alert alert-info bg-white border border-info border-start border-5 shadow-sm d-flex align-items-center justify-content-between m-0 h-100">
-                <div class="d-flex align-items-center">
-                    <div class="bg-info bg-opacity-10 p-2 rounded-circle me-3">
-                        <i class="bi bi-cash-stack text-info fs-5"></i>
-                    </div>
-                    <div>
-                        <h6 class="fw-bold text-slate-900 m-0">Cuentas por Cobrar</h6>
-                        <p class="text-slate-600 small m-0">Equipos adeudan <strong class="text-info">${{ total_por_cobrar }}</strong></p>
-                    </div>
-                </div>
-                <button class="btn btn-outline-info fw-bold rounded-pill btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalDeudasOrg">Ver</button>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if equipos_pendientes.count > 0 %}
-        <div class="col-md-6 mb-3">
-            <div class="alert alert-warning bg-white border border-warning border-start border-5 shadow-sm d-flex align-items-center justify-content-between m-0 h-100">
-                <div class="d-flex align-items-center">
-                    <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-3">
-                        <i class="bi bi-shield-fill-exclamation text-warning fs-5"></i>
-                    </div>
-                    <div>
-                        <h6 class="fw-bold text-slate-900 m-0">Nuevos Equipos</h6>
-                        <p class="text-slate-600 small m-0"><strong class="text-warning">{{ equipos_pendientes.count }}</strong> solicitudes pendientes.</p>
-                    </div>
-                </div>
-                <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-warning text-dark fw-bold rounded-pill btn-sm px-3">Revisar</a>
-            </div>
-        </div>
-        {% endif %}
-    {% endif %}
-</div>
-
-{% if user.perfil.rol == 'ORG' %}
-<div class="mb-5 animate__animated animate__fadeInUp">
-    <h5 class="fw-black text-slate-900 mb-3" style="font-family: 'Outfit', sans-serif;">Oficina de Control</h5>
-    <div class="row g-3">
-        <div class="col-6 col-md-4 col-lg-2">
-            <a href="{% url 'gestionar_torneos' %}" class="btn-tool shadow-sm">
-                <i class="bi bi-trophy-fill text-warning"></i>
-                <span>Torneos</span>
-            </a>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <a href="{% url 'gestionar_equipos' %}" class="btn-tool shadow-sm">
-                <i class="bi bi-shield-fill text-primary"></i>
-                <span>Equipos</span>
-            </a>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <a href="{% url 'programar_partidos' %}" class="btn-tool shadow-sm">
-                <i class="bi bi-calendar-event-fill text-info"></i>
-                <span>Fixture</span>
-            </a>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <a href="{% url 'admin_gestion_jugadores' %}" class="btn-tool shadow-sm">
-                <i class="bi bi-people-fill text-success"></i>
-                <span>Jugadores</span>
-            </a>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <a href="{% url 'gestionar_finanzas' %}" class="btn-tool shadow-sm">
-                <i class="bi bi-wallet2 text-danger"></i>
-                <span>Caja / Multas</span>
-            </a>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <a href="{% url 'portal_complejo' mi_complejo.slug %}" class="btn-tool shadow-sm border-primary bg-primary bg-opacity-10">
-                <i class="bi bi-box-arrow-up-right text-primary"></i>
-                <span class="text-primary">Ver Portal Fans</span>
-            </a>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-{% if user.perfil.rol == 'DIR' %}
-<div class="mb-5 animate__animated animate__fadeInUp">
-    <h5 class="fw-black text-slate-900 mb-3" style="font-family: 'Outfit', sans-serif;">Gestión de Equipo</h5>
-    <div class="row g-3">
-        <div class="col-md-6">
-            <a href="{% url 'gestionar_jugadores' %}" class="btn-tool shadow-sm d-flex align-items-center text-start p-4">
-                <i class="bi bi-people-fill text-primary fs-1 me-4 mb-0"></i>
-                <div>
-                    <h5 class="fw-bold text-slate-900 m-0">Mi Plantilla</h5>
-                    <p class="text-slate-600 small m-0">Añadir o eliminar jugadores del equipo.</p>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-6">
-            <a href="{% url 'ver_torneos_activos' %}" class="btn-tool shadow-sm d-flex align-items-center text-start p-4">
-                <i class="bi bi-trophy-fill text-warning fs-1 me-4 mb-0"></i>
-                <div>
-                    <h5 class="fw-bold text-slate-900 m-0">Inscripciones</h5>
-                    <p class="text-slate-600 small m-0">Unirse a nuevos torneos disponibles.</p>
-                </div>
-            </a>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<div class="mb-5 animate__animated animate__fadeInUp">
-    <div class="panel-card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="fw-black text-slate-900 m-0" style="font-family: 'Outfit', sans-serif;">
-                <i class="bi bi-lightning-charge-fill text-warning me-2"></i> Próximos Encuentros
-            </h5>
-        </div>
-
-        {% if proximos_partidos %}
-            {% regroup proximos_partidos by fecha_local as partidos_por_dia %}
+    <div class="mb-5 reveal-up" style="animation-delay: 0.2s;">
+        <h4 class="fw-black text-dark mb-4" style="font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">Oficina Central</h4>
+        
+        <div class="row g-3 g-md-4">
             
-            {% for dia in partidos_por_dia %}
-                <h6 class="fw-bold text-slate-900 mb-3 text-capitalize px-2">
-                    <i class="bi bi-calendar-day text-primary me-2"></i>{{ dia.grouper|date:"l, d \d\e F" }}
-                </h6>
-                
-                <div class="scroll-x">
-                    {% for p in dia.list %}
-                    <div class="match-item">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="badge bg-slate-50 text-slate-900 border rounded-pill px-3 py-2 fw-bold shadow-sm">
-                                <i class="bi bi-clock text-warning me-1"></i> {{ p.fecha_hora|time:"H:i" }}
-                            </span>
-                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-1">
-                                Fecha {{ p.numero_fecha }}
-                            </span>
-                        </div>
-
-                        <div class="text-center mb-3">
-                            <span class="fw-bold text-slate-600 small text-uppercase">{{ p.torneo.nombre|truncatechars:30 }}</span>
-                        </div>
-                        
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="text-center" style="width: 40%;">
-                                <div class="shield-box">
-                                    {% if p.equipo_local.escudo %}<img src="{{ p.equipo_local.escudo.url }}">
-                                    {% else %}<i class="bi bi-shield-fill text-slate-600 opacity-25 fs-5"></i>{% endif %}
-                                </div>
-                                <div class="fw-bold text-slate-900 small text-truncate" title="{{ p.equipo_local.nombre }}">{{ p.equipo_local.nombre }}</div>
-                            </div>
-
-                            <div class="fw-black text-slate-600 opacity-50 small">VS</div>
-
-                            <div class="text-center" style="width: 40%;">
-                                <div class="shield-box">
-                                    {% if p.equipo_visita.escudo %}<img src="{{ p.equipo_visita.escudo.url }}">
-                                    {% else %}<i class="bi bi-shield-fill text-slate-600 opacity-25 fs-5"></i>{% endif %}
-                                </div>
-                                <div class="fw-bold text-slate-900 small text-truncate" title="{{ p.equipo_visita.nombre }}">{{ p.equipo_visita.nombre }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% endfor %}
-        {% else %}
-            <div class="text-center py-5 bg-slate-50 rounded-3 border border-dashed">
-                <i class="bi bi-calendar-x fs-1 text-slate-600 opacity-25 d-block mb-2"></i>
-                <span class="fw-bold text-slate-900">El calendario está vacío.</span>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'gestionar_torneos' %}" class="btn-tool">
+                    <i class="bi bi-trophy-fill text-warning"></i>
+                    <span>Torneos</span>
+                </a>
             </div>
-        {% endif %}
+            
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'gestionar_categorias' %}" class="btn-tool">
+                    <i class="bi bi-tags-fill text-secondary"></i>
+                    <span>Categorías</span>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'gestionar_equipos' %}" class="btn-tool">
+                    <i class="bi bi-shield-shaded text-primary"></i>
+                    <span>Equipos</span>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'programar_partidos' %}" class="btn-tool">
+                    <i class="bi bi-calendar-range-fill text-info"></i>
+                    <span>Fixture</span>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'admin_gestion_jugadores' %}" class="btn-tool">
+                    <i class="bi bi-people-fill text-success"></i>
+                    <span>Jugadores</span>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'gestionar_finanzas' %}" class="btn-tool">
+                    <i class="bi bi-wallet2 text-danger"></i>
+                    <span>Finanzas</span>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'admin_gestion_usuarios' %}" class="btn-tool">
+                    <i class="bi bi-person-gear fs-2 mb-3 d-block" style="color: #64748B;"></i>
+                    <span>Vocales</span>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{% url 'portal_complejo' mi_complejo.slug %}" class="btn-tool" style="background: linear-gradient(145deg, #EEF2FF, #FFFFFF); border-color: #C7D2FE;">
+                    <i class="bi bi-globe text-primary"></i>
+                    <span class="text-primary">Portal Fans</span>
+                </a>
+            </div>
+
+        </div>
+    </div>
+    {% endif %}
+
+    {% if user.perfil.rol == 'DIR' %}
+    <div class="mb-5 reveal-up" style="animation-delay: 0.2s;">
+        <h4 class="fw-black text-dark mb-4" style="font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">Gestión de Club</h4>
+        <div class="row g-3 g-md-4">
+            <div class="col-md-6">
+                <a href="{% url 'gestionar_jugadores' %}" class="btn-tool flex-row justify-content-start text-start p-4">
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle me-4">
+                        <i class="bi bi-people-fill fs-2 m-0"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Mi Plantilla</h5>
+                        <p class="text-muted small m-0 mt-1 fw-medium">Añadir jugadores y generar carnets digitales.</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="{% url 'ver_torneos_activos' %}" class="btn-tool flex-row justify-content-start text-start p-4">
+                    <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle me-4">
+                        <i class="bi bi-trophy-fill fs-2 m-0"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Inscripciones</h5>
+                        <p class="text-muted small m-0 mt-1 fw-medium">Explorar y unirse a nuevos torneos disponibles.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="reveal-up" style="animation-delay: 0.3s;">
+        <div class="fey-panel">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">
+                    <i class="bi bi-lightning-charge-fill text-warning me-2"></i> Próximos Encuentros
+                </h4>
+            </div>
+
+            {% if proximos_partidos %}
+                {% regroup proximos_partidos by fecha_local as partidos_por_dia %}
+                
+                {% for dia in partidos_por_dia %}
+                    <div class="d-inline-flex align-items-center bg-slate-50 border rounded-pill px-3 py-1 mb-3 shadow-sm">
+                        <i class="bi bi-calendar-day text-primary me-2"></i>
+                        <span class="fw-bold text-dark text-uppercase small" style="letter-spacing: 0.5px;">{{ dia.grouper|date:"l, d M" }}</span>
+                    </div>
+                    
+                    <div class="scroll-x">
+                        {% for p in dia.list %}
+                        <div class="match-item">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <span class="badge bg-slate-50 text-dark border px-3 py-2 fw-black shadow-sm" style="font-family: 'Outfit', sans-serif; font-size: 0.85rem;">
+                                    <i class="bi bi-clock text-warning me-1"></i> {{ p.fecha_hora|time:"H:i" }}
+                                </span>
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                    Fecha {{ p.numero_fecha }}
+                                </span>
+                            </div>
+
+                            <div class="text-center mb-3">
+                                <span class="badge bg-light text-muted border text-truncate w-100">{{ p.torneo.nombre }}</span>
+                            </div>
+                            
+                            <div class="d-flex align-items-center justify-content-between px-2">
+                                <div class="text-center" style="width: 40%;">
+                                    <div class="shield-box">
+                                        {% if p.equipo_local.escudo %}<img src="{{ p.equipo_local.escudo.url }}">
+                                        {% else %}<i class="bi bi-shield-fill text-muted opacity-25 fs-4"></i>{% endif %}
+                                    </div>
+                                    <div class="fw-bold text-dark small text-truncate" title="{{ p.equipo_local.nombre }}">{{ p.equipo_local.nombre }}</div>
+                                </div>
+
+                                <div class="fw-black text-muted opacity-25 small mx-2">VS</div>
+
+                                <div class="text-center" style="width: 40%;">
+                                    <div class="shield-box">
+                                        {% if p.equipo_visita.escudo %}<img src="{{ p.equipo_visita.escudo.url }}">
+                                        {% else %}<i class="bi bi-shield-fill text-muted opacity-25 fs-4"></i>{% endif %}
+                                    </div>
+                                    <div class="fw-bold text-dark small text-truncate" title="{{ p.equipo_visita.nombre }}">{{ p.equipo_visita.nombre }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-5 border border-dashed rounded-4 bg-slate-50">
+                    <i class="bi bi-calendar-x fs-1 text-muted opacity-25 d-block mb-3"></i>
+                    <h5 class="fw-bold text-dark" style="font-family: 'Outfit', sans-serif;">Calendario sin partidos</h5>
+                    <p class="text-muted small m-0">No hay encuentros programados próximos.</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
@@ -312,16 +333,16 @@
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 shadow-lg">
             <div class="modal-header border-bottom py-3 px-4 bg-slate-50">
-                <h5 class="fw-black text-slate-900 m-0"><i class="bi bi-cash-stack text-info me-2"></i> Cuentas por Cobrar</h5>
+                <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-cash-stack text-info me-2"></i> Cuentas por Cobrar</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-3 bg-white">
                 {% regroup deudas|dictsort:"equipo.nombre" by equipo as deudas_por_equipo %}
-                <div class="accordion accordion-flush border rounded-3 overflow-hidden" id="accordionDeudas">
+                <div class="accordion accordion-flush border rounded-4 overflow-hidden" id="accordionDeudas">
                     {% for grupo in deudas_por_equipo %}
                     <div class="accordion-item border-bottom">
                         <h2 class="accordion-header">
-                            <button class="accordion-button collapsed py-3 px-3 fw-bold text-slate-900 bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#col-{{ grupo.grouper.id }}">
+                            <button class="accordion-button collapsed py-3 px-3 fw-bold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#col-{{ grupo.grouper.id }}">
                                 <div class="d-flex align-items-center w-100 me-2">
                                     <span>{{ grupo.grouper.nombre|truncatechars:20 }}</span>
                                     <span class="badge bg-danger ms-auto rounded-pill px-2">{{ grupo.list|length }}</span>
@@ -334,7 +355,7 @@
                                     {% for deuda in grupo.list %}
                                     <li class="list-group-item d-flex justify-content-between align-items-center bg-slate-50 py-3">
                                         <div>
-                                            <span class="d-block text-slate-900 fw-medium">{{ deuda.descripcion }}</span>
+                                            <span class="d-block text-dark fw-medium small">{{ deuda.descripcion }}</span>
                                             {% if deuda.jugador %}<small class="text-primary fw-bold">{{ deuda.jugador.nombres }}</small>{% endif %}
                                         </div>
                                         <span class="fw-black text-danger fs-6">${{ deuda.saldo }}</span>
@@ -356,22 +377,25 @@
 <div class="modal fade" id="modalDeudasDir" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 shadow-lg">
-            <div class="modal-header border-bottom py-3 px-4 bg-slate-50 text-center">
-                <h5 class="fw-black text-slate-900 m-0 w-100"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> Mis Deudas</h5>
-                <button type="button" class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal"></button>
+            <div class="modal-header border-bottom py-3 px-4 bg-slate-50 text-center position-relative">
+                <h5 class="fw-black text-dark m-0 w-100" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> Mis Deudas</h5>
+                <button type="button" class="btn-close position-absolute end-0 top-50 translate-middle-y me-3" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-3 bg-white">
-                <ul class="list-group list-group-flush border rounded-3 overflow-hidden">
+            <div class="modal-body p-4 bg-white">
+                <ul class="list-group list-group-flush border rounded-4 overflow-hidden">
                     {% for deuda in lista_mis_deudas %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-slate-50 border-bottom">
                         <div>
-                            <span class="d-block text-slate-900 fw-bold">{{ deuda.descripcion }}</span>
+                            <span class="d-block text-dark fw-bold small">{{ deuda.descripcion }}</span>
                             {% if deuda.jugador %}<small class="text-primary fw-bold">{{ deuda.jugador.nombres }}</small>{% endif %}
                         </div>
-                        <span class="fw-black text-danger fs-5">${{ deuda.saldo }}</span>
+                        <span class="fw-black text-danger fs-5" style="font-family: 'Outfit', sans-serif;">${{ deuda.saldo }}</span>
                     </li>
                     {% endfor %}
                 </ul>
+            </div>
+            <div class="modal-footer border-top bg-light">
+                <button type="button" class="btn btn-nexus w-100 rounded-pill fw-bold" data-bs-dismiss="modal">Entendido</button>
             </div>
         </div>
     </div>

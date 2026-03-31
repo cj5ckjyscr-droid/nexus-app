@@ -1,181 +1,277 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Mercado & Traspasos | NEXT LEVEL{% endblock %}
+{% block title %}Mercado & Traspasos | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Transiciones y Hover Premium NEXT LEVEL */
-    .card-pro { transition: box-shadow 0.3s; }
-    .card-pro:hover { box-shadow: 0 10px 30px rgba(29, 78, 216, 0.1) !important; }
-    
-    /* Buscador animado */
+    /* =========================================================
+       ESTÉTICA FEY - MERCADO DE FICHAJES (LIGHT MODE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed;
+        top: -10%; left: -10%;
+        width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 900;
+        font-size: clamp(2rem, 5vw, 3rem);
+        letter-spacing: -0.03em;
+        color: #0F172A;
+    }
+
+    /* Buscador Premium */
+    .fey-search-wrapper {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        border: 2px solid #E2E8F0;
+        border-radius: 100px;
+        padding: 4px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+        transition: all 0.3s ease;
+    }
+    .fey-search-wrapper:focus-within {
+        border-color: var(--brand-primary);
+        background: #FFFFFF;
+        box-shadow: 0 4px 20px rgba(79, 70, 229, 0.1);
+    }
+    .fey-search-input {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        font-weight: 500;
+        color: #0F172A;
+        padding: 10px 15px;
+    }
+    .fey-search-input::placeholder { color: #94A3B8; font-weight: 400; }
     input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
-    .input-group:focus-within { 
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15) !important; 
-        border-color: var(--primary-blue) !important; 
+
+    /* Tarjetas de Jugador (Reemplazo de la Tabla) */
+    .player-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    .player-card:hover {
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+        border-color: #CBD5E1;
     }
 
     /* Tiras de Equipos (Fichas Internas) */
-    .ficha-equipo {
+    .ficha-row {
         background-color: #F8FAFC;
-        border: 1px solid var(--clean-border, #E2E8F0);
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ficha-row:last-child { margin-bottom: 0; }
+    
+    .ficha-row:hover {
+        background-color: #FFFFFF;
+        border-color: var(--brand-primary);
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.08);
+        transform: translateX(6px);
+    }
+
+    /* Herramientas (Botones de acción) */
+    .btn-tool {
+        width: 34px; height: 34px;
+        border-radius: 10px;
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        display: inline-flex; align-items: center; justify-content: center;
+        color: #64748B; font-size: 0.9rem; text-decoration: none;
         transition: all 0.2s ease;
     }
-    .ficha-equipo:hover {
-        background-color: #FFFFFF;
-        border-color: var(--primary-blue);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08) !important;
-        transform: translateX(4px);
+    .btn-tool:hover { background: #E2E8F0; color: #0F172A; transform: translateY(-2px); }
+    .btn-tool.transfer:hover { background: #FFFBEB; color: #D97706; border-color: #FDE68A; }
+    .btn-tool.edit:hover { background: #EFF6FF; color: #0284C7; border-color: #BAE6FD; }
+    .btn-tool.delete:hover { background: #FEE2E2; color: #EF4444; border-color: #FECACA; }
+
+    /* Animación Cascade */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    /* =========================================================
+       📱 MÓVIL PERFECTO
+       ========================================================= */
+    @media (max-width: 768px) {
+        .player-card { padding: 16px; border-radius: 16px; }
+        .ficha-row { 
+            flex-direction: column; 
+            align-items: flex-start; 
+            gap: 12px; 
+            padding: 16px;
+        }
+        .ficha-row:hover { transform: translateY(-2px); translateX: 0; }
+        
+        .ficha-team-info { width: 100%; border-bottom: 1px dashed #E2E8F0; padding-bottom: 10px; }
+        .ficha-status-actions { 
+            width: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+        }
     }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="container-fluid px-0 animate__animated animate__fadeInUp pb-5">
+<div class="ambient-glow"></div>
+
+<div class="container-fluid px-0 pb-5">
     
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
-        <div class="mb-3 mb-md-0">
-            <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-2 mb-2 rounded-pill border border-primary border-opacity-25" style="color: var(--primary-blue) !important;">
-                <i class="bi bi-shield-lock-fill me-1"></i> Panel de Organización NEXT LEVEL
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-5 pb-3 border-bottom reveal-up">
+        <div class="mb-4 mb-lg-0">
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 mb-2 rounded-pill fw-bold">
+                <i class="bi bi-shield-lock-fill me-1"></i> Panel de Organización
             </span>
-            <h2 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">Mercado & Traspasos</h2>
-            <p class="text-muted small mt-1 mb-0">Directorio global. Gestiona transferencias, sanciones y datos de los jugadores.</p>
+            <h2 class="fey-title mb-1">Mercado & Traspasos</h2>
+            <p class="text-muted small m-0 fw-medium">Directorio global. Gestiona transferencias, sanciones y fichas de jugadores.</p>
         </div>
         
-        <div class="w-100" style="max-width: 400px;">
+        <div class="w-100" style="max-width: 450px;">
             <form method="get" class="m-0">
-                <div class="input-group shadow-sm rounded-pill overflow-hidden border bg-white">
-                    <span class="input-group-text bg-white border-0 pe-1 text-muted">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input class="form-control border-0 shadow-none bg-white fw-bold text-dark" type="search" name="q" placeholder="Cédula, nombre o equipo..." value="{{ request.GET.q|default:'' }}">
-                    <button class="btn fw-bold px-4 transition-all text-white" type="submit" style="background-color: var(--primary-blue); border-radius: 0 50px 50px 0;">Buscar</button>
+                <div class="fey-search-wrapper d-flex align-items-center">
+                    <i class="bi bi-search text-muted ms-3 fs-5"></i>
+                    <input class="form-control fey-search-input" type="search" name="q" placeholder="Buscar por nombre, cédula o equipo..." value="{{ request.GET.q|default:'' }}">
+                    <button class="btn btn-nexus rounded-pill px-4 fw-bold shadow-sm" type="submit">Buscar</button>
                 </div>
             </form>
             {% if request.GET.q %}
                 <div class="text-end mt-2 pe-3">
-                    <a href="{% url 'admin_gestion_jugadores' %}" class="small text-decoration-none fw-bold text-danger"><i class="bi bi-x-circle me-1"></i>Limpiar búsqueda</a>
+                    <a href="{% url 'admin_gestion_jugadores' %}" class="small text-decoration-none fw-bold text-danger">
+                        <i class="bi bi-x-circle-fill me-1"></i>Limpiar filtros
+                    </a>
                 </div>
             {% endif %}
         </div>
     </div>
 
-    <div class="card card-pro border-0 shadow-sm overflow-hidden rounded-4 mb-5">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table align-middle mb-0" style="white-space: nowrap;">
-                    <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
-                        <tr>
-                            <th class="ps-4 py-3" style="width: 5%;">#</th>
-                            <th style="width: 25%;">Identidad del Jugador</th>
-                            <th colspan="3" class="text-start pe-4">Fichas Deportivas (Equipos, Categorías y Sanciones)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% regroup jugadores|dictsort:"cedula" by cedula as jugadores_agrupados %}
+    <div class="row">
+        <div class="col-12">
+            
+            {% regroup jugadores|dictsort:"cedula" by cedula as jugadores_agrupados %}
+            
+            {% for grupo in jugadores_agrupados %}
+                {% with persona=grupo.list.0 %}
+                <div class="player-card reveal-up" style="animation-delay: 0.{{ forloop.counter|slice:':1' }}s;">
+                    
+                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                        <div class="position-relative">
+                            {% if persona.foto %}
+                                <img src="{{ persona.foto.url }}" class="rounded-circle shadow-sm border border-2 border-white me-3" width="60" height="60" style="object-fit: cover; background: #F8FAFC;">
+                            {% else %}
+                                <div class="bg-slate-50 rounded-circle border border-2 border-white shadow-sm d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                                    <i class="bi bi-person-fill text-muted opacity-50 fs-3"></i>
+                                </div>
+                            {% endif %}
+                            <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-dark border border-white" style="font-size: 0.6rem;">
+                                #{{ forloop.counter }}
+                            </span>
+                        </div>
                         
-                        {% for grupo in jugadores_agrupados %}
-                            {% with persona=grupo.list.0 %}
-                            <tr class="border-bottom transition-all" style="border-color: rgba(0,0,0,0.04) !important;">
+                        <div>
+                            <h5 class="fw-black text-dark mb-1" style="font-family: 'Outfit', sans-serif;">{{ persona.nombres }}</h5>
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <span class="badge bg-slate-50 text-slate-600 border border-secondary border-opacity-25 shadow-sm px-2 py-1">
+                                    <i class="bi bi-person-vcard me-1 text-primary"></i> {{ persona.cedula|default:"Sin Cédula" }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-2" style="letter-spacing: 1px; font-size: 0.7rem;">Equipos y Sanciones</p>
+                        
+                        <div class="d-flex flex-column">
+                            {% for ficha in grupo.list %}
+                            <div class="ficha-row">
                                 
-                                <td class="ps-4 py-3">
-                                    <div class="text-white fw-bold rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="background-color: var(--primary-navy); width: 35px; height: 35px; font-size: 0.9rem;">
-                                        {{ forloop.counter }}
+                                <div class="ficha-team-info d-flex align-items-center" style="flex: 1;">
+                                    {% if ficha.equipo.escudo %}
+                                        <img src="{{ ficha.equipo.escudo.url }}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;" class="me-3 shadow-sm border border-white"> 
+                                    {% else %}
+                                        <div class="rounded-circle bg-white shadow-sm border d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                                            <i class="bi bi-shield-fill text-muted opacity-50 fs-6"></i>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="fw-bold text-dark text-truncate" style="font-size: 0.95rem; max-width: 180px;">{{ ficha.equipo.nombre }}</span>
+                                            <span class="badge bg-dark text-white rounded-pill px-2 shadow-sm" style="font-size: 0.65rem;">#{{ ficha.dorsal }}</span>
+                                        </div>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 0.65rem;">
+                                            {{ ficha.equipo.torneo.categoria.nombre|default:"Categoría Única"|upper }}
+                                        </span>
                                     </div>
-                                </td>
+                                </div>
 
-                                <td class="py-3">
-                                    <div class="d-flex align-items-center">
-                                        {% if persona.foto %}
-                                            <img src="{{ persona.foto.url }}" class="rounded-circle me-3 border border-2 border-white shadow-sm" width="55" height="55" style="object-fit: cover; background: var(--bg-body);">
+                                <div class="ficha-status-actions d-flex align-items-center gap-4">
+                                    
+                                    <div class="text-start text-md-center">
+                                        {% if ficha.esta_sancionado %}
+                                            <span class="badge bg-danger shadow-sm px-2 py-1"><i class="bi bi-slash-circle me-1"></i>Lista Negra</span>
+                                        {% elif ficha.expulsado_torneo %}
+                                            <span class="badge bg-danger shadow-sm px-2 py-1"><i class="bi bi-exclamation-triangle me-1"></i>Expulsado</span>
+                                        {% elif ficha.partidos_suspension > 0 %}
+                                            <span class="badge bg-warning text-dark shadow-sm px-2 py-1"><i class="bi bi-pause-circle me-1"></i>Suspendido: {{ ficha.partidos_suspension }}F</span>
                                         {% else %}
-                                            <div class="bg-light rounded-circle border border-2 border-white shadow-sm d-flex align-items-center justify-content-center me-3" style="width: 55px; height: 55px;">
-                                                <i class="bi bi-person-fill text-muted opacity-50 fs-4"></i>
-                                            </div>
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="bi bi-check-circle me-1"></i>Habilitado</span>
                                         {% endif %}
-                                        
-                                        <div>
-                                            <div class="fw-black text-dark fs-6" style="white-space: normal; line-height: 1.2;">{{ persona.nombres }}</div>
-                                            <div class="d-flex align-items-center gap-2 mt-2">
-                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle" style="font-size: 0.7rem;">
-                                                    <i class="bi bi-person-vcard me-1"></i> {{ persona.cedula|default:"Sin Cédula" }}
-                                                </span>
-                                            </div>
-                                        </div>
                                     </div>
-                                </td>
 
-                                <td colspan="3" class="py-3 pe-4">
-                                    <div class="d-flex flex-column gap-2 w-100">
-                                        {% for ficha in grupo.list %}
-                                        <div class="ficha-equipo d-flex flex-column flex-xl-row align-items-start align-items-xl-center justify-content-between px-3 py-2 rounded-3 shadow-sm">
-                                            
-                                            <div class="d-flex align-items-center mb-2 mb-xl-0" style="min-width: 250px;">
-                                                {% if ficha.equipo.escudo %}
-                                                    <img src="{{ ficha.equipo.escudo.url }}" style="height: 30px; border-radius: 50%;" class="me-2 shadow-sm border border-white"> 
-                                                {% else %}
-                                                    <i class="bi bi-shield-fill text-muted fs-4 me-2"></i>
-                                                {% endif %}
-                                                
-                                                <div class="d-flex flex-column">
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <span class="fw-black text-dark text-truncate" style="font-size: 0.85rem;">{{ ficha.equipo.nombre }}</span>
-                                                        <span class="badge bg-dark text-white rounded-pill px-2" style="font-size: 0.6rem;" title="Dorsal">#{{ ficha.dorsal }}</span>
-                                                    </div>
-                                                    <span class="badge mt-1 text-start" style="background-color: var(--primary-navy); font-size: 0.6rem; width: fit-content;">
-                                                        {{ ficha.equipo.torneo.categoria.nombre|default:"Categoría Única"|upper }}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div class="mb-2 mb-xl-0 text-start text-xl-center" style="min-width: 150px;">
-                                                {% if ficha.esta_sancionado %}
-                                                    <span class="badge bg-danger shadow-sm px-2 py-1"><i class="bi bi-slash-circle me-1"></i>Lista Negra</span>
-                                                {% elif ficha.expulsado_torneo %}
-                                                    <span class="badge bg-danger shadow-sm px-2 py-1"><i class="bi bi-exclamation-triangle me-1"></i>Expulsado</span>
-                                                {% elif ficha.partidos_suspension > 0 %}
-                                                    <span class="badge bg-warning text-dark shadow-sm px-2 py-1"><i class="bi bi-pause-circle me-1"></i>Suspendido: {{ ficha.partidos_suspension }}F</span>
-                                                {% else %}
-                                                    <span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1"><i class="bi bi-check-circle me-1"></i>Habilitado</span>
-                                                {% endif %}
-                                            </div>
-
-                                            <div class="text-start text-xl-end">
-                                                <div class="btn-group shadow-sm rounded-pill" role="group">
-                                                    <a href="{% url 'traspasar_jugador' ficha.id %}" class="btn btn-light btn-sm border fw-bold px-3" style="color: #F59E0B !important;" title="Traspasar de {{ ficha.equipo.nombre }}">
-                                                        <i class="bi bi-arrow-left-right"></i>
-                                                    </a>
-                                                    <a href="{% url 'editar_jugador' ficha.id %}" class="btn btn-light btn-sm border text-primary px-3" title="Editar Ficha">
-                                                        <i class="bi bi-pencil-square" style="color: var(--primary-blue);"></i>
-                                                    </a>
-                                                    <a href="{% url 'eliminar_jugador' ficha.id %}" class="btn btn-light btn-sm border text-danger px-3" title="Eliminar del equipo" onclick="return confirm('⚠️ ¿Eliminar a {{ ficha.nombres }} del equipo {{ ficha.equipo.nombre }}?');">
-                                                        <i class="bi bi-trash3-fill"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-
-                                        </div>
-                                        {% endfor %}
+                                    <div class="d-flex gap-2">
+                                        <a href="{% url 'traspasar_jugador' ficha.id %}" class="btn-tool transfer shadow-sm" title="Traspasar de {{ ficha.equipo.nombre }}">
+                                            <i class="bi bi-arrow-left-right"></i>
+                                        </a>
+                                        <a href="{% url 'editar_jugador' ficha.id %}" class="btn-tool edit shadow-sm" title="Editar Ficha">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </a>
+                                        <a href="{% url 'eliminar_jugador' ficha.id %}" class="btn-tool delete shadow-sm" title="Eliminar del equipo" onclick="return confirm('⚠️ ¿Seguro que deseas eliminar a {{ ficha.nombres }} del equipo {{ ficha.equipo.nombre }}?');">
+                                            <i class="bi bi-trash3-fill"></i>
+                                        </a>
                                     </div>
-                                </td>
+                                    
+                                </div>
 
-                            </tr>
-                            {% endwith %}
-                        {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center py-5">
-                                    <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow-inner border" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-search text-muted opacity-50" style="font-size: 2.5rem;"></i>
-                                    </div>
-                                    <h5 class="fw-bold text-dark">Sin resultados</h5>
-                                    <p class="text-muted small mb-0">No se encontraron jugadores con ese término de búsqueda o la base de datos está vacía.</p>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
+                {% endwith %}
+            
+            {% empty %}
+                <div class="player-card text-center py-5 reveal-up" style="border-style: dashed; background: transparent; box-shadow: none;">
+                    <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow-sm border" style="width: 80px; height: 80px;">
+                        <i class="bi bi-search text-muted opacity-50" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h4 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Sin resultados</h4>
+                    <p class="text-muted m-0">No se encontraron jugadores con ese término de búsqueda o aún no has inscrito a nadie.</p>
+                </div>
+            {% endfor %}
+            
         </div>
     </div>
+
 </div>
 {% endblock %}

@@ -1,272 +1,295 @@
 {% extends 'core/base.html' %}
-{% load static %}
+
+{% block title %}Nómina de Jugadores | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Diseño de Fila Compacta para el Celular */
-    .player-row {
-        background: #fff;
-        border-radius: 12px;
-        border: 1px solid rgba(0,0,0,0.05);
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .player-row:hover {
-        transform: translateX(4px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .avatar-img {
-        width: 45px; height: 45px; object-fit: cover; border-radius: 50%;
-    }
-    .avatar-placeholder {
-        width: 45px; height: 45px; border-radius: 50%; background: #f1f5f9;
-        display: flex; align-items: center; justify-content: center; color: #94a3b8;
-    }
-    .dorsal-badge {
-        position: absolute; bottom: -4px; right: -4px;
-        font-size: 0.65rem; font-weight: 900;
-        border: 2px solid white;
-    }
-    .action-btn {
-        width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-        border-radius: 50%; transition: all 0.2s;
-    }
-    
     /* =========================================================
-       🔥 REPARACIÓN DE COLORES EN EL FORMULARIO FLOTANTE
+       ESTÉTICA FEY - GESTIÓN DE JUGADORES (LIGHT MODE)
        ========================================================= */
-    .form-dark-glass {
-        background: #ffffff; 
-        border: 1px solid #E2E8F0; 
-        border-radius: 20px;
-        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
-    }
-    
-    /* Blindaje de los Inputs (Evitar Letras Blancas) */
-    .dark-inputs input[type="text"], 
-    .dark-inputs input[type="number"], 
-    .dark-inputs select {
-        background-color: #F8FAFC !important; /* Fondo gris súper clarito */
-        color: #0F172A !important; /* Letras azul oscuro / negro (VITAL) */
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 10px; 
-        font-size: 0.85rem; 
-        font-weight: 600; /* Letra un poco más gordita para que se lea mejor */
-        padding: 0.6rem 0.8rem;
-        transition: all 0.2s ease;
-    }
-    
-    /* El texto de ayuda ("Ej: 1712345678") */
-    .dark-inputs input::placeholder {
-        color: #94A3B8 !important; 
-        font-weight: 400;
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
     }
 
-    /* Efecto al hacer clic en el input */
-    .dark-inputs input:focus, 
-    .dark-inputs select:focus { 
-        background-color: #FFFFFF !important; /* Fondo blanco al escribir */
-        color: #0F172A !important; /* Mantiene la letra oscura */
-        border-color: var(--primary-blue, #2563EB) !important; 
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
-        outline: none;
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
     }
+
+    /* Panel del Formulario (Flotante) */
+    .fey-form-panel {
+        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0; border-radius: 24px; padding: 30px;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.04);
+        position: sticky; top: 100px; z-index: 10;
+        transition: all 0.3s ease;
+    }
+    .fey-form-panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+        background: linear-gradient(90deg, #94A3B8, #CBD5E1); transition: all 0.3s ease;
+    }
+    .fey-form-panel.edit-mode::before { background: linear-gradient(90deg, var(--brand-primary), #0EA5E9); }
+
+    /* Inputs Fey y File Upload */
+    .fey-form-panel input[type="text"], .fey-form-panel input[type="number"], .fey-form-panel select {
+        background-color: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
+        border-radius: 12px !important; padding: 12px 16px !important;
+        font-weight: 600 !important; color: #0F172A !important;
+        transition: all 0.3s ease !important; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.01) !important;
+    }
+    .fey-form-panel input:focus, .fey-form-panel select:focus {
+        border-color: var(--brand-primary) !important; background-color: #FFFFFF !important;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none !important;
+    }
+    .fey-form-panel input::placeholder { color: #94A3B8 !important; font-weight: 400; }
     
-    /* Botón de subir archivo (Foto) */
-    .dark-inputs input[type="file"] {
-        color: #64748B !important; /* Texto del nombre del archivo subido */
-        background-color: transparent !important;
-        border: none !important;
-        padding: 0;
+    .fey-form-panel input[type="file"] { color: #64748B; background: transparent; border: none; padding: 0; font-size: 0.85rem; }
+    .fey-form-panel input[type="file"]::file-selector-button {
+        border: none; background: #0F172A; padding: 8px 16px; border-radius: 8px; 
+        color: #FFFFFF; font-weight: 700; cursor: pointer; margin-right: 12px; transition: all 0.2s;
     }
-    .dark-inputs input[type="file"]::file-selector-button {
-        border: none; 
-        background: var(--primary-navy, #0F172A); 
-        padding: 0.4rem 0.8rem;
-        border-radius: 6px; 
-        color: #ffffff !important; 
-        font-weight: 600; 
-        cursor: pointer;
-        margin-right: 10px;
-        transition: background 0.2s;
+    .fey-form-panel input[type="file"]::file-selector-button:hover { background: var(--brand-primary); }
+
+    /* Fila de Jugador (Smart Strip) */
+    .player-strip {
+        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 20px;
+        padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .dark-inputs input[type="file"]::file-selector-button:hover {
-        background: var(--primary-blue, #2563EB);
+    .player-strip:hover {
+        transform: translateX(4px); box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05); border-color: #CBD5E1;
     }
-    
-    /* Ajustes específicos para móviles */
-    @media (max-width: 768px) {
-        .player-row { padding: 0.5rem !important; }
-        .avatar-img, .avatar-placeholder { width: 40px; height: 40px; }
-        .action-btn { width: 28px; height: 28px; font-size: 0.75rem; }
+
+    .avatar-wrapper { position: relative; margin-right: 20px; flex-shrink: 0; }
+    .avatar-img { width: 55px; height: 55px; object-fit: cover; border-radius: 50%; border: 2px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .avatar-placeholder {
+        width: 55px; height: 55px; border-radius: 50%; background: #F1F5F9; border: 2px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex; align-items: center; justify-content: center; color: #94A3B8; font-size: 1.5rem;
+    }
+    .dorsal-badge {
+        position: absolute; bottom: -5px; right: -5px; font-family: 'Outfit', sans-serif;
+        font-size: 0.75rem; font-weight: 900; background: #0F172A; color: white;
+        border: 2px solid #FFFFFF; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%;
+    }
+
+    /* Botones Circulares */
+    .btn-circle-action {
+        width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+        border: 1px solid transparent; transition: all 0.2s; text-decoration: none; font-size: 1rem;
+    }
+    .btn-circle-action:hover { transform: translateY(-2px); }
+    .btn-edit { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
+    .btn-delete { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+
+    /* Filtro de Equipos */
+    .filter-wrapper {
+        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; padding: 6px 12px;
+        display: inline-flex; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); transition: all 0.3s ease;
+    }
+    .filter-wrapper:focus-within { border-color: var(--brand-primary); box-shadow: 0 4px 15px rgba(79, 70, 229, 0.1); }
+    .filter-select { border: none !important; background: transparent !important; box-shadow: none !important; font-weight: 700; color: #0F172A; cursor: pointer; padding: 8px; }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 991px) {
+        .fey-form-panel { position: static; margin-bottom: 30px; }
+    }
+    @media (max-width: 576px) {
+        .player-strip { padding: 12px; border-radius: 16px; }
+        .avatar-wrapper { margin-right: 12px; }
+        .avatar-img, .avatar-placeholder { width: 45px; height: 45px; }
+        .btn-circle-action { width: 32px; height: 32px; font-size: 0.85rem; }
     }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="container-fluid px-0">
+<div class="ambient-glow"></div>
+
+<div class="container-fluid px-0 pb-5">
     
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-3 pb-2 border-bottom animate__animated animate__fadeInDown">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 pb-3 border-bottom reveal-up">
         <div>
-            <h3 class="fw-black mb-0 text-dark" style="letter-spacing: -0.5px;">Nómina de Jugadores</h3>
+            <h2 class="fey-title mb-1">Nómina de Jugadores</h2>
             {% if equipo_obj %}
-            <p class="text-muted small fw-bold mb-0 mt-1">
-                <i class="bi bi-shield-fill text-primary"></i> {{ equipo_obj.nombre }} &bull; 
-                <span class="text-warning"><i class="bi bi-trophy-fill"></i> {{ equipo_obj.torneo.nombre }}</span>
-            </p>
+            <div class="d-flex align-items-center gap-2 mt-2">
+                <span class="badge bg-slate-50 text-slate-700 border px-3 py-2 rounded-pill fw-bold shadow-sm">
+                    <i class="bi bi-shield-shaded text-primary me-1"></i> {{ equipo_obj.nombre }}
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-dark border border-warning border-opacity-50 px-3 py-2 rounded-pill fw-bold shadow-sm">
+                    <i class="bi bi-trophy-fill text-warning me-1"></i> {{ equipo_obj.torneo.nombre }}
+                </span>
+            </div>
             {% endif %}
         </div>
-        <div class="mt-2 mt-md-0">
-            <span class="badge bg-primary rounded-pill px-3 py-2 shadow-sm">{{ jugadores|length }} Inscritos</span>
+        <div class="mt-3 mt-md-0">
+            <span class="badge bg-primary text-white rounded-pill px-4 py-2 shadow-sm" style="font-size: 0.9rem;">
+                {{ jugadores|length }} Inscritos
+            </span>
         </div>
     </div>
 
-    <div class="row g-4 pb-5">
+    <div class="row g-4">
         
-        <div class="col-lg-7 col-xl-8 animate__animated animate__fadeInLeft">
+        <div class="col-lg-7 col-xl-8 reveal-up" style="animation-delay: 0.1s;">
             
             {% if equipos_activos|length > 1 %}
-            <div class="bg-white p-2 rounded-4 border mb-3 shadow-sm">
-                <form method="get" id="filter-form" class="d-flex align-items-center m-0">
-                    <div class="bg-light rounded-circle d-flex justify-content-center align-items-center mx-2" style="width: 32px; height: 32px;">
-                        <i class="bi bi-funnel-fill text-muted"></i>
+            <div class="mb-4">
+                <form method="get" id="filter-form" class="m-0">
+                    <div class="filter-wrapper">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-flex justify-content-center align-items-center me-2" style="width: 36px; height: 36px;">
+                            <i class="bi bi-funnel-fill text-primary"></i>
+                        </div>
+                        <select name="equipo" class="form-select filter-select" onchange="document.getElementById('filter-form').submit();">
+                            {% regroup equipos_activos by torneo.categoria as categorias %}
+                            {% for cat in categorias %}
+                                <optgroup label="📍 {{ cat.grouper.nombre|default:'General'|upper }}">
+                                    {% regroup cat.list by torneo as torneos_activos %}
+                                    {% for t in torneos_activos %}
+                                        <optgroup label="&nbsp;&nbsp;🏆 {{ t.grouper.nombre }}">
+                                            {% for e in t.list %}
+                                                <option value="{{ e.id }}" {% if e.id == equipo_seleccionado %}selected{% endif %}>{{ e.nombre }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <select name="equipo" class="form-select border-0 shadow-none fw-bold text-dark" onchange="document.getElementById('filter-form').submit();" style="cursor: pointer; font-size: 0.9rem;">
-                        {% regroup equipos_activos by torneo.categoria as categorias %}
-                        {% for cat in categorias %}
-                            <optgroup label="📍 {{ cat.grouper.nombre|default:'General'|upper }}">
-                                {% regroup cat.list by torneo as torneos_activos %}
-                                {% for t in torneos_activos %}
-                                    <optgroup label="&nbsp;&nbsp;🏆 {{ t.grouper.nombre }}">
-                                        {% for e in t.list %}
-                                            <option value="{{ e.id }}" {% if e.id == equipo_seleccionado %}selected{% endif %}>{{ e.nombre }}</option>
-                                        {% endfor %}
-                                    </optgroup>
-                                {% endfor %}
-                            </optgroup>
-                        {% endfor %}
-                    </select>
                 </form>
             </div>
             {% endif %}
 
-            <div class="d-flex flex-column gap-2">
+            <div class="d-flex flex-column">
                 {% for jugador in jugadores %}
-                <div class="player-row d-flex align-items-center p-2 px-3">
-                    <div class="position-relative me-3">
+                <div class="player-strip">
+                    
+                    <div class="avatar-wrapper">
                         {% if jugador.foto %}
-                            <img src="{{ jugador.foto.url }}" class="avatar-img shadow-sm">
+                            <img src="{{ jugador.foto.url }}" class="avatar-img">
                         {% else %}
-                            <div class="avatar-placeholder shadow-sm"><i class="bi bi-person-fill fs-4"></i></div>
+                            <div class="avatar-placeholder"><i class="bi bi-person-fill"></i></div>
                         {% endif %}
-                        <span class="badge bg-dark text-white dorsal-badge shadow-sm">{{ jugador.dorsal }}</span>
-                    </div>
-                    {% if jugador.otros_equipos %}
-                        <div class="mt-2 w-100 pe-2">
-                            <small class="text-muted fw-black d-block mb-1" style="font-size: 0.6rem; letter-spacing: 0.5px;">TAMBIÉN JUEGA EN:</small>
-                            {% for otro in jugador.otros_equipos %}
-                                <div class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 w-100 text-start mb-1 text-truncate py-1 px-2 shadow-sm" style="font-size: 0.65rem;">
-                                    <i class="bi bi-diagram-3-fill me-1"></i> {{ otro.equipo.nombre }} 
-                                    <span class="opacity-75">({{ otro.equipo.torneo.categoria.nombre|default:'General' }})</span>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-
-                    <div class="flex-grow-1 min-w-0">
-                        <h6 class="fw-bold mb-0 text-dark text-truncate" style="font-size: 0.95rem;">{{ jugador.nombres }}</h6>
-                        <small class="text-muted fw-medium" style="font-size: 0.7rem;"><i class="bi bi-upc-scan me-1"></i>{{ jugador.cedula }}</small>
+                        <div class="dorsal-badge">{{ jugador.dorsal }}</div>
                     </div>
                     
-                    <div class="d-flex gap-1 ms-2">
-                        {% if puede_fichar %}
-                            {% if not es_dirigente %}
-                            <a href="{% url 'editar_jugador' jugador.id %}" class="action-btn bg-primary bg-opacity-10 text-primary"><i class="bi bi-pencil-fill"></i></a>
-                            {% endif %}
-                            
-                            <a href="{% url 'eliminar_jugador' jugador.id %}" class="action-btn bg-danger bg-opacity-10 text-danger" onclick="return confirm('¿Eliminar ficha de {{ jugador.nombres }}?');"><i class="bi bi-trash-fill"></i></a>
+                    <div class="flex-grow-1 min-w-0 pe-3">
+                        <h6 class="fw-black mb-1 text-dark text-truncate" style="font-family: 'Outfit', sans-serif; font-size: 1.1rem;">{{ jugador.nombres }}</h6>
+                        <div class="text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                            <i class="bi bi-upc-scan me-1"></i>{{ jugador.cedula }}
+                        </div>
+                        
+                        {% if jugador.otros_equipos %}
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                {% for otro in jugador.otros_equipos %}
+                                    <span class="badge bg-slate-50 text-slate-600 border px-2 py-1 shadow-sm" style="font-size: 0.65rem;" title="Juega en {{ otro.equipo.torneo.categoria.nombre|default:'General' }}">
+                                        <i class="bi bi-arrow-return-right text-primary me-1"></i> {{ otro.equipo.nombre }}
+                                    </span>
+                                {% endfor %}
+                            </div>
                         {% endif %}
                     </div>
+                    
+                    <div class="d-flex gap-2">
+                        {% if puede_fichar %}
+                            {% if not es_dirigente %}
+                            <a href="{% url 'editar_jugador' jugador.id %}" class="btn-circle-action btn-edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                            {% endif %}
+                            <a href="{% url 'eliminar_jugador' jugador.id %}" class="btn-circle-action btn-delete" title="Eliminar" onclick="return confirm('⚠️ ¿Seguro que deseas eliminar la ficha de {{ jugador.nombres }}?');"><i class="bi bi-trash3-fill"></i></a>
+                        {% endif %}
+                    </div>
+                    
                 </div>
                 {% empty %}
-                <div class="text-center py-5 bg-white rounded-4 border border-dashed">
-                    <i class="bi bi-person-x text-muted opacity-50" style="font-size: 3rem;"></i>
-                    <h6 class="fw-bold text-dark mt-3">Plantilla Vacía</h6>
+                <div class="text-center py-5 bg-white rounded-4 border border-dashed shadow-sm">
+                    <div class="bg-slate-50 rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border" style="width: 80px; height: 80px;">
+                        <i class="bi bi-person-x text-muted opacity-25" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="fw-black text-dark mt-2" style="font-family: 'Outfit', sans-serif;">Plantilla Vacía</h5>
                     <p class="text-muted small mb-0">No hay jugadores inscritos en este equipo aún.</p>
                 </div>
                 {% endfor %}
             </div>
             
             {% if not puede_fichar and equipo_obj %}
-            <div class="alert alert-danger mt-3 py-2 text-center rounded-pill shadow-sm border-danger fw-bold" style="font-size: 0.8rem;">
-                <i class="bi bi-lock-fill me-1"></i> Inscripciones cerradas o límite de cupos alcanzado.
+            <div class="alert bg-danger bg-opacity-10 border border-danger border-opacity-25 mt-4 py-3 text-center rounded-4 shadow-sm text-danger fw-bold">
+                <i class="bi bi-lock-fill me-2 fs-5 align-middle"></i> Inscripciones cerradas o límite de cupos alcanzado para este equipo.
             </div>
             {% endif %}
         </div>
 
-        <div class="col-lg-5 col-xl-4 animate__animated animate__fadeInRight">
+        <div class="col-lg-5 col-xl-4 reveal-up" style="animation-delay: 0.2s;">
             {% if equipo_obj %}
-            <div class="form-dark-glass position-sticky" style="top: 100px;">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3 pb-2 border-bottom">
-                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
-                            <i class="bi {% if editando %}bi-pen-fill{% else %}bi-person-plus-fill{% endif %}"></i>
-                        </div>
-                        <h5 class="fw-black text-dark mb-0">{% if editando %}Editar Ficha{% else %}Fichar Jugador{% endif %}</h5>
+            <div class="fey-form-panel {% if editando %}edit-mode{% endif %}">
+                
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px; background: {% if editando %}#EFF6FF; color: var(--brand-primary);{% else %}#0F172A; color: #FFFFFF;{% endif %};">
+                        <i class="bi {% if editando %}bi-pen-fill{% else %}bi-person-plus-fill{% endif %} fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">{% if editando %}Editar Ficha{% else %}Fichar Jugador{% endif %}</h5>
+                        <p class="text-muted small m-0 fw-medium">{% if editando %}Modificar datos del jugador{% else %}Añadir a la plantilla{% endif %}</p>
+                    </div>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" class="m-0">
+                    {% csrf_token %}
+                    
+                    <div {% if equipos_activos|length <= 1 %}style="display:none;"{% else %}class="mb-4"{% endif %}>
+                        <label class="form-label text-slate-500 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Equipo Destino</label>
+                        {{ form.equipo }}
+                        {% if form.equipo.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.equipo.errors|striptags }}</div>{% endif %}
                     </div>
 
-                    <form method="post" enctype="multipart/form-data" class="dark-inputs">
-                        {% csrf_token %}
-                        <div {% if equipos_activos|length <= 1 %}style="display:none;"{% else %}class="mb-3"{% endif %}>
-                            <label class="form-label small fw-bold text-muted mb-1">Equipo Destino</label>
-                            {{ form.equipo }}
-                            {% if form.equipo.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.equipo.errors|striptags }}</div>{% endif %}
+                    <div class="mb-4 position-relative">
+                        <label class="form-label text-slate-500 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Cédula de Identidad</label>
+                        {{ form.cedula }}
+                        {% if form.cedula.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.cedula.errors|striptags }}</div>{% endif %}
+                        
+                        <div id="cedula-feedback-box" class="mt-2 p-2 rounded-3 shadow-sm" style="display: none; transition: all 0.3s ease;">
+                            <div id="cedula-feedback" class="small fw-bold d-flex align-items-center"></div>
                         </div>
+                    </div>
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted mb-1">Cédula de Identidad</label>
-                            {{ form.cedula }}
-                            {% if form.cedula.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.cedula.errors|striptags }}</div>{% endif %}
-                            
-                            <div id="cedula-feedback-box" class="mt-2 p-2 rounded border border-info border-opacity-25 bg-info bg-opacity-10" style="display: none;">
-                                <div id="cedula-feedback" class="small fw-bold d-flex align-items-center"></div>
-                            </div>
+                    <div class="mb-4">
+                        <label class="form-label text-slate-500 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Nombres Completos</label>
+                        {{ form.nombres }}
+                        {% if form.nombres.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.nombres.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-4">
+                            <label class="form-label text-slate-500 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Dorsal</label>
+                            {{ form.dorsal }}
+                            {% if form.dorsal.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.dorsal.errors|striptags }}</div>{% endif %}
                         </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted mb-1">Nombres Completos</label>
-                            {{ form.nombres }}
-                            {% if form.nombres.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.nombres.errors|striptags }}</div>{% endif %}
-                        </div>
-
-                        <div class="row g-2 mb-4">
-                            <div class="col-4">
-                                <label class="form-label small fw-bold text-muted mb-1">Dorsal</label>
-                                {{ form.dorsal }}
-                                {% if form.dorsal.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.dorsal.errors|striptags }}</div>{% endif %}
-                            </div>
-                            <div class="col-8">
-                                <label class="form-label small fw-bold text-muted mb-1">Foto <span class="opacity-50">(opcional)</span></label>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="flex-grow-1 overflow-hidden">
-                                        {{ form.foto }}
-                                    </div>
-                                    <img id="foto-preview" src="#" alt="Vista previa" class="rounded-circle shadow-sm border border-2 border-primary d-none" style="width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;">
+                        <div class="col-8">
+                            <label class="form-label text-slate-500 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Foto <span class="text-muted fw-normal text-lowercase">(opcional)</span></label>
+                            <div class="d-flex align-items-center gap-2 bg-slate-50 border rounded-3 p-1 ps-2">
+                                <div class="flex-grow-1 overflow-hidden">
+                                    {{ form.foto }}
                                 </div>
-                                {% if form.foto.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.foto.errors|striptags }}</div>{% endif %}
+                                <img id="foto-preview" src="#" alt="Vista previa" class="rounded-circle shadow-sm border border-2 border-white d-none me-1" style="width: 36px; height: 36px; object-fit: cover; flex-shrink: 0;">
                             </div>
+                            {% if form.foto.errors %}<div class="text-danger small mt-1 fw-bold">{{ form.foto.errors|striptags }}</div>{% endif %}
                         </div>
+                    </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary shadow-sm fw-black rounded-pill py-2" {% if not puede_fichar %}disabled{% endif %}>
-                                {% if editando %}GUARDAR CAMBIOS{% else %}FICHAR JUGADOR{% endif %}
-                            </button>
-                            {% if editando %}
-                                <a href="{% url 'gestionar_jugadores' %}?equipo={{ form.instance.equipo.id }}" class="btn btn-light border rounded-pill fw-bold py-1 text-dark" style="font-size: 0.8rem;">Cancelar</a>
-                            {% endif %}
-                        </div>
-                    </form>
-                </div>
+                    <div class="d-flex flex-column gap-2 mt-5 pt-3 border-top">
+                        <button type="submit" class="btn w-100 rounded-pill py-3 fw-bold shadow-sm" style="background-color: {% if editando %}var(--brand-primary){% else %}#0F172A{% endif %}; color: white; font-size: 1rem;" {% if not puede_fichar %}disabled{% endif %}>
+                            <i class="bi {% if editando %}bi-save{% else %}bi-person-plus-fill{% endif %} me-1"></i> {% if editando %}GUARDAR CAMBIOS{% else %}FICHAR JUGADOR{% endif %}
+                        </button>
+                        {% if editando %}
+                            <a href="{% url 'gestionar_jugadores' %}?equipo={{ form.instance.equipo.id }}" class="btn btn-light w-100 rounded-pill py-2 fw-bold text-slate-600 border">Cancelar Edición</a>
+                        {% endif %}
+                    </div>
+                </form>
             </div>
             {% endif %}
         </div>
@@ -296,78 +319,73 @@
                     // Mostrar estado de "Buscando..."
                     if (feedbackBox) {
                         feedbackBox.style.display = 'block';
-                        feedbackBox.className = "mt-2 p-2 rounded border border-info border-opacity-25 bg-info bg-opacity-10 transition-all";
+                        feedbackBox.className = "mt-2 p-2 rounded-3 border border-info border-opacity-50 bg-info bg-opacity-10";
                     }
                     inputNombres.value = "";
-                    inputNombres.placeholder = "Buscando en base de datos / SRI...";
+                    inputNombres.placeholder = "Consultando identidad...";
                     inputNombres.disabled = true; 
                     
                     if (feedback) {
                         feedback.className = "text-info w-100";
-                        feedback.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div> Buscando identidad...';
+                        feedback.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div> Buscando en base de datos / SRI...';
                     }
                     
-                    // 1. Primero buscamos en nuestra propia base de datos (tu API de torneos anteriores)
+                    // 1. Buscar en BD local
                     fetch(`/api/buscar-jugador/${cedula}/`)
                     .then(response => response.json())
                     .then(dataLocal => {
                         if(dataLocal.encontrado) {
-                            // ¡Encontrado en nuestra base de datos!
                             inputNombres.disabled = false;
                             inputNombres.value = dataLocal.nombres;
                             inputNombres.placeholder = "";
                             inputCedula.style.borderColor = "#10B981"; // Verde
                             
                             if (feedbackBox && feedback) {
-                                feedbackBox.className = "mt-2 p-2 rounded border border-success border-opacity-25 bg-success bg-opacity-10";
+                                feedbackBox.className = "mt-2 p-2 rounded-3 border border-success border-opacity-50 bg-success bg-opacity-10";
                                 feedback.className = "text-success w-100";
                                 feedback.innerHTML = '<i class="bi bi-shield-check fs-5 me-2"></i> Jugador encontrado en el sistema.';
                             }
                         } else {
-                            // 2. Si no está en nuestra BD, buscamos en el SRI
+                            // 2. Buscar en SRI
                             fetch(`/api/consultar-cedula/?cedula=${cedula}`)
                             .then(response => response.json())
                             .then(dataSRI => {
                                 inputNombres.disabled = false;
                                 
                                 if(dataSRI.exito && dataSRI.nombre) {
-                                    // Encontrado en el SRI
                                     inputNombres.value = dataSRI.nombre;
                                     inputNombres.placeholder = "";
-                                    inputCedula.style.borderColor = "#10B981"; // Verde
+                                    inputCedula.style.borderColor = "#10B981"; 
                                     
                                     if (feedbackBox && feedback) {
-                                        feedbackBox.className = "mt-2 p-2 rounded border border-success border-opacity-25 bg-success bg-opacity-10";
+                                        feedbackBox.className = "mt-2 p-2 rounded-3 border border-success border-opacity-50 bg-success bg-opacity-10";
                                         feedback.className = "text-success w-100";
-                                        feedback.innerHTML = '<i class="bi bi-check-circle fs-5 me-2"></i> Identidad validada (SRI)';
+                                        feedback.innerHTML = '<i class="bi bi-check-circle-fill fs-5 me-2"></i> Identidad validada (SRI)';
                                     }
                                 } else if (dataSRI.exito && !dataSRI.nombre) {
-                                    // Cédula válida pero sin nombre en SRI
                                     inputNombres.value = "";
                                     inputNombres.placeholder = "Escribe el nombre aquí...";
                                     inputNombres.focus();
-                                    inputCedula.style.borderColor = "#F59E0B"; // Amarillo
+                                    inputCedula.style.borderColor = "#F59E0B"; // Gold
                                     
                                     if (feedbackBox && feedback) {
-                                        feedbackBox.className = "mt-2 p-2 rounded border border-warning border-opacity-25 bg-warning bg-opacity-10";
-                                        feedback.className = "text-warning w-100";
+                                        feedbackBox.className = "mt-2 p-2 rounded-3 border border-warning border-opacity-50 bg-warning bg-opacity-10";
+                                        feedback.className = "text-warning w-100 text-dark";
                                         feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i> Cédula válida. Ingreso manual.';
                                     }
                                 } else {
-                                    // Cédula inválida
                                     inputNombres.value = "";
                                     inputNombres.placeholder = "Cédula rechazada";
-                                    inputCedula.style.borderColor = "#EF4444"; // Rojo
+                                    inputCedula.style.borderColor = "#EF4444"; // Red
                                     
                                     if (feedbackBox && feedback) {
-                                        feedbackBox.className = "mt-2 p-2 rounded border border-danger border-opacity-25 bg-danger bg-opacity-10";
+                                        feedbackBox.className = "mt-2 p-2 rounded-3 border border-danger border-opacity-50 bg-danger bg-opacity-10";
                                         feedback.className = "text-danger w-100";
                                         feedback.innerHTML = `<i class="bi bi-x-octagon-fill fs-5 me-2"></i> ${dataSRI.error || 'Cédula incorrecta'}`;
                                     }
                                 }
                             })
                             .catch(error => {
-                                // Error en la red al consultar SRI
                                 inputNombres.disabled = false;
                                 inputNombres.placeholder = "Error de red. Ingreso manual.";
                                 if (feedbackBox) feedbackBox.style.display = 'none';
@@ -375,7 +393,6 @@
                         }
                     })
                     .catch(error => {
-                        // Error de red general
                         inputNombres.disabled = false;
                         inputNombres.placeholder = "Error de red. Ingreso manual.";
                         if (feedbackBox) feedbackBox.style.display = 'none';
@@ -394,13 +411,11 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // Le inyectamos la imagen al círculo y lo mostramos
                     fotoPreview.src = e.target.result;
                     fotoPreview.classList.remove('d-none');
                 }
-                reader.readAsDataURL(file); // Lee el archivo temporalmente
+                reader.readAsDataURL(file);
             } else {
-                // Si el usuario cancela, ocultamos el círculo
                 fotoPreview.src = "#";
                 fotoPreview.classList.add('d-none');
             }

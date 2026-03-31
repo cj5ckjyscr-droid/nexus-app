@@ -1,81 +1,170 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Habilitar Cupos | NEXT LEVEL{% endblock %}
+{% block title %}Habilitar Cupos | NEXUS SPORTOPS{% endblock %}
 
-{% block contenido %}
-<div class="row justify-content-center animate__animated animate__zoomIn mt-4">
-    <div class="col-md-6 col-lg-5">
-        <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="card-header text-white text-center py-4" style="background-color: var(--primary-navy);">
-                <i class="bi bi-person-check-fill fs-1 mb-2"></i>
-                <h4 class="fw-black mb-0">Control de Plantilla</h4>
-                <p class="text-white-50 small mb-0">Define el límite exacto de jugadores</p>
-            </div>
-            
-            <div class="card-body p-4 p-md-5 bg-white">
-                <div class="text-center mb-4">
-                    <h5 class="fw-black text-dark mb-1">{{ equipo.nombre|upper }}</h5>
-                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-2">
-                        <i class="bi bi-trophy-fill me-1"></i> {{ equipo.torneo.nombre }}
-                    </span>
-                </div>
-
-                <div class="row g-2 mb-4">
-                    <div class="col-6">
-                        <div class="p-3 border rounded-3 bg-light text-center">
-                            <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.65rem;">Jugadores Inscritos</small>
-                            <span class="fs-4 fw-black text-dark">{{ equipo.jugadores.count }}</span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="p-3 border rounded-3 text-center" style="background-color: #F0FDF4; border-color: #86EFAC !important;">
-                            <small class="text-success d-block fw-bold text-uppercase" style="font-size: 0.65rem;">Cupos Actuales</small>
-                            <span class="fs-4 fw-black text-success">{{ equipo.cupos_pagados }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    <div class="mb-4 text-center">
-                        <label class="form-label fw-bold text-dark text-uppercase mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">
-                            {{ form.cupos_pagados.label }}
-                        </label>
-                        {{ form.cupos_pagados }}
-                        
-                        <div class="alert alert-info border-0 mt-4 mb-0 py-2 px-3 rounded-3 text-start shadow-sm" style="font-size: 0.75rem;">
-                            <i class="bi bi-info-circle-fill me-2 text-primary"></i>
-                            Escribe el <strong>NÚMERO TOTAL FINAL</strong> que deseas que tenga el equipo.<br>
-                            <span class="text-muted mt-1 d-block"><em>Si el número es mayor al actual, el sistema generará el cobro por la diferencia. Si es menor, solo se corregirá el límite.</em></span>
-                        </div>
-                    </div>
-
-                    <div class="d-grid gap-3 mt-4">
-                        <button type="submit" class="btn text-white fw-bold rounded-pill py-3 shadow-sm transition-all" style="background-color: var(--primary-blue);">
-                            <i class="bi bi-check-lg me-2"></i> Guardar Total Exacto
-                        </button>
-                        
-                        <a href="{% url 'gestionar_equipos' %}" class="btn btn-light text-muted fw-bold rounded-pill py-2 border-secondary-subtle">
-                            Cancelar
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
+{% block extra_css %}
 <style>
-    input[type=number] {
-        transition: all 0.3s ease;
-        color: var(--primary-navy) !important;
+    /* =========================================================
+       ESTÉTICA FEY - CONTROL DE CUPOS (LIGHT MODE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed;
+        top: -10%; left: -10%;
+        width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1;
+        pointer-events: none;
     }
-    input[type=number]:focus {
-        border-color: var(--primary-blue) !important;
-        box-shadow: 0 0 0 6px rgba(29, 78, 216, 0.15) !important;
-        background-color: white !important;
-        outline: none;
+
+    .fey-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0;
+        border-radius: 24px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .fey-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 6px;
+        background: linear-gradient(90deg, var(--brand-primary), #0EA5E9);
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.2rem);
+        letter-spacing: -0.03em;
+        color: #0F172A;
+        line-height: 1.1;
+    }
+
+    /* Mini Bento Stats */
+    .stat-box {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 16px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    .stat-box.success {
+        background: #F0FDF4;
+        border-color: #86EFAC;
+    }
+    
+    /* Input Premium (Gigante y Centrado) */
+    .premium-input-wrapper input[type="number"] {
+        background: #FFFFFF !important;
+        border: 2px solid #E2E8F0 !important;
+        border-radius: 16px !important;
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 2.5rem !important;
+        font-weight: 900 !important;
+        color: #0F172A !important;
+        text-align: center !important;
+        padding: 15px !important;
+        height: auto !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.02) !important;
+    }
+    .premium-input-wrapper input[type="number"]:focus {
+        border-color: var(--brand-primary) !important;
+        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.15) !important;
+        transform: translateY(-2px);
+        outline: none !important;
+    }
+    
+    /* Ocultar flechas del input number */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type=number] { -moz-appearance: textfield; }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 576px) {
+        .fey-card { padding: 24px; border-radius: 20px; }
+        .stat-box { padding: 12px; }
+        .premium-input-wrapper input[type="number"] { font-size: 2rem !important; padding: 10px !important; }
     }
 </style>
+{% endblock %}
+
+{% block contenido %}
+<div class="ambient-glow"></div>
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 200px); padding: 20px 0;">
+    <div class="w-100 reveal-up" style="max-width: 480px;">
+        
+        <div class="fey-card">
+            <div class="text-center mb-4">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-people-fill fs-2"></i>
+                </div>
+                <div class="mb-1">
+                    <span class="badge bg-slate-50 text-slate-600 border px-3 py-1 rounded-pill fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.65rem;">
+                        <i class="bi bi-trophy-fill text-warning me-1"></i> {{ equipo.torneo.nombre }}
+                    </span>
+                </div>
+                <h2 class="fey-title">{{ equipo.nombre }}</h2>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <div class="stat-box">
+                        <span class="d-block text-muted fw-bold text-uppercase mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Inscritos Reales</span>
+                        <span class="fs-3 fw-black text-dark" style="font-family: 'Outfit', sans-serif;">{{ equipo.jugadores.count }}</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-box success">
+                        <span class="d-block text-success fw-bold text-uppercase mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Cupos Comprados</span>
+                        <span class="fs-3 fw-black text-success" style="font-family: 'Outfit', sans-serif;">{{ equipo.cupos_pagados }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="m-0">
+                {% csrf_token %}
+                
+                <div class="mb-4 text-center premium-input-wrapper">
+                    <label class="form-label fw-bold text-slate-900 mb-3" style="font-size: 0.9rem;">
+                        ¿Cuál será el nuevo límite de jugadores?
+                    </label>
+                    {{ form.cupos_pagados }}
+                </div>
+
+                <div class="bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3 p-3 mb-4 d-flex align-items-start gap-3">
+                    <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+                    <p class="text-slate-900 small m-0 fw-medium" style="line-height: 1.4;">
+                        Escribe el número total final.<br>
+                        <span class="text-muted" style="font-size: 0.75rem;">Si aumentas el número, el sistema generará automáticamente una deuda por la diferencia.</span>
+                    </p>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    <button type="submit" class="btn btn-nexus w-100 rounded-pill py-3 fw-bold shadow-sm" style="font-size: 1rem;">
+                        <i class="bi bi-check2-circle me-1"></i> Confirmar Límite
+                    </button>
+                    <a href="{% url 'gestionar_equipos' %}" class="btn btn-light w-100 rounded-pill py-2 fw-bold text-muted border">
+                        Cancelar y Volver
+                    </a>
+                </div>
+            </form>
+            
+        </div>
+
+    </div>
+</div>
 {% endblock %}

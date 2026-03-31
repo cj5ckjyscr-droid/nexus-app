@@ -2,8 +2,11 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Fixture - {{ torneo.nombre }} | NEXT LEVEL</title>
+    <title>Fixture - {{ torneo.nombre }} | NEXUS SPORTOPS</title>
     <style>
+        /* =========================================================
+           CONFIGURACIÓN DEL DOCUMENTO PDF (NEXUS STYLE)
+           ========================================================= */
         @page { 
             size: A4; 
             margin: 1.5cm; 
@@ -17,109 +20,125 @@
         }
         body { 
             font-family: Helvetica, sans-serif; 
-            font-size: 11pt; 
-            color: #1E293B;
+            font-size: 10pt; 
+            color: #0F172A;
+            background-color: #FFFFFF;
         }
         
-        /* Encabezado */
+        /* --- Encabezado --- */
         .header { 
             text-align: center; 
-            border-bottom: 3px solid #1D4ED8; /* Azul Rey */
-            padding-bottom: 15px; 
-            margin-bottom: 25px;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 20px; 
+            margin-bottom: 30px;
         }
         .empresa { 
-            font-size: 22px; 
-            font-weight: 900; 
-            color: #0A192F; /* Azul Marino */
-            letter-spacing: 2px;
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #0F172A;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
         .subtitulo { 
-            font-size: 12px; 
-            color: #64748B; 
-            margin-top: 5px; 
+            font-size: 10px; 
+            color: #4F46E5; /* Indigo NEXUS */
+            margin-top: 4px; 
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
         .titulo-doc { 
-            font-size: 16px; 
-            font-weight: 900; 
-            margin-top: 12px; 
-            color: #1D4ED8;
+            font-size: 14px; 
+            font-weight: bold; 
+            margin-top: 15px; 
+            color: #475569;
             text-transform: uppercase;
         }
 
-        /* Contenedor de Jornada */
+        /* --- Contenedor de Jornada --- */
         .jornada { 
-            margin-bottom: 25px; 
+            margin-bottom: 20px; 
             border: 1px solid #CBD5E1; 
+            border-radius: 4px; /* Ojo: Reportlab soporta border-radius limitado, pero lo intentamos */
             background-color: #FFFFFF;
-            /* Evita que la jornada se corte entre dos páginas al imprimir */
             page-break-inside: avoid;
         }
         .jornada-title { 
-            background-color: #0A192F; /* Azul Marino */
-            color: #FFFFFF; 
-            padding: 8px; 
-            text-align: center; 
+            background-color: #F8FAFC; 
+            color: #0F172A; 
+            padding: 8px 12px; 
+            text-align: left; 
             font-weight: bold; 
-            font-size: 12pt; 
+            font-size: 11pt; 
             text-transform: uppercase; 
-            letter-spacing: 1px; 
+            letter-spacing: 0.5px; 
+            border-bottom: 1px solid #CBD5E1;
         }
         
-        /* Tabla de Partidos */
+        /* --- Tabla de Partidos --- */
         table { 
             width: 100%; 
             border-collapse: collapse; 
         }
         td { 
-            padding: 8px 5px; 
-            border-bottom: 1px solid #E2E8F0; 
+            padding: 8px 10px; 
+            border-bottom: 1px solid #F1F5F9; 
+            vertical-align: middle;
         }
         tr:last-child td {
             border-bottom: none;
         }
+        
         .local { 
             text-align: right; 
             width: 42%; 
             font-weight: bold; 
-            color: #0A192F;
+            color: #1E293B;
+            font-size: 11pt;
         }
         .vs { 
             text-align: center; 
             width: 16%; 
-            color: #1D4ED8; 
-            font-size: 10px;
+            color: #94A3B8; 
+            font-size: 9px;
             font-weight: bold;
-            background-color: #F4F7FA;
+            letter-spacing: 1px;
         }
         .visita { 
             text-align: left; 
             width: 42%; 
             font-weight: bold; 
-            color: #0A192F;
+            color: #1E293B;
+            font-size: 11pt;
         }
+        
+        /* Estado especial (Descanso) */
         .descanso { 
             color: #94A3B8; 
             font-style: italic; 
             font-weight: normal; 
+            font-size: 10pt;
         }
 
-        /* Footer del PDF */
+        /* --- Footer del PDF --- */
         #footer_content { 
             text-align: center; 
-            font-size: 9px; 
+            font-size: 8px; 
             color: #64748B;
-            border-top: 1px solid #CBD5E1;
-            padding-top: 5px;
+            border-top: 1px solid #E2E8F0;
+            padding-top: 8px;
+            line-height: 1.4;
+        }
+        .footer-brand {
+            color: #0F172A;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     
     <div class="header">
-        <div class="empresa">NEXT LEVEL</div>
+        <div class="empresa">NEXUS SPORTOPS</div>
         <div class="subtitulo">FIXTURE OFICIAL DEL TORNEO</div>
         <div class="titulo-doc">{{ torneo.nombre }}</div>
     </div>
@@ -131,11 +150,11 @@
             {% for partido in jornada.partidos %}
             <tr>
                 <td class="local">
-                    {% if partido.local %}{{ partido.local.nombre }}{% else %}<span class="descanso">DESCANSO</span>{% endif %}
+                    {% if partido.local %}{{ partido.local.nombre }}{% else %}<span class="descanso">EQUIPO EN DESCANSO</span>{% endif %}
                 </td>
                 <td class="vs">VS</td>
                 <td class="visita">
-                    {% if partido.visita %}{{ partido.visita.nombre }}{% else %}<span class="descanso">DESCANSO</span>{% endif %}
+                    {% if partido.visita %}{{ partido.visita.nombre }}{% else %}<span class="descanso">EQUIPO EN DESCANSO</span>{% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -144,8 +163,8 @@
     {% endfor %}
 
     <div id="footer_content">
-        <strong>NEXT LEVEL</strong> - Documento de programación deportiva. | Teléfono Administrativo: 0963395614<br>
-        Desarrollado por Deyvi Rivera - Soporte Técnico: 0987408528
+        <span class="footer-brand">NEXUS SPORTOPS</span> - Generador Automático de Fixture y Calendario Deportivo.<br>
+        Documento oficial. | <strong>Soporte Técnico:</strong> 0987408528 (Deyvi Rivera)
     </div>
 
 </body>

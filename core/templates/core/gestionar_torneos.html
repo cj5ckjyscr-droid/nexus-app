@@ -1,245 +1,269 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
-{% block title %}Gestión de Torneos | NEXT LEVEL{% endblock %}
+{% block title %}Gestión de Torneos | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* ==========================================
-       ESTILOS PREMIUM - GESTIÓN TORNEOS NEXT LEVEL
-       ========================================== */
-    :root {
-        --clean-bg: #F4F7FA;
-        --clean-surface: #FFFFFF;
-        --clean-border: #CBD5E1;
-        --text-main: #1E293B;
-        --primary-blue: #1D4ED8;
-        --primary-navy: #0A192F;
-        --accent-green: #10B981;
-        --accent-gold: #F59E0B;
-        --accent-red: #EF4444;
+    /* =========================================================
+       ESTÉTICA FEY - GESTIÓN DE TORNEOS (LIGHT MODE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
     }
 
-    body { background-color: var(--clean-bg); }
-
-    /* Tarjetas Generales */
-    .card-pro {
-        border: 0; border-radius: 16px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        background: var(--clean-surface);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        overflow: hidden;
-    }
-    .card-pro:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 25px rgba(29, 78, 216, 0.08);
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
     }
 
-    .form-panel { border-top: 5px solid var(--primary-navy); }
-    .form-panel.edit-mode { border-top-color: var(--primary-blue); }
-
-    /* Estilos de Inputs Limpios */
-    .clean-input {
-        width: 100%; padding: 0.6rem 1rem;
-        border: 1px solid var(--clean-border);
-        border-radius: 10px; background-color: #F8FAFC;
-        color: var(--text-main); font-weight: 600; font-size: 0.85rem;
-        transition: all 0.3s ease;
+    /* Panel de Formulario Flotante */
+    .fey-form-panel {
+        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0; border-radius: 24px; padding: 24px;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.03);
+        position: sticky; top: 100px; z-index: 10; transition: all 0.3s ease;
     }
-    .clean-input:focus {
-        border-color: var(--primary-blue); background-color: #fff;
-        outline: none; box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15);
+    .fey-form-panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+        background: linear-gradient(90deg, #94A3B8, #CBD5E1); transition: all 0.3s ease;
     }
-    
-    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: var(--primary-navy); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; display: block; }
+    .fey-form-panel.edit-mode::before { background: linear-gradient(90deg, var(--brand-primary), #0EA5E9); }
 
-    /* Switches (Interruptores) */
+    /* Auto-styling Inputs Django */
+    .fey-form-panel input[type="text"], .fey-form-panel input[type="number"], .fey-form-panel input[type="date"], .fey-form-panel select {
+        background-color: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
+        border-radius: 12px !important; padding: 12px 16px !important;
+        font-weight: 600 !important; color: #0F172A !important;
+        transition: all 0.3s ease !important; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.01) !important;
+    }
+    .fey-form-panel input:focus, .fey-form-panel select:focus {
+        border-color: var(--brand-primary) !important; background-color: #FFFFFF !important;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none !important;
+    }
+    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+
+    /* Switches (Interruptores iOS) */
+    .fey-switch-container {
+        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px;
+        padding: 16px; display: flex; justify-content: space-between; align-items: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.01); transition: all 0.3s ease;
+    }
+    .fey-switch-container:focus-within { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
     .form-switch .form-check-input {
         width: 3rem; height: 1.5rem; cursor: pointer;
         background-color: #CBD5E1; border-color: #CBD5E1;
+        transition: background-position .15s ease-in-out; margin: 0;
     }
-    .form-switch .form-check-input:checked {
-        background-color: var(--primary-blue); border-color: var(--primary-blue);
-    }
+    .form-switch .form-check-input:checked { background-color: var(--brand-primary); border-color: var(--brand-primary); }
 
-    /* Tarjetas de Torneos Compactas */
-    .tournament-card { 
-        border-left: 4px solid var(--primary-blue); 
-        border-radius: 12px;
+    /* Tarjetas de Torneos */
+    .tournament-card {
+        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 20px;
+        padding: 24px; position: relative; overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex; flex-direction: column; height: 100%;
     }
-    .tournament-card.inactive { 
-        border-left-color: var(--clean-border); 
-        opacity: 0.85; 
-        filter: grayscale(80%); 
+    .tournament-card:hover {
+        transform: translateY(-5px); box-shadow: 0 15px 30px rgba(15, 23, 42, 0.08); border-color: var(--brand-primary);
     }
-    .tournament-card.inactive:hover { opacity: 1; filter: grayscale(20%); }
+    .tournament-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 5px; background: var(--brand-primary); }
     
-    .status-badge { font-size: 0.6rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.5px; }
-    
-    .stat-box { text-align: center; padding: 6px 2px; }
-    .stat-val { font-size: 0.9rem; font-weight: 900; color: var(--primary-navy); }
-    .stat-label { font-size: 0.55rem; color: #64748B; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tournament-card.inactive { opacity: 0.85; filter: grayscale(100%); }
+    .tournament-card.inactive::before { background: #94A3B8; }
+    .tournament-card.inactive:hover { opacity: 1; filter: grayscale(0%); border-color: #CBD5E1; }
 
-    /* Cabecera de Categoría */
-    .cat-header {
-        background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
-        color: #ffffff;
-        padding: 6px 14px;
-        border-radius: 8px;
-        font-size: 0.8rem;
-        letter-spacing: 1px;
+    /* Widgets Internos de Stats */
+    .stat-widget {
+        background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;
+        padding: 10px 8px; text-align: center; flex: 1;
     }
+    .stat-val { font-size: 1.1rem; font-weight: 900; color: #0F172A; font-family: 'Outfit', sans-serif; line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 0.65rem; color: #64748B; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* Botones de acción circular */
+    /* Cabecera de Categorías */
+    .cat-divider {
+        display: flex; align-items: center; margin: 2rem 0 1.5rem 0;
+    }
+    .cat-divider span {
+        background: #0F172A; color: #FFFFFF; padding: 6px 16px; border-radius: 50px;
+        font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .cat-divider::after { content: ''; flex-grow: 1; height: 1px; background: dashed 1px #CBD5E1; margin-left: 15px; }
+
+    /* Botones Circulares */
     .btn-circle-action {
-        width: 28px; height: 28px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        border: none; transition: all 0.2s; text-decoration: none;
+        width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+        border: 1px solid transparent; transition: all 0.2s; text-decoration: none; font-size: 0.9rem;
     }
-    .btn-circle-action:hover { transform: scale(1.15); filter: brightness(0.95); }
-    .btn-edit { background: #EFF6FF; color: var(--primary-blue); }
-    .btn-delete { background: #FEE2E2; color: #B91C1C; }
+    .btn-circle-action:hover { transform: translateY(-2px); }
+    .btn-edit { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
+    .btn-delete { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
 
-    @media (max-width: 768px) {
-        .card-pro { border-radius: 12px; }
-        .sticky-top { position: static !important; }
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 991px) {
+        .fey-form-panel { position: static; margin-bottom: 30px; }
+    }
+    @media (max-width: 576px) {
+        .fey-form-panel, .tournament-card { padding: 20px; border-radius: 20px; }
+        .stat-widget { padding: 8px 4px; }
+        .stat-val { font-size: 1rem; }
+        .stat-label { font-size: 0.6rem; }
     }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="row g-4 animate__animated animate__fadeIn pb-5">
-    
-    <div class="col-lg-4">
-        <div class="card card-pro form-panel shadow-sm sticky-top {% if editando %}edit-mode{% endif %}" style="top: 90px; z-index: 10;">
-            
-            <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center mt-1">
-                <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; background: {% if editando %}#EFF6FF; color: var(--primary-blue);{% else %}#F4F7FA; color: var(--primary-navy);{% endif %}">
-                    <i class="bi {% if editando %}bi-pencil-fill{% else %}bi-trophy-fill{% endif %} fs-5"></i>
-                </div>
-                <div>
-                    <h5 class="fw-black text-dark mb-0 fs-6">{% if editando %}Editar Torneo{% else %}Nuevo Torneo{% endif %}</h5>
-                    <small class="text-muted fw-medium" style="font-size: 0.75rem;">{% if editando %}{{ torneo_edit.nombre }}{% else %}Configura el campeonato{% endif %}</small>
-                </div>
-            </div>
+<div class="ambient-glow"></div>
 
-            <div class="card-body p-4 bg-white">
-                <form method="post">
+<div class="container-fluid px-0 pb-5">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom reveal-up">
+        <div class="mb-3 mb-md-0">
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 mb-2 rounded-pill fw-bold">
+                <i class="bi bi-shield-check me-1"></i> Panel de Administración
+            </span>
+            <h2 class="fey-title m-0">Gestión de Torneos</h2>
+            <p class="text-muted small m-0 fw-medium mt-1">Crea nuevos campeonatos, asigna precios y habilita inscripciones.</p>
+        </div>
+        
+        <div>
+            <div class="bg-white border rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center">
+                <i class="bi bi-trophy-fill text-warning me-2"></i>
+                <span class="fw-bold text-dark text-uppercase small" style="letter-spacing: 0.5px;">{{ torneos.count }} Campeonatos</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        
+        <div class="col-lg-4 col-xl-4 reveal-up" style="animation-delay: 0.1s;">
+            <div class="fey-form-panel {% if editando %}edit-mode{% endif %}">
+                
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; background: {% if editando %}#EFF6FF; color: var(--brand-primary);{% else %}#F1F5F9; color: #0F172A;{% endif %}; border: 1px solid #E2E8F0;">
+                        <i class="bi {% if editando %}bi-pencil-fill{% else %}bi-plus-lg{% endif %} fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">{% if editando %}Editar Torneo{% else %}Nuevo Torneo{% endif %}</h5>
+                        <p class="text-muted small m-0 fw-medium">{% if editando %}{{ torneo_edit.nombre }}{% else %}Configura el campeonato{% endif %}</p>
+                    </div>
+                </div>
+
+                <form method="post" class="m-0">
                     {% csrf_token %}
-                    
-                    <div class="row g-3">
+                    <div class="d-flex flex-column gap-3">
                         {% for field in form %}
                             {% if field.field.widget.input_type == 'checkbox' %}
-                                <div class="col-12 mt-3">
-                                    <div class="form-check form-switch bg-light border border-secondary-subtle rounded-3 p-3 d-flex justify-content-between align-items-center mb-0 shadow-sm">
-                                        <div>
-                                            <label class="form-check-label fw-bold text-dark d-block m-0 text-uppercase" for="{{ field.id_for_label }}" style="font-size: 0.8rem; letter-spacing: 0.5px;">{{ field.label }}</label>
-                                            {% if field.help_text %}<small class="text-muted d-block lh-sm mt-1" style="font-size: 0.7rem;">{{ field.help_text }}</small>{% endif %}
-                                        </div>
-                                        <div class="ms-3">{{ field }}</div>
+                                <div class="fey-switch-container form-switch mb-1">
+                                    <div>
+                                        <label class="form-check-label fw-bold text-dark d-block m-0" for="{{ field.id_for_label }}" style="font-size: 0.9rem;">{{ field.label }}</label>
+                                        {% if field.help_text %}<span class="text-muted d-block mt-1" style="font-size: 0.75rem; line-height: 1.3;">{{ field.help_text }}</span>{% endif %}
                                     </div>
+                                    <div class="ms-3">{{ field }}</div>
                                 </div>
                             {% else %}
-                                <div class="col-12">
+                                <div>
                                     <label class="form-label-pro">{{ field.label }}</label>
                                     {{ field }}
-                                    {% if field.help_text %}<div class="text-muted mt-1" style="font-size: 0.7rem;"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>{% endif %}
-                                    {% if field.errors %}<div class="text-danger mt-1 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors.0 }}</div>{% endif %}
+                                    {% if field.help_text %}<div class="text-muted mt-2 fw-medium" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1 opacity-50"></i>{{ field.help_text }}</div>{% endif %}
+                                    {% if field.errors %}
+                                        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-2 mt-2 text-danger small fw-bold d-flex align-items-center shadow-sm">
+                                            <i class="bi bi-exclamation-circle-fill me-2"></i> {{ field.errors.0 }}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             {% endif %}
                         {% endfor %}
                     </div>
 
-                    <div class="d-grid gap-2 mt-4 pt-4 border-top">
-                        <button type="submit" class="btn py-2 fw-bold shadow-sm rounded-pill text-white transition-all" style="background-color: {% if editando %}var(--primary-blue){% else %}var(--primary-navy){% endif %}; font-size: 0.9rem;">
-                            <i class="bi bi-save2 me-2"></i> {% if editando %}Guardar Cambios{% else %}Crear Torneo{% endif %}
+                    <div class="d-flex flex-column gap-2 mt-4 pt-3 border-top">
+                        <button type="submit" class="btn w-100 rounded-pill py-3 fw-bold shadow-sm" style="background-color: {% if editando %}var(--brand-primary){% else %}#0F172A{% endif %}; color: #FFFFFF; font-size: 0.95rem;">
+                            <i class="bi {% if editando %}bi-save2{% else %}bi-check2-circle{% endif %} me-1"></i> {% if editando %}Guardar Cambios{% else %}Crear Torneo{% endif %}
                         </button>
                         {% if editando %}
-                            <a href="{% url 'gestionar_torneos' %}" class="btn btn-light border py-2 text-muted fw-bold rounded-pill transition-all" style="font-size: 0.85rem;">Cancelar Edición</a>
+                            <a href="{% url 'gestionar_torneos' %}" class="btn btn-light w-100 rounded-pill py-2 fw-bold text-muted border">Cancelar Edición</a>
                         {% endif %}
                     </div>
                 </form>
+                
             </div>
         </div>
-    </div>
 
-    <div class="col-lg-8">
-        <div class="d-flex justify-content-between align-items-center mb-4 px-1 pb-2 border-bottom">
-            <h5 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">
-                <i class="bi bi-ui-checks-grid me-2" style="color: var(--primary-blue);"></i>Torneos Registrados
-            </h5>
-            <span class="badge rounded-pill shadow-sm fs-6" style="background-color: var(--primary-navy);">{{ torneos.count }}</span>
-        </div>
+        <div class="col-lg-8 col-xl-8 reveal-up" style="animation-delay: 0.2s;">
+            {% if not torneos %}
+                <div class="text-center py-5 bg-white border border-dashed rounded-4 shadow-sm">
+                    <i class="bi bi-trophy text-muted opacity-25 d-block mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Sin torneos registrados</h5>
+                    <p class="text-muted small m-0">Crea el primer campeonato para empezar a recibir equipos.</p>
+                </div>
+            {% else %}
+                {% regroup torneos by categoria as categorias_agrupadas %}
 
-        {% if torneos %}
-            {% regroup torneos by categoria as categorias_agrupadas %}
-
-            {% for cat in categorias_agrupadas %}
-                <div class="mb-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="cat-header fw-black shadow-sm">
-                            <i class="bi bi-bookmark-star-fill text-warning me-1"></i> 
-                            CATEGORÍA: {{ cat.grouper.nombre|default:"SIN ASIGNAR"|upper }}
-                        </div>
-                        <div class="ms-3 flex-grow-1 border-top border-dashed"></div>
+                {% for cat in categorias_agrupadas %}
+                    <div class="cat-divider">
+                        <span><i class="bi bi-tags-fill text-warning"></i> {{ cat.grouper.nombre|default:"SIN ASIGNAR" }}</span>
                     </div>
 
-                    <div class="row g-3">
+                    <div class="row g-4">
                         {% for t in cat.list %}
-                        <div class="col-md-6">
-                            <div class="card card-pro tournament-card h-100 {% if not t.activo %}inactive{% endif %} p-3">
+                        <div class="col-md-6 col-xl-6">
+                            <div class="tournament-card {% if not t.activo %}inactive{% endif %}">
                                 
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div class="text-secondary fw-bold" style="font-size: 0.7rem;">
-                                        <i class="bi bi-calendar-event me-1"></i>Inició: {{ t.fecha_inicio|date:"d M Y" }}
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="text-slate-500 fw-bold" style="font-size: 0.75rem;">
+                                        <i class="bi bi-calendar2-check me-1"></i> Inició: {{ t.fecha_inicio|date:"d M Y" }}
                                     </div>
-                                    <div class="d-flex gap-1">
-                                        <a href="{% url 'editar_torneo' t.id %}" class="btn-circle-action btn-edit shadow-sm" title="Editar Torneo">
-                                            <i class="bi bi-pencil-fill" style="font-size: 0.7rem;"></i>
+                                    <div class="d-flex gap-2">
+                                        <a href="{% url 'editar_torneo' t.id %}" class="btn-circle-action btn-edit" title="Editar Torneo">
+                                            <i class="bi bi-pencil-fill"></i>
                                         </a>
-                                        <a href="{% url 'eliminar_torneo' t.id %}" class="btn-circle-action btn-delete shadow-sm" title="Eliminar Torneo" onclick="return confirm('¡ADVERTENCIA!\n\n¿Seguro de eliminar el torneo \'{{ t.nombre }}\'?');">
-                                            <i class="bi bi-trash3-fill" style="font-size: 0.7rem;"></i>
+                                        <a href="{% url 'eliminar_torneo' t.id %}" class="btn-circle-action btn-delete" title="Eliminar Torneo" onclick="return confirm('¡ADVERTENCIA!\n\n¿Seguro de eliminar el torneo \'{{ t.nombre }}\'? Se borrará todo lo relacionado a él.');">
+                                            <i class="bi bi-trash3-fill"></i>
                                         </a>
                                     </div>
                                 </div>
 
-                                <h6 class="fw-black text-dark mb-2 text-truncate" style="font-size: 1rem;" title="{{ t.nombre }}">
+                                <h4 class="fw-black text-dark mb-3 text-truncate" style="font-family: 'Outfit', sans-serif;" title="{{ t.nombre }}">
                                     {{ t.nombre }}
-                                </h6>
+                                </h4>
 
-                                <div class="d-flex flex-wrap gap-1 mb-3">
+                                <div class="d-flex flex-wrap gap-2 mb-4">
                                     {% if t.activo %}
-                                        <span class="badge status-badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-play-circle-fill me-1"></i>En Curso</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-3 fw-bold"><i class="bi bi-play-circle-fill me-1"></i>EN CURSO</span>
                                     {% else %}
-                                        <span class="badge status-badge bg-secondary bg-opacity-10 text-secondary border border-secondary"><i class="bi bi-stop-circle-fill me-1"></i>Finalizado</span>
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 rounded-3 fw-bold"><i class="bi bi-stop-circle-fill me-1"></i>FINALIZADO</span>
                                     {% endif %}
 
                                     {% if t.inscripcion_abierta %}
-                                        <span class="badge status-badge bg-primary bg-opacity-10 text-primary border border-primary"><i class="bi bi-door-open-fill me-1"></i>Abierto</span>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-3 fw-bold"><i class="bi bi-door-open-fill me-1"></i>INSCRIPCIONES ABIERTAS</span>
                                     {% else %}
-                                        <span class="badge status-badge bg-danger bg-opacity-10 text-danger border border-danger"><i class="bi bi-door-closed-fill me-1"></i>Cerrado</span>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 rounded-3 fw-bold"><i class="bi bi-door-closed-fill me-1"></i>INSCRIPCIONES CERRADAS</span>
                                     {% endif %}
                                 </div>
 
-                                <div class="bg-light rounded-3 border mt-auto">
-                                    <div class="row g-0">
-                                        <div class="col-5 stat-box border-end">
-                                            <div class="stat-val text-dark">
-                                                {% if t.cobro_por_jugador %}
-                                                    ${{ t.costo_inscripcion_jugador }}
-                                                {% else %}
-                                                    ${{ t.costo_inscripcion }}
-                                                {% endif %}
-                                            </div>
-                                            <div class="stat-label">{% if t.cobro_por_jugador %}Insc/Jug{% else %}Inscrip.{% endif %}</div>
+                                <div class="d-flex gap-2 mt-auto">
+                                    <div class="stat-widget">
+                                        <div class="stat-val text-primary">
+                                            {% if t.cobro_por_jugador %}${{ t.costo_inscripcion_jugador }}{% else %}${{ t.costo_inscripcion }}{% endif %}
                                         </div>
-                                        <div class="col-3 stat-box border-end">
-                                            <div class="stat-val text-dark">${{ t.costo_amarilla }}</div>
-                                            <div class="stat-label">TA (🟨)</div>
-                                        </div>
-                                        <div class="col-4 stat-box">
-                                            <div class="stat-val text-dark">${{ t.costo_roja }}</div>
-                                            <div class="stat-label">TR (🟥)</div>
-                                        </div>
+                                        <div class="stat-label">{% if t.cobro_por_jugador %}INSC / JUG{% else %}INSCRIP.{% endif %}</div>
+                                    </div>
+                                    <div class="stat-widget">
+                                        <div class="stat-val text-warning">${{ t.costo_amarilla }}</div>
+                                        <div class="stat-label">TA (🟨)</div>
+                                    </div>
+                                    <div class="stat-widget">
+                                        <div class="stat-val text-danger">${{ t.costo_roja }}</div>
+                                        <div class="stat-label">TR (🟥)</div>
                                     </div>
                                 </div>
 
@@ -247,28 +271,10 @@
                         </div>
                         {% endfor %}
                     </div>
-                </div>
-            {% endfor %}
+                {% endfor %}
+            {% endif %}
+        </div>
 
-        {% else %}
-            <div class="text-center py-5 rounded-4 border border-dashed bg-white shadow-sm mt-2">
-                <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border" style="width: 80px; height: 80px;">
-                    <i class="bi bi-trophy text-muted opacity-50" style="font-size: 2.5rem;"></i>
-                </div>
-                <h5 class="text-dark fw-bold mt-2">No hay torneos registrados</h5>
-            </div>
-        {% endif %}
     </div>
 </div>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const inputs = document.querySelectorAll('form input[type="text"], form input[type="number"], form input[type="date"], form select');
-        inputs.forEach(input => {
-            if (!input.classList.contains('form-check-input')) {
-                input.classList.add('clean-input');
-            }
-        });
-    });
-</script>
 {% endblock %}

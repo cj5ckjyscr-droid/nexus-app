@@ -1,201 +1,283 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Marketing y Galería | NEXT LEVEL{% endblock %}
+{% block title %}Marketing y Galería | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Hover Premium NEXT LEVEL */
-    .card-pro { transition: box-shadow 0.3s ease, transform 0.3s ease; }
-    .card-pro:hover { box-shadow: 0 10px 30px rgba(29, 78, 216, 0.08) !important; }
-    
-    .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    .hover-lift:hover { transform: translateY(-2px); }
-    
-    /* Re-estilizando inputs de Django */
-    form input[type="text"], form input[type="url"], form input[type="number"] {
-        width: 100%;
-        padding: 0.6rem 1rem;
-        border: 1px solid #CBD5E1;
-        border-radius: 10px;
-        background-color: #F8FAFC;
-        color: var(--text-main);
-        font-weight: 500;
-        font-size: 0.85rem;
-        transition: all 0.3s ease;
+    /* =========================================================
+       ESTÉTICA FEY - MARKETING & MEDIOS (LIGHT MODE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
     }
-    form input[type="text"]:focus, form input[type="url"]:focus, form input[type="number"]:focus {
-        border-color: var(--primary-blue);
-        background-color: #FFFFFF;
-        outline: none;
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15);
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(2rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
     }
-    
-    /* Input file nativo */
-    form input[type="file"]::file-selector-button {
-        border: none;
-        background: var(--primary-navy);
-        padding: 0.4rem 0.8rem;
-        border-radius: 6px;
-        margin-right: 10px;
-        color: #ffffff;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s;
+
+    /* Panel General de Medios */
+    .fey-panel {
+        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0; border-radius: 24px; padding: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02); height: 100%;
+        transition: all 0.3s ease; position: relative; overflow: hidden;
     }
-    form input[type="file"]::file-selector-button:hover { background: var(--primary-blue); }
-    form input[type="file"] { font-size: 0.85rem; color: #64748B; }
+    .fey-panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+    }
+    .fey-panel.gallery-panel::before { background: linear-gradient(90deg, #94A3B8, #CBD5E1); }
+    .fey-panel.sponsor-panel::before { background: linear-gradient(90deg, var(--brand-primary), #0EA5E9); }
+
+    /* Auto-styling Inputs Django */
+    .fey-panel input[type="text"], .fey-panel input[type="url"], .fey-panel input[type="number"], .fey-panel select {
+        background-color: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
+        border-radius: 12px !important; padding: 12px 16px !important;
+        font-weight: 500 !important; color: #0F172A !important;
+        transition: all 0.3s ease !important; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.01) !important;
+    }
+    .fey-panel input:focus, .fey-panel select:focus {
+        border-color: var(--brand-primary) !important; background-color: #FFFFFF !important;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none !important;
+    }
+    .fey-panel input::placeholder { color: #94A3B8 !important; font-weight: 400; }
     
-    /* Estilo para el switch (checkbox) */
+    .fey-panel input[type="file"] { color: #64748B; background: transparent; border: none; padding: 0; font-size: 0.85rem; }
+    .fey-panel input[type="file"]::file-selector-button {
+        border: none; background: #0F172A; padding: 8px 16px; border-radius: 8px; 
+        color: #FFFFFF; font-weight: 700; cursor: pointer; margin-right: 12px; transition: all 0.2s;
+    }
+    .fey-panel input[type="file"]::file-selector-button:hover { background: var(--brand-primary); }
+
+    /* Switch iOS Style */
     .form-switch .form-check-input {
-        width: 2.2rem; height: 1.1rem; cursor: pointer;
+        width: 3rem; height: 1.5rem; cursor: pointer;
         background-color: #CBD5E1; border-color: #CBD5E1;
+        transition: background-position .15s ease-in-out;
     }
     .form-switch .form-check-input:checked {
-        background-color: var(--primary-blue); border-color: var(--primary-blue);
+        background-color: var(--brand-primary); border-color: var(--brand-primary);
     }
+    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+
+    /* Cuadrícula de Fotos (Galería) */
+    .photo-card {
+        position: relative; border-radius: 16px; overflow: hidden; border: 1px solid #E2E8F0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.02); aspect-ratio: 4/3; transition: all 0.3s ease;
+    }
+    .photo-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08); border-color: #CBD5E1; }
+    .photo-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+    .photo-card:hover img { transform: scale(1.05); }
     
-    /* Form label */
-    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: var(--primary-navy); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; display: block; }
+    .photo-overlay {
+        position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 12px 12px 12px;
+        background: linear-gradient(to top, rgba(15, 23, 42, 0.9), transparent);
+        color: white; opacity: 0; transform: translateY(10px); transition: all 0.3s ease;
+    }
+    .photo-card:hover .photo-overlay { opacity: 1; transform: translateY(0); }
+    .btn-delete-photo {
+        position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+        background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+        opacity: 0; transition: all 0.2s ease;
+    }
+    .photo-card:hover .btn-delete-photo { opacity: 1; }
+    .btn-delete-photo:hover { background: #DC2626; transform: scale(1.1); }
+
+    /* Lista de Marcas (Auspiciantes) */
+    .sponsor-card {
+        display: flex; align-items: center; padding: 16px; background: #FFFFFF;
+        border: 1px solid #E2E8F0; border-radius: 16px; margin-bottom: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.01); transition: all 0.2s ease;
+    }
+    .sponsor-card:hover { border-color: #CBD5E1; box-shadow: 0 8px 15px rgba(15, 23, 42, 0.04); transform: translateX(4px); }
+    
+    .sponsor-logo-box {
+        width: 70px; height: 50px; background: #F8FAFC; border: 1px solid #E2E8F0;
+        border-radius: 10px; display: flex; align-items: center; justify-content: center;
+        margin-right: 16px; padding: 4px; flex-shrink: 0;
+    }
+    .sponsor-logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+    .btn-circle-action {
+        width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+        border: 1px solid transparent; transition: all 0.2s; text-decoration: none; font-size: 0.9rem;
+    }
+    .btn-circle-action:hover { transform: translateY(-2px); }
+    .btn-delete { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 576px) {
+        .fey-panel { padding: 20px; border-radius: 20px; }
+        .photo-overlay, .btn-delete-photo { opacity: 1; transform: translateY(0); } /* Siempre visibles en móvil */
+        .sponsor-card { padding: 12px; border-radius: 12px; }
+    }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="container-fluid px-0 animate__animated animate__fadeInUp">
+<div class="ambient-glow"></div>
+
+<div class="container-fluid px-0 pb-5">
     
-    <div class="row mb-4 align-items-center border-bottom pb-3">
-        <div class="col-md-8">
-            <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-2 mb-2 rounded-pill border border-primary border-opacity-25" style="color: var(--primary-blue) !important;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom reveal-up">
+        <div class="mb-3 mb-md-0">
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 mb-2 rounded-pill fw-bold">
                 <i class="bi bi-images me-1"></i> Contenido Visual
             </span>
-            <h2 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">Centro de Marketing</h2>
-            <p class="text-muted small mt-1 mb-0">Sube fotos de las instalaciones y gestiona tus auspiciantes oficiales.</p>
+            <h2 class="fey-title m-0">Centro de Marketing</h2>
+            <p class="text-muted small m-0 fw-medium mt-1">Personaliza el aspecto de tu portal subiendo fotos de las canchas y añadiendo auspiciantes.</p>
         </div>
     </div>
 
-    <div class="row g-4 mb-5">
+    <div class="row g-4">
         
-        <div class="col-lg-6">
-            <div class="card card-pro border-0 shadow-sm border-top border-4 h-100 rounded-4 overflow-hidden" style="border-color: var(--primary-navy) !important;">
-                <div class="card-header bg-white pt-4 pb-2 border-0">
-                    <h5 class="fw-black text-dark m-0" style="letter-spacing: -0.5px;">
-                        <i class="bi bi-camera-fill me-2" style="color: var(--primary-navy);"></i>Galería de Instalaciones
-                    </h5>
-                </div>
+        <div class="col-lg-6 reveal-up" style="animation-delay: 0.1s;">
+            <div class="fey-panel gallery-panel">
                 
-                <div class="card-body p-4">
-                    <form method="post" enctype="multipart/form-data" class="bg-light p-4 rounded-4 mb-4 border border-secondary-subtle shadow-sm">
-                        {% csrf_token %}
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label-pro">Seleccionar Imagen</label>
-                                {{ form_foto.imagen }}
-                            </div>
-                            <div class="col-8">
-                                <label class="form-label-pro">Título / Leyenda</label>
-                                {{ form_foto.titulo }}
-                            </div>
-                            <div class="col-4">
-                                <label class="form-label-pro">Orden</label>
-                                {{ form_foto.orden }}
-                            </div>
-                            <div class="col-12 d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                <div class="form-check form-switch m-0 d-flex align-items-center">
-                                    {{ form_foto.activa }}
-                                    <label class="form-check-label small fw-bold ms-2 text-dark">Visible en App</label>
-                                </div>
-                                <button type="submit" name="btn_foto" class="btn text-white fw-bold shadow-sm rounded-pill px-4 hover-lift" style="background-color: var(--primary-navy); font-size: 0.85rem;">
-                                    <i class="bi bi-cloud-arrow-up-fill me-1"></i> Subir Foto
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-
-                    <h6 class="fw-bold text-muted mb-3" style="font-size: 0.85rem;">Imágenes Actuales</h6>
-                    <div class="row g-3">
-                        {% for foto in fotos %}
-                        <div class="col-6">
-                            <div class="position-relative rounded-4 overflow-hidden border shadow-sm group">
-                                <img src="{{ foto.imagen.url }}" class="img-fluid w-100" style="height: 130px; object-fit: cover;" alt="Foto NEXT LEVEL">
-                                <div class="position-absolute bottom-0 w-100 p-2 text-center" style="background: linear-gradient(to top, rgba(10, 25, 47, 0.9), transparent);">
-                                    <span class="text-white fw-bold small d-block text-truncate" style="text-shadow: 0 1px 2px rgba(0,0,0,0.8);">{{ foto.titulo|default:"Sin título" }}</span>
-                                </div>
-                                <a href="{% url 'eliminar_foto' foto.id %}" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 rounded-circle shadow-sm" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;" onclick="return confirm('¿Seguro que deseas eliminar esta foto de la galería?');" title="Eliminar foto">
-                                    <i class="bi bi-trash3-fill"></i>
-                                </a>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="col-12 text-center py-4 bg-light rounded-4 border border-dashed">
-                            <i class="bi bi-images fs-2 text-muted opacity-25 d-block mb-2"></i>
-                            <p class="text-muted small fw-medium mb-0">Aún no hay fotos en la galería pública.</p>
-                        </div>
-                        {% endfor %}
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <div class="bg-slate-50 text-slate-800 rounded-circle d-flex align-items-center justify-content-center me-3 border shadow-sm" style="width: 50px; height: 50px;">
+                        <i class="bi bi-camera-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Galería de Canchas</h4>
+                        <p class="text-muted small m-0 fw-medium">Sube fotos reales de tus instalaciones.</p>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="card card-pro border-0 shadow-sm border-top border-4 h-100 rounded-4 overflow-hidden" style="border-color: var(--primary-blue) !important;">
-                <div class="card-header bg-white pt-4 pb-2 border-0">
-                    <h5 class="fw-black text-dark m-0" style="letter-spacing: -0.5px;">
-                        <i class="bi bi-star-fill me-2" style="color: var(--primary-blue);"></i>Auspiciantes y Publicidad
-                    </h5>
-                </div>
                 
-                <div class="card-body p-4">
-                    <form method="post" enctype="multipart/form-data" class="bg-light p-4 rounded-4 mb-4 border border-secondary-subtle shadow-sm">
-                        {% csrf_token %}
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label-pro">Logo / Banner de Empresa</label>
-                                {{ form_publi.imagen }}
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label-pro">Nombre del Auspiciante</label>
-                                {{ form_publi.empresa }}
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label-pro">Enlace Web (URL opcional)</label>
-                                {{ form_publi.enlace }}
-                            </div>
-                            <div class="col-12 d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                <div class="form-check form-switch m-0 d-flex align-items-center">
-                                    {{ form_publi.activa }}
-                                    <label class="form-check-label small fw-bold ms-2 text-dark">Anuncio Activo</label>
-                                </div>
-                                <button type="submit" name="btn_publi" class="btn text-white fw-bold shadow-sm rounded-pill px-4 hover-lift" style="background-color: var(--primary-blue); font-size: 0.85rem;">
-                                    <i class="bi bi-megaphone-fill me-1"></i> Crear Anuncio
-                                </button>
-                            </div>
+                <form method="post" enctype="multipart/form-data" class="bg-slate-50 p-4 rounded-4 mb-4 border border-secondary border-opacity-25">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label-pro">Seleccionar Archivo de Imagen</label>
+                            {{ form_foto.imagen }}
                         </div>
-                    </form>
+                        <div class="col-8">
+                            <label class="form-label-pro">Título o Leyenda</label>
+                            {{ form_foto.titulo }}
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label-pro">Posición</label>
+                            {{ form_foto.orden }}
+                        </div>
+                        
+                        <div class="col-12 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mt-3 pt-3 border-top gap-3">
+                            <div class="form-check form-switch m-0 d-flex align-items-center bg-white border rounded-pill px-3 py-2 shadow-sm">
+                                {{ form_foto.activa }}
+                                <label class="form-check-label small fw-bold ms-3 text-dark mt-1" for="{{ form_foto.activa.id_for_label }}">Visible al Público</label>
+                            </div>
+                            <button type="submit" name="btn_foto" class="btn btn-dark fw-bold shadow-sm rounded-pill px-4 py-2" style="font-size: 0.95rem;">
+                                <i class="bi bi-cloud-arrow-up-fill me-1"></i> Subir Foto
+                            </button>
+                        </div>
+                    </div>
+                </form>
 
-                    <h6 class="fw-bold text-muted mb-3" style="font-size: 0.85rem;">Marcas Actuales</h6>
-                    <div class="list-group rounded-4 shadow-sm border-secondary-subtle">
-                        {% for p in publicidades %}
-                        <div class="list-group-item d-flex align-items-center p-3 border-0 border-bottom">
-                            <div class="bg-white border rounded-3 p-1 me-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 70px; height: 50px;">
-                                <img src="{{ p.imagen.url }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                <h6 class="fw-bold text-slate-500 mb-3 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Imágenes Publicadas</h6>
+                <div class="row g-3">
+                    {% for foto in fotos %}
+                    <div class="col-6 col-md-4 col-lg-6 col-xl-4">
+                        <div class="photo-card">
+                            <img src="{{ foto.imagen.url }}" alt="Foto NEXUS SPORTOPS">
+                            
+                            <div class="photo-overlay">
+                                <span class="fw-bold d-block text-truncate" style="font-size: 0.8rem; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">{{ foto.titulo|default:"Sin título" }}</span>
                             </div>
-                            <div class="flex-grow-1" style="min-width: 0;">
-                                <h6 class="mb-1 fw-bold text-dark text-truncate">{{ p.empresa }}</h6>
-                                <a href="{{ p.enlace }}" target="_blank" class="small text-decoration-none text-truncate d-inline-block" style="max-width: 180px; color: var(--primary-blue);">{{ p.enlace|default:"Sin enlace web" }}</a>
-                            </div>
-                            <a href="{% url 'eliminar_publicidad' p.id %}" class="btn btn-sm btn-outline-danger rounded-circle p-2 ms-2 hover-lift" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;" onclick="return confirm('¿Retirar este anuncio publicitario permanentemente?');" title="Quitar Auspiciante">
-                                <i class="bi bi-trash3-fill"></i>
+                            
+                            <a href="{% url 'eliminar_foto' foto.id %}" class="btn-delete-photo" onclick="return confirm('¿Seguro que deseas eliminar esta foto de la galería?');" title="Eliminar foto">
+                                <i class="bi bi-trash3-fill" style="font-size: 0.85rem;"></i>
                             </a>
                         </div>
-                        {% empty %}
-                        <div class="list-group-item text-center py-4 bg-light border-0">
-                            <i class="bi bi-shop fs-3 text-muted opacity-25 d-block mb-2"></i>
-                            <p class="text-muted small fw-medium mb-0">No hay auspiciantes registrados.</p>
-                        </div>
-                        {% endfor %}
                     </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-4 bg-white rounded-4 border border-dashed shadow-sm">
+                        <i class="bi bi-images fs-2 text-muted opacity-25 d-block mb-2"></i>
+                        <p class="text-muted small fw-medium mb-0">La galería está vacía. ¡Sube la primera foto!</p>
+                    </div>
+                    {% endfor %}
                 </div>
+
             </div>
         </div>
+
+        <div class="col-lg-6 reveal-up" style="animation-delay: 0.2s;">
+            <div class="fey-panel sponsor-panel">
+                
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3 border border-primary border-opacity-25 shadow-sm" style="width: 50px; height: 50px;">
+                        <i class="bi bi-star-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Auspiciantes Oficiales</h4>
+                        <p class="text-muted small m-0 fw-medium">Agrega marcas para mostrar publicidad en el portal.</p>
+                    </div>
+                </div>
+                
+                <form method="post" enctype="multipart/form-data" class="bg-primary bg-opacity-10 p-4 rounded-4 mb-4 border border-primary border-opacity-25">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label-pro">Logo de la Empresa</label>
+                            {{ form_publi.imagen }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-pro">Nombre del Auspiciante</label>
+                            {{ form_publi.empresa }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-pro">Enlace Web <span class="text-muted text-lowercase fw-normal">(Url de redirección, opcional)</span></label>
+                            {{ form_publi.enlace }}
+                        </div>
+                        
+                        <div class="col-12 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mt-3 pt-3 border-top gap-3 border-primary border-opacity-25">
+                            <div class="form-check form-switch m-0 d-flex align-items-center bg-white border rounded-pill px-3 py-2 shadow-sm">
+                                {{ form_publi.activa }}
+                                <label class="form-check-label small fw-bold ms-3 text-dark mt-1" for="{{ form_publi.activa.id_for_label }}">Anuncio Activo</label>
+                            </div>
+                            <button type="submit" name="btn_publi" class="btn btn-nexus fw-bold shadow-sm rounded-pill px-4 py-2" style="font-size: 0.95rem;">
+                                <i class="bi bi-megaphone-fill me-1"></i> Crear Anuncio
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <h6 class="fw-bold text-slate-500 mb-3 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Marcas Publicadas</h6>
+                <div class="d-flex flex-column">
+                    {% for p in publicidades %}
+                    <div class="sponsor-card">
+                        
+                        <div class="sponsor-logo-box shadow-sm">
+                            <img src="{{ p.imagen.url }}" alt="{{ p.empresa }}">
+                        </div>
+                        
+                        <div class="flex-grow-1 min-w-0 pe-3">
+                            <h6 class="mb-1 fw-bold text-dark text-truncate" style="font-size: 0.95rem;">{{ p.empresa }}</h6>
+                            <a href="{{ p.enlace }}" target="_blank" class="small text-decoration-none text-truncate d-inline-block w-100 fw-medium" style="color: var(--brand-primary); font-size: 0.75rem;"><i class="bi bi-link-45deg me-1"></i>{{ p.enlace|default:"Sin enlace web" }}</a>
+                        </div>
+                        
+                        <a href="{% url 'eliminar_publicidad' p.id %}" class="btn-circle-action btn-delete flex-shrink-0" onclick="return confirm('¿Retirar este anuncio publicitario permanentemente?');" title="Quitar Auspiciante">
+                            <i class="bi bi-trash3-fill"></i>
+                        </a>
+                        
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4 bg-white rounded-4 border border-dashed shadow-sm">
+                        <i class="bi bi-shop fs-2 text-muted opacity-25 d-block mb-2"></i>
+                        <p class="text-muted small fw-medium mb-0">No hay auspiciantes registrados en este momento.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}

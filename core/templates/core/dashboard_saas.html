@@ -1,141 +1,293 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Control NEXUS SPORTOPS{% endblock %}
+{% block title %}Control SaaS | NEXUS SPORTOPS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================================
+       ESTÉTICA FEY - DASHBOARD SAAS (LIGHT MODE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed;
+        top: -10%; left: -10%;
+        width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 0%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 900;
+        font-size: clamp(2rem, 4vw, 2.5rem);
+        letter-spacing: -0.03em;
+        color: #0F172A;
+    }
+
+    /* Widgets de Estadísticas (Top) */
+    .fey-stat-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    .fey-stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        border-color: #CBD5E1;
+        background: #FFFFFF;
+    }
+    .fey-stat-card::before {
+        content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px;
+    }
+    .stat-success::before { background: #10B981; }
+    .stat-info::before { background: #0EA5E9; }
+    .stat-danger::before { background: #EF4444; }
+
+    /* Panel General */
+    .fey-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0;
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        height: 100%;
+    }
+
+    /* Filas Inteligentes (Canchas) */
+    .cancha-row {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+    }
+    .cancha-row:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 4px 15px rgba(15, 23, 42, 0.05);
+        transform: translateX(4px);
+    }
+    .cancha-row:last-child { margin-bottom: 0; }
+
+    /* Botones de Acción (Header) */
+    .btn-header-action {
+        border-radius: 10px; padding: 8px 16px; font-weight: 700; font-size: 0.85rem;
+        display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+        transition: all 0.2s ease; border: 1px solid transparent;
+    }
+    .btn-header-action:hover { transform: translateY(-2px); }
+    .btn-pay { background: #F0FDF4; color: #15803D; border-color: #BBF7D0; }
+    .btn-pay:hover { background: #DCFCE7; box-shadow: 0 4px 10px rgba(21, 128, 61, 0.1); }
+    .btn-add { background: #EFF6FF; color: #1D4ED8; border-color: #BFDBFE; }
+    .btn-add:hover { background: #DBEAFE; box-shadow: 0 4px 10px rgba(29, 78, 216, 0.1); }
+
+    /* Lista de Vencimientos */
+    .vencimiento-item {
+        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;
+        padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* Animación Reveal */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    /* =========================================================
+       📱 MÓVIL PERFECTO
+       ========================================================= */
+    @media (max-width: 991px) {
+        .fey-panel { padding: 16px; border-radius: 20px; }
+        .header-actions { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
+        .btn-header-action { width: 100%; justify-content: center; }
+        
+        .cancha-row { flex-direction: column; align-items: flex-start; gap: 12px; position: relative; }
+        .cancha-info { width: 100%; border-bottom: 1px dashed #E2E8F0; padding-bottom: 10px; }
+        .cancha-details { width: 100%; display: flex; justify-content: space-between; }
+        .cancha-status { width: 100%; display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #E2E8F0; padding-top: 10px; }
+    }
+</style>
+{% endblock %}
 
 {% block contenido %}
-<div class="d-flex justify-content-between align-items-center mb-4 animate__animated animate__fadeInDown">
-    <div>
-        <h2 class="fw-black text-dark mb-0"><i class="bi bi-building-gear text-primary me-2"></i> Panel Matriz SaaS</h2>
-        <p class="text-muted">Gestión de clientes, mensualidades y estados de servicio.</p>
-    </div>
-</div>
+<div class="ambient-glow"></div>
 
-<div class="row g-4 mb-5 animate__animated animate__fadeInUp">
-    <div class="col-md-4">
-        <div class="card-pro p-4 h-100" style="border-bottom: 4px solid #10B981;">
-            <div class="d-flex justify-content-between">
+<div class="container-fluid px-0 pb-5">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-2 reveal-up">
+        <div>
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 mb-2 rounded-pill fw-bold">
+                <i class="bi bi-shield-check me-1"></i> Súper Administrador
+            </span>
+            <h2 class="fey-title m-0">Panel Matriz SaaS</h2>
+            <p class="text-muted small m-0 fw-medium mt-1">Gestión global de clientes, cobros de mensualidades y estado del servicio.</p>
+        </div>
+    </div>
+
+    <div class="row g-3 g-xl-4 mb-4 mb-xl-5 reveal-up" style="animation-delay: 0.1s;">
+        <div class="col-md-4">
+            <div class="fey-stat-card stat-success">
                 <div>
-                    <p class="text-muted fw-bold mb-1">Ganancias NEXUS</p>
-                    <h3 class="fw-black text-dark mb-0">${{ total_ingresos }}</h3>
+                    <p class="text-slate-500 fw-bold mb-1 small text-uppercase" style="letter-spacing: 0.5px;">Ganancias NEXUS</p>
+                    <h3 class="fw-black text-dark mb-0 fs-2" style="font-family: 'Outfit', sans-serif;">${{ total_ingresos }}</h3>
                 </div>
-                <div class="bg-success bg-opacity-10 text-success p-3 rounded-4 d-flex align-items-center">
+                <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
                     <i class="bi bi-cash-stack fs-3"></i>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card-pro p-4 h-100" style="border-bottom: 4px solid var(--primary-cyan);">
-            <div class="d-flex justify-content-between">
+        
+        <div class="col-md-4">
+            <div class="fey-stat-card stat-info">
                 <div>
-                    <p class="text-muted fw-bold mb-1">Canchas Activas</p>
-                    <h3 class="fw-black text-dark mb-0">{{ canchas_activas }}</h3>
+                    <p class="text-slate-500 fw-bold mb-1 small text-uppercase" style="letter-spacing: 0.5px;">Canchas Activas</p>
+                    <h3 class="fw-black text-dark mb-0 fs-2" style="font-family: 'Outfit', sans-serif;">{{ canchas_activas }}</h3>
                 </div>
-                <div class="bg-info bg-opacity-10 text-info p-3 rounded-4 d-flex align-items-center">
+                <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
                     <i class="bi bi-buildings fs-3"></i>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card-pro p-4 h-100" style="border-bottom: 4px solid #EF4444;">
-            <div class="d-flex justify-content-between">
+        <div class="col-md-4">
+            <div class="fey-stat-card stat-danger">
                 <div>
-                    <p class="text-muted fw-bold mb-1">Suspendidas (Morosos)</p>
-                    <h3 class="fw-black text-dark mb-0">{{ canchas_suspendidas }}</h3>
+                    <p class="text-slate-500 fw-bold mb-1 small text-uppercase" style="letter-spacing: 0.5px;">Suspendidas (Morosos)</p>
+                    <h3 class="fw-black text-danger mb-0 fs-2" style="font-family: 'Outfit', sans-serif;">{{ canchas_suspendidas }}</h3>
                 </div>
-                <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-4 d-flex align-items-center">
+                <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
                     <i class="bi bi-exclamation-octagon fs-3"></i>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row g-4 animate__animated animate__fadeIn">
-    
-    <div class="col-lg-4">
-        <div class="card-pro p-4 h-100 bg-warning bg-opacity-10 border-warning">
-            <h5 class="fw-black text-dark mb-3"><i class="bi bi-bell-fill text-warning me-2"></i> Próximos Vencimientos</h5>
-            <p class="text-muted small">Canchas cuyo plan vence en los próximos 3 días o ya venció.</p>
-            
-            <ul class="list-group list-group-flush bg-transparent mb-4">
-                {% for c in canchas_por_vencer %}
-                    <li class="list-group-item bg-transparent px-0 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong class="d-block text-dark">{{ c.nombre }}</strong>
-                            <small class="text-danger">Vence: {{ c.fecha_vencimiento }}</small>
-                        </div>
-                        <a href="https://wa.me/{{ c.telefono_contacto|default:'' }}" target="_blank" class="btn btn-sm btn-success rounded-pill"><i class="bi bi-whatsapp"></i></a>
-                    </li>
-                {% empty %}
-                    <li class="list-group-item bg-transparent px-0 text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Todos están al día.</li>
-                {% endfor %}
-            </ul>
-
-            <form method="post" class="d-grid gap-2">
-                {% csrf_token %}
-                <button type="submit" name="enviar_recordatorios" class="btn btn-warning fw-bold text-dark rounded-pill shadow-sm">
-                    <i class="bi bi-envelope-paper-heart me-1"></i> Notificarme a mi correo
-                </button>
-                <button type="submit" name="suspender_morosos" class="btn btn-outline-danger fw-bold rounded-pill" onclick="return confirm('¿Seguro que quieres suspender todas las canchas vencidas? Sus portales dejarán de funcionar.')">
-                    <i class="bi bi-power me-1"></i> Cortar servicio a morosos
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <div class="col-lg-8">
-        <div class="card-pro p-0 h-100">
-            <div class="p-4 border-bottom border-soft d-flex justify-content-between align-items-center">
-                <h5 class="fw-black text-dark m-0"><i class="bi bi-people-fill text-primary me-2"></i> Tus Clientes (Canchas)</h5>
-                <div>
-                    <a href="{% url 'registrar_pago_saas' %}" class="btn btn-sm btn-success me-2"><i class="bi bi-cash-coin"></i> Registrar Mensualidad</a>
-                    <a href="{% url 'gestionar_canchas_saas' %}" class="btn btn-sm btn-nexus"><i class="bi bi-plus-lg"></i> Gestionar Canchas</a>
+    <div class="row g-4">
+        
+        <div class="col-lg-4 reveal-up" style="animation-delay: 0.2s;">
+            <div class="fey-panel bg-warning bg-opacity-10 border-warning border-opacity-50 h-100 d-flex flex-column">
+                <div class="mb-4">
+                    <h5 class="fw-black text-dark mb-1" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-bell-fill text-warning me-2"></i> Vencimientos</h5>
+                    <p class="text-muted small m-0">Planes que vencen en los próximos 3 días o ya expiraron.</p>
                 </div>
-            </div>
-            
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4">Complejo Deportivo</th>
-                            <th>Organizador</th>
-                            <th>Plan / Vence</th>
-                            <th>Estado</th>
-                            <th class="pe-4 text-end">Gestión</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for cancha in canchas %}
-                        <tr>
-                            <td class="ps-4 fw-bold">
-                                {% if cancha.logo %}<img src="{{ cancha.logo.url }}" width="30" class="rounded me-2">{% endif %}
-                                {{ cancha.nombre }}
-                            </td>
-                            <td>{{ cancha.organizador.first_name }} <br><small class="text-muted"><i class="bi bi-telephone"></i> {{ cancha.telefono_contacto|default:"Sin registro" }}</small></td>
-                            <td>
-                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">{{ cancha.plan.nombre }}</span><br>
-                                <small class="text-muted fw-bold">{{ cancha.fecha_vencimiento|date:"d M Y" }}</small>
-                            </td>
-                            <td>
-                                {% if cancha.activo %}
-                                    <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-wifi"></i> Online</span>
-                                {% else %}
-                                    <span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-wifi-off"></i> Suspendido</span>
-                                {% endif %}
-                            </td>
-                            <td class="pe-4 text-end">
-                                <a href="{% url 'editar_cancha_saas' cancha.id %}" class="btn btn-sm btn-outline-nexus rounded-circle" title="Editar Cancha / Cambiar Plan"><i class="bi bi-pencil-fill"></i></a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                
+                <div class="mb-4 flex-grow-1">
+                    {% for c in canchas_por_vencer %}
+                        <div class="vencimiento-item shadow-sm">
+                            <div>
+                                <strong class="d-block text-dark small">{{ c.nombre }}</strong>
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-size: 0.65rem;">Vence: {{ c.fecha_vencimiento|date:"d M" }}</span>
+                            </div>
+                            <a href="https://wa.me/{{ c.telefono_contacto|default:'' }}" target="_blank" class="btn btn-sm btn-success rounded-circle shadow-sm" title="Contactar por WhatsApp" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-whatsapp"></i>
+                            </a>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-4 bg-white rounded-3 border border-success border-opacity-25">
+                            <i class="bi bi-check-circle-fill text-success fs-2 d-block mb-2"></i>
+                            <span class="fw-bold text-success small">Todas las canchas están al día.</span>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <form method="post" class="mt-auto">
+                    {% csrf_token %}
+                    <div class="d-flex flex-column gap-2">
+                        <button type="submit" name="enviar_recordatorios" class="btn btn-warning fw-bold text-dark rounded-pill shadow-sm" style="font-size: 0.85rem;">
+                            <i class="bi bi-envelope-paper-heart me-1"></i> Notificar a mi correo
+                        </button>
+                        <button type="submit" name="suspender_morosos" class="btn btn-outline-danger bg-white fw-bold rounded-pill" style="font-size: 0.85rem;" onclick="return confirm('⚠️ ¿Seguro que quieres SUSPENDER todas las canchas vencidas? Sus portales dejarán de funcionar al instante.')">
+                            <i class="bi bi-power me-1"></i> Cortar servicio a morosos
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+
+        <div class="col-lg-8 reveal-up" style="animation-delay: 0.3s;">
+            <div class="fey-panel p-0 h-100 overflow-hidden">
+                
+                <div class="p-4 border-bottom d-flex flex-column flex-lg-row justify-content-between align-items-lg-center" style="background: #F8FAFC;">
+                    <div>
+                        <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-people-fill text-primary me-2"></i>Tus Clientes (Canchas)</h5>
+                    </div>
+                    <div class="header-actions">
+                        <a href="{% url 'registrar_pago_saas' %}" class="btn-header-action btn-pay shadow-sm">
+                            <i class="bi bi-cash-coin"></i> Registrar Mensualidad
+                        </a>
+                        <a href="{% url 'gestionar_canchas_saas' %}" class="btn-header-action btn-add shadow-sm">
+                            <i class="bi bi-plus-lg"></i> Nueva Cancha
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="p-3 p-lg-4 bg-slate-50">
+                    {% for cancha in canchas %}
+                    <div class="cancha-row">
+                        
+                        <div class="cancha-info d-flex align-items-center" style="flex: 2;">
+                            {% if cancha.logo %}
+                                <img src="{{ cancha.logo.url }}" class="rounded-circle shadow-sm border border-2 border-white me-3" width="45" height="45" style="object-fit: cover;">
+                            {% else %}
+                                <div class="bg-light rounded-circle border border-2 border-white shadow-sm d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                                    <i class="bi bi-buildings-fill text-muted opacity-50 fs-5"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <strong class="d-block text-dark" style="font-family: 'Outfit', sans-serif; font-size: 1rem; line-height: 1.2;">{{ cancha.nombre }}</strong>
+                                <span class="text-muted small"><i class="bi bi-person me-1"></i>{{ cancha.organizador.first_name|default:cancha.organizador.username }}</span>
+                            </div>
+                        </div>
+
+                        <div class="cancha-details d-flex flex-column gap-1" style="flex: 1.5;">
+                            <div>
+                                <span class="badge bg-slate-50 text-slate-700 border px-2 py-1"><i class="bi bi-tag-fill text-primary me-1"></i>{{ cancha.plan.nombre }}</span>
+                            </div>
+                            <span class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-telephone me-1"></i>{{ cancha.telefono_contacto|default:"Sin registro" }}</span>
+                        </div>
+
+                        <div class="cancha-status">
+                            <div class="me-3">
+                                {% if cancha.activo %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1"><i class="bi bi-check-circle-fill me-1"></i>Online</span>
+                                {% else %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1"><i class="bi bi-x-circle-fill me-1"></i>Suspendido</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <a href="{% url 'editar_cancha_saas' cancha.id %}" class="btn btn-light border shadow-sm rounded-circle d-inline-flex align-items-center justify-content-center text-primary transition-all" style="width: 35px; height: 35px;" title="Editar Cancha / Cambiar Plan" onmouseover="this.classList.add('bg-primary', 'text-white');" onmouseout="this.classList.remove('bg-primary', 'text-white');">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                    </div>
+                    {% empty %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-inboxes fs-1 text-muted d-block mb-3 opacity-50"></i>
+                            <h5 class="fw-bold text-dark">Sin Clientes</h5>
+                            <p class="text-muted small">Aún no has registrado ninguna cancha en el sistema.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}

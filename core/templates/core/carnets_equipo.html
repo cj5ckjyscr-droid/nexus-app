@@ -3,126 +3,209 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Carnets | {{ equipo.nombre }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Carnets | {{ equipo.nombre }} | NEXUS SPORTOPS</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <style>
         :root {
-            --color-cat: {{ color_categoria }}; /* Se inyecta el color de la DB dinámicamente */
+            --color-cat: {{ color_categoria }}; /* Color dinámico de la categoría */
+            --brand-primary: #4F46E5;
         }
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #cbd5e1;
+            background-color: #F3F6F8;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            color: #0F172A;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .btn-imprimir {
-            display: block; width: 250px; margin: 0 auto 30px auto;
-            background: #0f172a; color: white; border: none; padding: 15px;
-            font-size: 1.1rem; font-weight: bold; border-radius: 10px;
-            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        /* =========================================================
+           VISTA DE PANTALLA (SCREEN MODE) - ESTÉTICA NEXUS
+           ========================================================= */
+        @media screen {
+            /* Luces de ambiente */
+            .ambient-glow {
+                position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+                background: 
+                    radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.08) 0%, transparent 40%),
+                    radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.08) 0%, transparent 40%);
+                z-index: -1; pointer-events: none;
+            }
+
+            /* Cabecera de Acción en Pantalla */
+            .screen-header {
+                background: rgba(255, 255, 255, 0.85);
+                backdrop-filter: blur(20px);
+                border-bottom: 1px solid #E2E8F0;
+                padding: 15px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            }
+
+            .header-info h1 {
+                font-family: 'Outfit', sans-serif;
+                font-weight: 900; font-size: 1.5rem; margin: 0;
+                letter-spacing: -0.02em; color: #0F172A;
+            }
+            .header-info p { margin: 0; font-size: 0.85rem; color: #64748B; font-weight: 600; }
+
+            .btn-imprimir {
+                background: linear-gradient(135deg, var(--brand-primary), #0EA5E9);
+                color: white; border: none; padding: 12px 24px;
+                font-size: 0.95rem; font-weight: 700; border-radius: 50px;
+                cursor: pointer; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+                transition: all 0.3s ease;
+                display: flex; align-items: center; gap: 8px;
+            }
+            .btn-imprimir:hover {
+                transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+            }
+
+            /* Contenedor tipo Hoja para vista en PC/Móvil */
+            .hoja-impresion {
+                display: flex; flex-wrap: wrap; gap: 20px;
+                justify-content: center; max-width: 21cm; margin: 40px auto;
+                padding: 20px;
+            }
+
+            /* Hover de los carnets solo en pantalla */
+            .carnet {
+                transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+            }
+            .carnet:hover {
+                transform: translateY(-8px) scale(1.02);
+                box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15) !important;
+            }
+
+            /* Adaptación Móvil de la Barra Superior */
+            @media (max-width: 600px) {
+                .screen-header { flex-direction: column; text-align: center; gap: 15px; padding: 20px; }
+                .btn-imprimir { width: 100%; justify-content: center; padding: 15px; }
+                .hoja-impresion { margin: 20px auto; padding: 10px; }
+            }
         }
 
-        /* Contenedor tipo Hoja A4 para que se agrupen bien */
-        .hoja-impresion {
-            display: flex; flex-wrap: wrap; gap: 10px;
-            justify-content: center; max-width: 21cm; margin: 0 auto;
-        }
-
-        /* --- DISEÑO DEL CARNET (TAMAÑO CR80 ESTÁNDAR) --- */
+        /* =========================================================
+           DISEÑO DEL CARNET FÍSICO (TAMAÑO CR80 ESTÁNDAR)
+           Estas medidas JAMÁS deben cambiar para que impriman bien.
+           ========================================================= */
         .carnet {
             width: 5.4cm; height: 8.6cm;
-            background-color: #ffffff;
-            border-radius: 8px;
+            background-color: #FFFFFF;
+            border-radius: 10px;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-            /* Importante para no partir carnets entre páginas al imprimir */
-            page-break-inside: avoid;
-            border: 1px solid #e2e8f0;
+            page-break-inside: avoid; /* Evita que el carnet se corte a la mitad de la hoja */
+            border: 1px solid #CBD5E1; /* Borde guía para recortar */
+            box-sizing: border-box;
         }
 
-        /* Cabecera con corte en diagonal usando clip-path */
+        /* Cabecera Diagonal */
         .carnet-header {
             background-color: var(--color-cat);
-            height: 2.8cm;
-            clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%);
+            height: 3cm;
+            clip-path: polygon(0 0, 100% 0, 100% 75%, 0% 100%);
             position: relative;
+        }
+
+        .torneo-title {
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+            color: #FFFFFF; font-family: 'Outfit', sans-serif; font-size: 8px; 
+            font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; 
+            white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
         .logos-top {
             display: flex; justify-content: space-between;
-            padding: 8px 10px; position: absolute; top: 0; width: 100%; box-sizing: border-box;
+            padding: 10px 12px; position: absolute; top: 0; width: 100%; box-sizing: border-box;
         }
 
         .logo-img {
-            height: 26px; width: 26px; object-fit: contain;
-            background: white; border-radius: 50%; padding: 2px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            height: 28px; width: 28px; object-fit: contain;
+            background: #FFFFFF; border-radius: 50%; padding: 2px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
-        /* Foto del Jugador flotando entre la cabecera y el cuerpo */
+        /* Foto del Jugador flotando */
         .foto-container {
-            position: absolute; top: 1.2cm; left: 50%; transform: translateX(-50%);
-            width: 3.2cm; height: 3.2cm;
-            border-radius: 50%; border: 3px solid white;
-            background: #f1f5f9; overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10;
+            position: absolute; top: 1.3cm; left: 50%; transform: translateX(-50%);
+            width: 3.4cm; height: 3.4cm;
+            border-radius: 50%; border: 3px solid #FFFFFF;
+            background: #F1F5F9; overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 10;
         }
         .foto-container img { width: 100%; height: 100%; object-fit: cover; }
-        .foto-placeholder { font-size: 30px; display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; }
+        .foto-placeholder { font-size: 35px; display: flex; align-items: center; justify-content: center; height: 100%; color: #94A3B8; }
 
         /* Información del Jugador */
         .carnet-body {
-            padding-top: 1.8cm; text-align: center; px-1;
+            padding-top: 1.9cm; text-align: center; px-1;
         }
         
         .jugador-nombre {
-            font-family: 'Montserrat', sans-serif; font-weight: 900;
-            font-size: 13px; color: #0f172a; margin: 0; text-transform: uppercase;
-            line-height: 1.1; padding: 0 5px;
+            font-family: 'Outfit', sans-serif; font-weight: 900;
+            font-size: 13px; color: #0F172A; margin: 0; text-transform: uppercase;
+            line-height: 1.1; padding: 0 6px; letter-spacing: -0.5px;
         }
         
         .jugador-cedula {
-            font-size: 9px; color: #64748b; margin: 4px 0 8px 0; font-weight: 600;
+            font-size: 9px; color: #64748B; margin: 5px 0 8px 0; font-weight: 700;
+            letter-spacing: 0.5px;
         }
         
         .equipo-nombre {
-            font-weight: 800; font-size: 11px; color: var(--color-cat);
-            margin: 0; text-transform: uppercase;
+            font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 11px; 
+            color: var(--color-cat); margin: 0; text-transform: uppercase;
         }
 
-        /* Banner inferior con la categoría y dorsal */
+        /* Pie del Carnet */
         .carnet-footer {
             position: absolute; bottom: 0; width: 100%;
-            background: #0f172a; color: white; display: flex;
+            background: #0F172A; color: #FFFFFF; display: flex;
             align-items: center; justify-content: space-between;
-            height: 22px; padding: 0 10px; box-sizing: border-box;
+            height: 24px; padding: 0 12px; box-sizing: border-box;
         }
 
-        .cat-badge { font-size: 9px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase;}
+        .cat-badge { font-size: 9px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
         
+        /* Dorsal Flotante */
         .dorsal {
-            background: var(--color-cat); color: white; font-family: 'Montserrat', sans-serif;
-            font-size: 14px; font-weight: 900; height: 26px; width: 26px;
+            background: var(--color-cat); color: #FFFFFF; font-family: 'Outfit', sans-serif;
+            font-size: 14px; font-weight: 900; height: 28px; width: 28px;
             display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; position: absolute; right: 8px; bottom: 8px;
-            border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border-radius: 50%; position: absolute; right: 10px; bottom: 10px;
+            border: 2px solid #FFFFFF; box-shadow: 0 3px 8px rgba(0,0,0,0.25);
         }
 
-        .torneo-title {
-            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            color: white; font-size: 7px; font-weight: bold; opacity: 0.9;
-            text-transform: uppercase; white-space: nowrap;
-        }
-
-        /* Reglas estrcitas para la impresora */
+        /* =========================================================
+           VISTA DE IMPRESIÓN (PRINT MODE) - MODO ESTRICTO
+           ========================================================= */
         @media print {
-            body { background-color: white !important; margin: 0; padding: 0; }
-            .btn-imprimir { display: none !important; }
-            .hoja-impresion { gap: 2px; justify-content: flex-start; }
+            body { background-color: #FFFFFF !important; margin: 0; padding: 0; }
+            .ambient-glow, .screen-header { display: none !important; } /* Oculta adornos y botones */
+            
+            .hoja-impresion { 
+                margin: 0 !important; padding: 0 !important; gap: 2px !important; 
+                justify-content: flex-start !important; 
+            }
+            
+            .carnet {
+                box-shadow: none !important; /* Quita sombras al imprimir para ahorrar tinta */
+                border: 1px solid #CBD5E1 !important; /* Borde fino para recorte */
+                transform: none !important;
+            }
+
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -132,22 +215,32 @@
 </head>
 <body>
 
-    <button class="btn-imprimir" onclick="window.print()">
-        🖨️ Imprimir Carnets
-    </button>
+    <div class="ambient-glow"></div>
+
+    <div class="screen-header">
+        <div class="header-info">
+            <h1>NEXUS SPORTOPS</h1>
+            <p>Generador de Carnets CR80: {{ equipo.nombre }}</p>
+        </div>
+        <button class="btn-imprimir" onclick="window.print()">
+            <i class="bi bi-printer-fill fs-5"></i> Imprimir Carnets
+        </button>
+    </div>
 
     <div class="hoja-impresion">
         {% for jugador in jugadores %}
         <div class="carnet">
             
             <div class="carnet-header">
-                <div class="torneo-title">{{ equipo.torneo.nombre|truncatechars:20 }}</div>
+                <div class="torneo-title">{{ equipo.torneo.nombre|truncatechars:25 }}</div>
                 <div class="logos-top">
-                    <img src="{{ config_global.logo_sistema.url }}" class="logo-img" onerror="this.style.display='none'">    
+                    <img src="{{ config_global.logo_sistema.url|default:'' }}" class="logo-img" onerror="this.style.display='none'">    
                     {% if equipo.escudo %}
                         <img src="{{ equipo.escudo.url }}" class="logo-img">
                     {% else %}
-                        <div class="logo-img" style="background:#e2e8f0;"></div>
+                        <div class="logo-img d-flex align-items-center justify-content-center" style="background:#F8FAFC;">
+                            <i class="bi bi-shield-fill text-muted opacity-25" style="font-size: 14px;"></i>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -156,13 +249,13 @@
                 {% if jugador.foto %}
                     <img src="{{ jugador.foto.url }}" alt="Foto">
                 {% else %}
-                    <div class="foto-placeholder">👤</div>
+                    <div class="foto-placeholder"><i class="bi bi-person-fill"></i></div>
                 {% endif %}
             </div>
 
             <div class="carnet-body">
                 <p class="jugador-nombre">{{ jugador.nombres }}</p>
-                <p class="jugador-cedula">ID: {{ jugador.cedula }}</p>
+                <p class="jugador-cedula">ID: {{ jugador.cedula|default:"0000000000" }}</p>
                 <p class="equipo-nombre">{{ equipo.nombre }}</p>
             </div>
 
@@ -172,9 +265,12 @@
             
             <div class="dorsal">{{ jugador.dorsal|default:"-" }}</div>
         </div>
+        
         {% empty %}
-        <div style="text-align:center; width: 100%;">
-            <h3 style="color: #64748b;">No hay jugadores activos en este equipo para imprimir.</h3>
+        <div style="text-align:center; width: 100%; padding: 50px 20px;">
+            <i class="bi bi-person-vcard text-muted opacity-25 d-block mb-3" style="font-size: 4rem;"></i>
+            <h3 style="color: #0F172A; font-family: 'Outfit', sans-serif;">Plantilla Vacía</h3>
+            <p style="color: #64748B;">No hay jugadores activos en este equipo para imprimir carnets.</p>
         </div>
         {% endfor %}
     </div>

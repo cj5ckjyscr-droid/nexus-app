@@ -1,46 +1,172 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Confirmar Reserva | NEXT LEVEL{% endblock %}
+{% block title %}Confirmar Cancelación | NEXUS SPORTOPS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================================
+       ESTÉTICA FEY - ACCIÓN DESTRUCTIVA (LIGHT MODE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed;
+        top: -10%; left: -10%;
+        width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 50% 0%, rgba(239, 68, 68, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.05) 0%, transparent 40%);
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .fey-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0;
+        border-radius: 24px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Acento superior de advertencia */
+    .fey-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 6px;
+        background: linear-gradient(90deg, #EF4444, #F87171);
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.2rem);
+        letter-spacing: -0.03em;
+        color: #0F172A;
+        line-height: 1.1;
+    }
+
+    /* Caja de detalles financieros */
+    .details-box {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 20px;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 14px;
+        margin-bottom: 14px;
+        border-bottom: 1px dashed #CBD5E1;
+    }
+    .detail-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+        padding-top: 8px;
+    }
+
+    /* Botón Cancelar Premium */
+    .btn-danger-pro {
+        background: linear-gradient(135deg, #EF4444, #DC2626);
+        color: white;
+        border: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
+    }
+    .btn-danger-pro:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.35);
+        color: white;
+    }
+
+    .btn-light-pro {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        color: #64748B;
+        transition: all 0.2s ease;
+    }
+    .btn-light-pro:hover {
+        background: #F8FAFC;
+        border-color: #CBD5E1;
+        color: #0F172A;
+        transform: translateY(-2px);
+    }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 576px) {
+        .fey-card { padding: 24px; border-radius: 20px; }
+        .details-box { padding: 16px; }
+    }
+</style>
+{% endblock %}
 
 {% block contenido %}
-<div class="row justify-content-center animate__animated animate__fadeInUp">
-    <div class="col-md-6 col-lg-5">
-        <div class="card card-pro border-0 shadow-lg mt-4 rounded-4 overflow-hidden">
+<div class="ambient-glow"></div>
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 200px); padding: 20px 0;">
+    <div class="w-100 reveal-up" style="max-width: 480px;">
+        
+        <div class="fey-card text-center">
             
-            <div class="card-header text-white text-center py-4 border-0" style="background: linear-gradient(135deg, var(--primary-navy), var(--primary-blue));">
-                <h3 class="fw-black mb-0" style="letter-spacing: 0.5px;"><i class="bi bi-calendar-check-fill text-white opacity-75 me-2"></i>Confirmar Turno</h3>
+            <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; border: 4px solid #FEE2E2;">
+                <i class="bi bi-exclamation-triangle-fill fs-2"></i>
             </div>
             
-            <div class="card-body p-4 p-lg-5">
-                <p class="text-muted text-center mb-4 fw-medium">Revisa los datos de tu reserva en NEXT LEVEL antes de confirmar. Tu turno quedará en estado "Pendiente de Pago".</p>
+            <h2 class="fey-title mb-2">Confirmar Cancelación</h2>
+            <p class="text-muted small fw-medium mb-4">Estás a punto de cancelar de forma permanente:</p>
 
-                <div class="bg-light rounded-4 p-4 mb-4 border border-secondary-subtle shadow-sm">
-                    <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
-                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.85rem;"><i class="bi bi-calendar-event me-2"></i>Fecha:</span>
-                        <span class="fw-bold text-dark">{{ reserva.fecha }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
-                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.85rem;"><i class="bi bi-clock me-2"></i>Horario:</span>
-                        <span class="fw-bold text-dark">{{ reserva.hora_inicio }} a {{ reserva.hora_fin }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center pt-2">
-                        <span class="text-muted fw-bold text-uppercase" style="font-size: 0.85rem;"><i class="bi bi-cash-stack me-2"></i>Total a pagar:</span>
-                        <span class="fw-black fs-3" style="color: var(--primary-blue);">${{ reserva.precio_total }}</span>
-                    </div>
+            <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm fw-bold text-dark fs-5" style="border-color: #E2E8F0 !important;">
+                {{ tipo }}
+            </div>
+
+            <div class="details-box text-start mb-4">
+                <div class="detail-row">
+                    <span class="text-slate-600 fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-receipt-cutoff text-danger me-2 fs-6 align-middle"></i>Multa por cancelación
+                    </span>
+                    <span class="fw-bold text-danger">-${{ multa }}</span>
                 </div>
-
-                <form method="POST">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sport btn-lg w-100 fw-bold mb-3 shadow-sm" style="border-radius: 12px;">
-                        <i class="bi bi-check-circle-fill me-2"></i> Confirmar y Reservar
-                    </button>
-                </form>
-                
-                <a href="{% url 'reservar_cancha' %}" class="btn btn-outline-secondary w-100 fw-bold rounded-pill transition-all" style="border-color: #CBD5E1;">
-                    <i class="bi bi-arrow-left me-2"></i> Modificar horario
-                </a>
+                <div class="detail-row align-items-end mt-2">
+                    <span class="text-slate-600 fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-cash-coin text-success me-2 fs-6 align-middle"></i>Monto a Reembolsar
+                    </span>
+                    <span class="fw-black text-primary" style="font-family: 'Outfit', sans-serif; font-size: 2.2rem; line-height: 1;">
+                        ${{ reembolso }}
+                    </span>
+                </div>
             </div>
+
+            {% if extra_info %}
+            <div class="bg-info bg-opacity-10 border border-info border-opacity-25 rounded-3 p-3 mb-4 d-flex align-items-start gap-3 text-start">
+                <i class="bi bi-info-circle-fill text-info fs-5"></i>
+                <p class="text-slate-900 small m-0 fw-medium" style="line-height: 1.4;">
+                    {{ extra_info }}
+                </p>
+            </div>
+            {% endif %}
+
+            <form method="post" class="m-0">
+                {% csrf_token %}
+                <div class="d-flex flex-column gap-3">
+                    <button type="submit" class="btn btn-danger-pro w-100 rounded-pill py-3 fw-bold shadow-sm" style="font-size: 1rem;">
+                        <i class="bi bi-trash3-fill me-1"></i> Confirmar Cancelación
+                    </button>
+                    
+                    <a href="javascript:history.back()" class="btn btn-light-pro w-100 rounded-pill py-3 fw-bold">
+                        <i class="bi bi-arrow-left me-1"></i> No, quiero volver
+                    </a>
+                </div>
+            </form>
+            
         </div>
+
     </div>
 </div>
 {% endblock %}
