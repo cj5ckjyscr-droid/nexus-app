@@ -5,7 +5,6 @@ Django settings for config project.
 from pathlib import Path
 import os
 import environ # Librería para leer el archivo .env en producción
-import dj_database_url
 
 # 1. INICIALIZAR ENVIROMENT
 env = environ.Env(
@@ -23,28 +22,14 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-zl*c8d(v%0z+$%ae!(74z1wwpt2=1qytc*-=pd#eh4%q*d=s!f')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DEBUG', default=True)
+# Forzado a True para desarrollo local
+DEBUG = True
 
-# Hosts permitidos
-ALLOWED_HOSTS = [
-    'localhost', 
-    '127.0.0.1', 
-    '*', 
-    'complejonextlevel.com', 
-    'www.complejonextlevel.com'
-]
-
-# Permite que Django confíe en el enlace de Google para los formularios
-CSRF_TRUSTED_ORIGINS = [
-    'https://nextlevel-app-358951834786.us-east1.run.app',
-    'https://complejonextlevel.com',
-    'https://www.complejonextlevel.com',
-]
+# Hosts permitidos (Solo los locales para desarrollo)
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
 
 # Application definition
 INSTALLED_APPS = [
-    'cloudinary',
-    'cloudinary_storage',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -65,7 +50,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # <-- OBLIGATORIO PARA PRODUCCIÓN (CSS)
+    # Quitamos WhiteNoise temporalmente para desarrollo local puro
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -129,19 +114,14 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'static'] # Carpeta para los CSS globales
+# Usa os.path.join para evitar problemas de rutas en diferentes sistemas operativos
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'core', 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Media files (Fotos de Jugadores, Escudos)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Credenciales de Cloudinary
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': env('CLOUDINARY_CLOUD_NAME', default=''),
-    'API_KEY': env('CLOUDINARY_API_KEY', default=''),
-    'API_SECRET': env('CLOUDINARY_API_SECRET', default=''),
-}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -157,42 +137,22 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # ==========================================
 # CONFIGURACIÓN PARA ENVIAR CORREOS (GMAIL)
 # ==========================================
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'deyvi2413@gmail.com'  
-EMAIL_HOST_PASSWORD = 'qjok ygwc hufa tlbm' 
+# Para pruebas locales, es mejor que los correos se impriman en la consola 
+# en lugar de enviarlos de verdad, para evitar bloqueos por spam.
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'deyvi2413@gmail.com'  
+# EMAIL_HOST_PASSWORD = 'qjok ygwc hufa tlbm' 
 
-# ==========================================
-# SEGURIDAD Y ALMACENAMIENTO (LOCAL VS PRODUCCIÓN)
-# ==========================================
-if not DEBUG:
-    # ☁️ CONFIGURACIÓN EN GOOGLE CLOUD (PRODUCCIÓN)
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-    # Usar Cloudinary para Media y WhiteNoise para Estáticos (Django 4.2+)
-    STORAGES = {
-        "default": {
-            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-        },
-    }
-else:
-    # 💻 CONFIGURACIÓN EN COMPUTADORA LOCAL (DESARROLLO)
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-        },
-    }
+# 💻 CONFIGURACIÓN EN COMPUTADORA LOCAL (DESARROLLO)
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}

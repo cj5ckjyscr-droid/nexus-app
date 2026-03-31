@@ -1,0 +1,56 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ complejo.nombre }} | Torneos{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid mb-5 py-5" style="background: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.9)), url('{% if complejo.logo %}{{ complejo.logo.url }}{% endif %}') center/cover; border-bottom: 2px solid var(--nexus-primary);">
+    <div class="container text-center animate__animated animate__fadeIn">
+        {% if complejo.logo %}
+            <img src="{{ complejo.logo.url }}" alt="Logo" class="rounded-3 shadow-lg mb-3" style="height: 100px; border: 2px solid var(--nexus-border);">
+        {% endif %}
+        <h1 class="display-5 fw-black text-white mb-2">{{ complejo.nombre }}</h1>
+        <p class="text-info fw-bold mb-4">Portal Estadístico Oficial</p>
+        
+        {% if url_whatsapp %}
+            <a href="{{ url_whatsapp }}" target="_blank" class="btn btn-success fw-bold rounded-pill px-4 shadow-lg">
+                <i class="bi bi-whatsapp me-2"></i> Contactar al Organizador
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container">
+    <h3 class="fw-black text-white mb-4"><i class="bi bi-trophy-fill me-2" style="color: var(--nexus-primary);"></i> Torneos Activos</h3>
+    
+    <div class="row g-4">
+        {% for torneo in torneos %}
+        <div class="col-md-6 col-xl-4">
+            <div class="nexus-card h-100">
+                <div class="nexus-card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">{{ torneo.categoria.nombre|default:"Libre" }}</span>
+                    {% if torneo.inscripcion_abierta %}
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success">Inscripciones Abiertas</span>
+                    {% else %}
+                        <span class="badge bg-secondary">En Juego</span>
+                    {% endif %}
+                </div>
+                <div class="card-body p-4 text-center">
+                    <h5 class="fw-bold text-white mb-3">{{ torneo.nombre }}</h5>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'tabla_posiciones' torneo.id %}" class="btn btn-outline-light fw-bold"><i class="bi bi-list-ol"></i> Ver Posiciones</a>
+                        <a href="{% url 'proxima_jornada' torneo.id %}" class="btn btn-outline-info fw-bold"><i class="bi bi-calendar-event"></i> Ver Calendario</a>
+                        <a href="{% url 'tabla_goleadores' torneo.id %}" class="btn btn-outline-warning fw-bold"><i class="bi bi-heptagon-fill"></i> Goleadores</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center text-muted py-5 border rounded-4 border-secondary border-opacity-25">
+            <i class="bi bi-hourglass-split fs-1 d-block mb-3"></i>
+            <p>No hay torneos activos en este complejo por el momento.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

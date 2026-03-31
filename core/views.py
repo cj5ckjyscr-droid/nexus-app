@@ -14,22 +14,23 @@ from urllib.parse import quote
 import urllib.parse
 from decimal import Decimal
 from django.contrib.auth import login
-from .forms import ConfiguracionForm
 
-
-# Importamos Modelos y Formularios Unificados
-from .models import (
-    Configuracion, Torneo, Equipo, Jugador, Partido, 
-    DetallePartido, Pago, Perfil, Sancion, ReservaCancha, Cupon, HorarioCancha,
-    FotoGaleria, Publicidad, AbonoSancion
-)
+# Formularios
 from .forms import (
     RegistroUsuarioForm, TorneoForm, EquipoForm, JugadorForm, 
     ProgramarPartidoForm, PagoForm, RegistroPublicoForm,
-    ReservaCanchaForm, EquipoSolicitudForm, HorarioCanchaForm,
-    FotoGaleriaForm, PublicidadForm,
-    TraspasoJugadorForm, AsignarCuposForm, SancionListaNegraForm, SancionManualForm
+    EquipoSolicitudForm, FotoGaleriaForm,
+    TraspasoJugadorForm, AsignarCuposForm, SancionListaNegraForm, 
+    SancionManualForm, ConfiguracionForm
 )
+
+# Modelos SaaS (Aislados de basura)
+from .models import (
+    Configuracion, Torneo, Equipo, Jugador, Partido, 
+    DetallePartido, Pago, Perfil, Sancion, FotoGaleria, 
+    AbonoSancion, ComplejoDeportivo, PlanSuscripcion, Categoria
+)
+
 from .utils import validar_cedula_ecuador, consultar_sri
 
 # =========================================================
@@ -37,13 +38,13 @@ from .utils import validar_cedula_ecuador, consultar_sri
 # =========================================================
 
 def es_organizador(user):
-    return user.is_authenticated and hasattr(user, 'perfil') and user.perfil.rol == 'ORG'
+    return user.is_superuser or (user.is_authenticated and hasattr(user, 'perfil') and user.perfil.rol == 'ORG')
 
 def es_vocal_o_admin(user):
-    return user.is_authenticated and hasattr(user, 'perfil') and user.perfil.rol in ['ORG', 'VOC']
+    return user.is_superuser or (user.is_authenticated and hasattr(user, 'perfil') and user.perfil.rol in ['ORG', 'VOC'])
 
 def es_dirigente_o_admin(user):
-    return user.is_authenticated and hasattr(user, 'perfil') and user.perfil.rol in ['ORG', 'DIR']
+    return user.is_superuser or (user.is_authenticated and hasattr(user, 'perfil') and user.perfil.rol in ['ORG', 'DIR'])
 
 # =========================================================
 # 1. VISTAS GENERALES Y DE GESTIÓN (CRUD)
@@ -54,6 +55,7 @@ def dashboard(request):
     ctx = {}
     ahora = timezone.now()
     
+    # Asumimos temporalmente que mostramos todos (Luego en el SaaS filtraremos por complejo)
     ctx['torneos'] = Torneo.objects.filter(activo=True).order_by('-id')
     torneo_id = request.GET.get('torneo')
     if torneo_id:
@@ -68,9 +70,7 @@ def dashboard(request):
         p.fecha_local = timezone.localtime(p.fecha_hora).date()
         
     ctx['proximos_partidos'] = partidos_qs
-
     ctx['fotos_galeria'] = FotoGaleria.objects.filter(activa=True).order_by('orden', '-id')
-    ctx['publicidades'] = Publicidad.objects.filter(activa=True).order_by('-id')
 
     if request.user.is_authenticated and hasattr(request.user, 'perfil'):
         rol = request.user.perfil.rol
@@ -83,14 +83,10 @@ def dashboard(request):
             abonos_inscripciones = Sancion.objects.filter(pagada=False, descripcion__icontains='Inscripci').aggregate(Sum('monto_pagado'))['monto_pagado__sum'] or 0
             saldo_inscripciones = inscripciones_pendientes - abonos_inscripciones
             
-            reservas_pendientes = ReservaCancha.objects.filter(estado='PENDIENTE').select_related('usuario').order_by('fecha', 'hora_inicio')
-            
-            # 👇 AÑADIDO PARA EL CENTRO DE SOLICITUDES 👇
             equipos_pendientes = Equipo.objects.filter(estado_inscripcion='PENDIENTE')
             
             ctx['deudas'] = deudas_pendientes
             ctx['total_por_cobrar'] = total + saldo_inscripciones 
-            ctx['reservas_pendientes'] = reservas_pendientes 
             ctx['equipos_pendientes'] = equipos_pendientes 
 
         elif rol == 'DIR':
@@ -203,7 +199,6 @@ def eliminar_torneo(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_equipos(request):
-    # 🔥 1. Filtramos SOLO torneos activos y ORDENAMOS para que la agrupación funcione perfecto
     equipos = Equipo.objects.filter(torneo__activo=True).select_related(
         'torneo', 'torneo__categoria', 'dirigente'
     ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
@@ -228,9 +223,7 @@ def gestionar_equipos(request):
     else:
         form = EquipoForm()
         
-    # 🔥 2. Limitamos el formulario para que solo se puedan inscribir en torneos activos
     form.fields['torneo'].queryset = Torneo.objects.filter(activo=True).order_by('categoria__nombre', 'nombre')
-        
     return render(request, 'core/gestionar_equipos.html', {'form': form, 'equipos': equipos})
 
 @login_required
@@ -247,27 +240,11 @@ def editar_equipo(request, equipo_id):
         form = EquipoForm(instance=equipo)
         
     form.fields['torneo'].queryset = Torneo.objects.filter(activo=True).order_by('categoria__nombre', 'nombre')
-    
     equipos = Equipo.objects.filter(torneo__activo=True).select_related(
         'torneo', 'torneo__categoria', 'dirigente'
     ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
     
     return render(request, 'core/gestionar_equipos.html', {'form': form, 'equipos': equipos, 'editando': True})
-
-
-@login_required
-@user_passes_test(es_organizador)
-def editar_equipo(request, equipo_id):
-    equipo = get_object_or_404(Equipo, id=equipo_id)
-    if request.method == 'POST':
-        form = EquipoForm(request.POST, request.FILES, instance=equipo)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Equipo actualizado correctamente.')
-            return redirect('gestionar_equipos')
-    else:
-        form = EquipoForm(instance=equipo)
-    return render(request, 'core/gestionar_equipos.html', {'form': form, 'equipos': Equipo.objects.all(), 'editando': True})
 
 @login_required
 @user_passes_test(es_organizador)
@@ -276,7 +253,6 @@ def eliminar_equipo(request, equipo_id):
     equipo.delete()
     messages.success(request, 'Equipo eliminado. Los jugadores quedaron libres.')
     return redirect('gestionar_equipos')
-
 
 # =========================================================
 # ✨ LÓGICA BLINDADA: GESTIÓN DE JUGADORES Y CUPOS ✨
@@ -316,11 +292,8 @@ def gestionar_jugadores(request):
             
             if form.is_valid():
                 cedula_ingresada = form.cleaned_data.get('cedula')
-                
-                # 1. Buscamos TODAS las fichas activas de esa cédula
                 jugadores_activos_bd = Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__activo=True)
                 
-                # 2. ¿Ya juega en ESTA MISMA CATEGORÍA?
                 misma_categoria = None
                 if mi_equipo.torneo.categoria:
                     misma_categoria = jugadores_activos_bd.filter(equipo__torneo__categoria=mi_equipo.torneo.categoria).first()
@@ -329,11 +302,9 @@ def gestionar_jugadores(request):
 
                 if misma_categoria:
                     if misma_categoria.equipo != mi_equipo:
-                        # 🔒 EL CANDADO: Bloquea si ya juega en la MISMA categoría pero en OTRO equipo
                         messages.error(request, f"⛔ ¡ALERTA! Este jugador ya compite en el equipo '{misma_categoria.equipo.nombre}' en esta misma categoría.")
                         return redirect(f"{request.path}?equipo={mi_equipo.id}")
                     else:
-                        # 🔄 Está actualizando la foto/dorsal de su propio jugador
                         misma_categoria.nombres = form.cleaned_data.get('nombres')
                         misma_categoria.dorsal = form.cleaned_data.get('dorsal')
                         if form.cleaned_data.get('foto'):
@@ -341,17 +312,14 @@ def gestionar_jugadores(request):
                         misma_categoria.save()
                         messages.success(request, f'¡Datos de {misma_categoria.nombres} actualizados!')
                 else:
-                    # 🟢 NO JUEGA EN ESTA CATEGORÍA (Se permite inscribir en Múltiples Categorías)
                     jugador_historial = Jugador.objects.filter(cedula=cedula_ingresada).last()
                     nuevo_jugador = form.save(commit=False)
                     nuevo_jugador.equipo = mi_equipo
                     
                     if jugador_historial:
-                        # Heredar foto si no subió una nueva
                         if not form.cleaned_data.get('foto') and jugador_historial.foto:
                             nuevo_jugador.foto = jugador_historial.foto
                         
-                        # Limpiar castigos porque es una categoría completamente nueva
                         nuevo_jugador.rojas_directas_acumuladas = 0
                         nuevo_jugador.partidos_suspension = 0
                         nuevo_jugador.expulsado_torneo = False
@@ -372,7 +340,6 @@ def gestionar_jugadores(request):
             form.fields['equipo'].queryset = mis_equipos 
 
     elif perfil.rol == 'ORG':
-        # Lógica para Organizador
         equipos_activos = Equipo.objects.filter(torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
         equipo_id = request.GET.get('equipo')
         mi_equipo = Equipo.objects.filter(id=equipo_id).first() if equipo_id else equipos_activos.first()
@@ -425,7 +392,6 @@ def gestionar_jugadores(request):
         messages.error(request, "Acceso denegado.")
         return redirect('dashboard')
 
-    # 🔥 MAGIA VISUAL: Anexamos los otros equipos en los que juega esta persona
     if jugadores:
         for j in jugadores:
             j.otros_equipos = Jugador.objects.filter(
@@ -444,16 +410,12 @@ def gestionar_jugadores(request):
 @login_required
 def editar_jugador(request, jugador_id):
     jugador = get_object_or_404(Jugador, id=jugador_id)
-    
-    # 1. REGLA ESTRICTA: Solo el Organizador puede editar a un jugador ya inscrito
     if request.user.perfil.rol != 'ORG':
         messages.error(request, "⛔ Solo el Organizador puede editar los datos de un jugador ya inscrito.")
         return redirect(f"/jugadores/?equipo={jugador.equipo.id}")
 
     if request.method == 'POST':
-        # Al pasar instance=jugador actualiza sin borrar historial
         form = JugadorForm(request.POST, request.FILES, instance=jugador)
-        
         if form.is_valid():
             form.save()
             messages.success(request, f'✅ Datos de {jugador.nombres} actualizados correctamente.')
@@ -463,7 +425,6 @@ def editar_jugador(request, jugador_id):
     else:
         form = JugadorForm(instance=jugador)
 
-    # Necesitamos enviar todos los equipos activos para que el filtro de la izquierda siga funcionando
     equipos_activos = Equipo.objects.filter(torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
 
     return render(request, 'core/gestionar_jugadores.html', {
@@ -471,10 +432,10 @@ def editar_jugador(request, jugador_id):
         'jugadores': Jugador.objects.filter(equipo=jugador.equipo).order_by('dorsal'), 
         'equipos_activos': equipos_activos, 
         'editando': True, 
-        'es_dirigente': False, # Es falso porque ya validamos arriba que solo entra el ORG
+        'es_dirigente': False,
         'equipo_seleccionado': jugador.equipo.id,
-        'equipo_obj': jugador.equipo, # 🔥 LA CLAVE: Esto hace que aparezca el formulario a la derecha
-        'puede_fichar': True # Mantiene el botón desbloqueado para el Organizador
+        'equipo_obj': jugador.equipo, 
+        'puede_fichar': True 
     })
 
 @login_required
@@ -540,19 +501,16 @@ def traspasar_jugador(request, jugador_id):
 @user_passes_test(es_organizador)
 def asignar_cupos(request, equipo_id):
     equipo = get_object_or_404(Equipo, id=equipo_id)
-    cupos_anteriores = equipo.cupos_pagados # 🧠 Guardamos cuántos tenía antes de que los edites
+    cupos_anteriores = equipo.cupos_pagados
 
     if request.method == 'POST':
         form = AsignarCuposForm(request.POST, instance=equipo)
         if form.is_valid():
             equipo_actualizado = form.save(commit=False)
             nuevos_cupos = equipo_actualizado.cupos_pagados
-            
-            # Calculamos la diferencia
             diferencia = nuevos_cupos - cupos_anteriores
             equipo_actualizado.save()
             
-            # Si la diferencia es positiva, aumentaste cupos -> Facturamos
             if diferencia > 0 and equipo.torneo.cobro_por_jugador:
                 costo_adicional = diferencia * equipo.torneo.costo_inscripcion_jugador
                 Sancion.objects.create(
@@ -560,17 +518,13 @@ def asignar_cupos(request, equipo_id):
                     monto=costo_adicional, descripcion=f"Ampliación: {diferencia} cupo(s) extra", pagada=False
                 )
                 messages.success(request, f'✅ Límite ampliado a {nuevos_cupos} cupos. Se generó factura por ${costo_adicional}.')
-            
-            # Si la diferencia es negativa, estabas corrigiendo un error -> Solo reducimos el límite
             elif diferencia < 0:
                 messages.warning(request, f'⚠️ Límite corregido y reducido a {nuevos_cupos} cupos. (Revisa Finanzas si necesitas anular cobros incorrectos previos).')
-            
             else:
                 messages.info(request, "No se hicieron cambios en el número de cupos.")
                 
             return redirect('gestionar_equipos')
     else:
-        # Carga el formulario con el número exacto que tiene actualmente
         form = AsignarCuposForm(instance=equipo)
         
     return render(request, 'core/asignar_cupos.html', {'form': form, 'equipo': equipo})
@@ -584,13 +538,11 @@ def sancionar_equipo(request, equipo_id):
         if form.is_valid():
             equipo = form.save()
             if equipo.sancionado_hasta:
-                # Aplicamos la sanción a todos
                 equipo.dirigente.perfil.sancionado_hasta = equipo.sancionado_hasta
                 equipo.dirigente.perfil.save()
                 Jugador.objects.filter(equipo=equipo).update(sancionado_hasta=equipo.sancionado_hasta)
                 messages.error(request, f'🚨 EQUIPO SANCIONADO: {equipo.nombre} ha sido ingresado a la Lista Negra hasta {equipo.sancionado_hasta}.')
             else:
-                # 🛠️ CORRECCIÓN AQUÍ: Si quitamos la fecha, limpiamos también al dirigente y a los jugadores
                 equipo.dirigente.perfil.sancionado_hasta = None
                 equipo.dirigente.perfil.save()
                 Jugador.objects.filter(equipo=equipo).update(sancionado_hasta=None)
@@ -615,27 +567,21 @@ def api_consultar_cedula(request):
 @login_required
 @user_passes_test(es_vocal_o_admin)
 def programar_partidos(request):
-    # 🔥 CAMBIO 1: Filtramos para que solo traiga los torneos activos
     torneos = Torneo.objects.filter(activo=True).order_by('-fecha_inicio')
     torneo_id_get = request.GET.get('torneo')
     torneo_obj = None
     partidos = []
 
-    # 1. CARGA DE DATOS Y LÓGICA VISUAL (GET)
     if torneo_id_get:
         torneo_obj = get_object_or_404(Torneo, id=torneo_id_get)
-        
         partidos_qs = Partido.objects.filter(torneo=torneo_obj)\
             .select_related('equipo_local', 'equipo_visita')\
             .order_by('etapa', 'numero_fecha', 'fecha_hora')
             
         partidos_lista = list(partidos_qs)
-        
-        # LÓGICA PARA DETECTAR LA VUELTA AUTOMÁTICAMENTE
         total_equipos = Equipo.objects.filter(torneo=torneo_obj, estado_inscripcion='APROBADO').count()
         if total_equipos > 0:
             fechas_ida = total_equipos - 1 if total_equipos % 2 == 0 else total_equipos
-            
             for p in partidos_lista:
                 if p.etapa == 'F1' and p.numero_fecha and p.numero_fecha > fechas_ida:
                     p.es_vuelta_visual = True
@@ -643,11 +589,8 @@ def programar_partidos(request):
                     p.es_vuelta_visual = False
         partidos = partidos_lista
 
-    # 2. PROCESAMIENTO DEL FORMULARIO (POST)
     if request.method == 'POST' and es_organizador(request.user):
         form = ProgramarPartidoForm(request.POST)
-        
-        # 🔥 CAMBIO 2: Blindamos el formulario POST para que solo acepte torneos activos
         if 'torneo' in form.fields:
             form.fields['torneo'].queryset = Torneo.objects.filter(activo=True)
             
@@ -657,12 +600,10 @@ def programar_partidos(request):
             equipo_visita = form.cleaned_data['equipo_visita']
             etapa_seleccionada = form.cleaned_data.get('etapa', 'F1')
             
-            # REGLA 1: NO JUGAR CONTRA SÍ MISMO
             if equipo_local == equipo_visita:
                 messages.error(request, "⛔ Error: Un equipo no puede jugar contra sí mismo.")
                 return redirect(f"{request.path}?torneo={t_form.id}")
 
-            # REGLA 2: VALIDACIÓN INTELIGENTE DE FASE 1
             if etapa_seleccionada == 'F1':
                 conteo_previo = Partido.objects.filter(
                     torneo=t_form, etapa='F1'
@@ -679,43 +620,24 @@ def programar_partidos(request):
                     messages.error(request, f"⛔ Error: Ya se han programado los dos partidos (Ida y Vuelta) permitidos entre estos equipos.")
                     return redirect(f"{request.path}?torneo={t_form.id}")
 
-            # REGLA 3: VALIDACIÓN DE GRUPOS EN FASE 2
             if etapa_seleccionada == 'F2':
                 if not equipo_local.grupo_fase2 or not equipo_visita.grupo_fase2:
                     messages.error(request, "⛔ Error: Ambos equipos deben tener un grupo asignado (A o B) para la Fase 2.")
                     return redirect(f"{request.path}?torneo={t_form.id}")
                 
                 if equipo_local.grupo_fase2 != equipo_visita.grupo_fase2:
-                    messages.error(request, f"⛔ Regla de Grupos: {equipo_local.nombre} (Grupo {equipo_local.grupo_fase2}) no puede jugar contra {equipo_visita.nombre} (Grupo {equipo_visita.grupo_fase2}).")
+                    messages.error(request, f"⛔ Regla de Grupos: {equipo_local.nombre} no puede jugar contra {equipo_visita.nombre}.")
                     return redirect(f"{request.path}?torneo={t_form.id}")
             
-            # REGLA 4: CHEQUEO DE DEUDAS
             if equipo_local.tiene_deudas():
                 messages.warning(request, f"⚠️ Aviso: {equipo_local.nombre} tiene deudas pendientes.")
             if equipo_visita.tiene_deudas():
                 messages.warning(request, f"⚠️ Aviso: {equipo_visita.nombre} tiene deudas pendientes.")
             
-            # GUARDADO ATÓMICO
             try:
                 with transaction.atomic():
                     partido = form.save()
-                    duracion = 2 
-                    hora_fin_estimada = (partido.fecha_hora + timedelta(hours=duracion)).time()
-                    
-                    from core.models import ReservaCancha
-                    ReservaCancha.objects.create(
-                        fecha=partido.fecha_hora.date(),
-                        hora_inicio=partido.fecha_hora.time(),
-                        hora_fin=hora_fin_estimada,
-                        es_torneo=True,
-                        motivo_bloqueo=f"⚽ {partido.equipo_local} vs {partido.equipo_visita}",
-                        partido=partido,
-                        usuario=request.user,
-                        estado='ACTIVA',
-                        pagado=True
-                    )
-
-                messages.success(request, '✅ Partido agendado y cancha bloqueada con éxito.')
+                messages.success(request, '✅ Partido agendado con éxito.')
                 return redirect(f"{request.path}?torneo={t_form.id}")
             
             except ValidationError:
@@ -726,10 +648,7 @@ def programar_partidos(request):
             messages.error(request, "Formulario inválido. Revisa los campos.")
             
     else:
-        # Carga inicial del formulario
         form = ProgramarPartidoForm(initial={'torneo': torneo_id_get})
-        
-        # 🔥 CAMBIO 3: Filtramos el dropdown del formulario en el GET para que no salgan los inactivos
         if 'torneo' in form.fields:
             form.fields['torneo'].queryset = Torneo.objects.filter(activo=True).order_by('-fecha_inicio')
             
@@ -827,36 +746,31 @@ def registrar_resultado(request, partido_id):
 def gestionar_vocalia(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
     
-    # 1. Anotaciones de estadísticas locales, INCLUYENDO ESTRELLAS
     jugadores_local = Jugador.objects.filter(equipo=partido.equipo_local).annotate(
         goles_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='GOL')),
         ta_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TA')),
         tr_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TR')),
         da_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='DA')),
-        star_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='STAR')) # NUEVO
+        star_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='STAR'))
     ).order_by('dorsal')
 
-    # 2. Anotaciones de estadísticas visita, INCLUYENDO ESTRELLAS
     jugadores_visita = Jugador.objects.filter(equipo=partido.equipo_visita).annotate(
         goles_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='GOL')),
         ta_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TA')),
         tr_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TR')),
         da_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='DA')),
-        star_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='STAR')) # NUEVO
+        star_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='STAR')) 
     ).order_by('dorsal')
 
-    # 3. Consultar Deudas Pendientes de ambos equipos para mostrarlas en mesa
     deudas_pendientes = Sancion.objects.filter(
         equipo__in=[partido.equipo_local, partido.equipo_visita], 
         pagada=False
-    ).order_by('equipo__nombre')
+    ).select_related('equipo', 'jugador').order_by('equipo__nombre')
 
     asistencias_ids = list(DetallePartido.objects.filter(partido=partido, tipo='ASIS').values_list('jugador_id', flat=True))
     multas = Sancion.objects.filter(partido=partido).order_by('-id')
 
     if request.method == 'POST':
-        
-        # 👇 NUEVA LÓGICA DE COBRO EN MESA 👇
         if 'cobrar_deuda' in request.POST:
             from decimal import Decimal
             sancion_id = request.POST.get('sancion_id')
@@ -872,12 +786,9 @@ def gestionar_vocalia(request, partido_id):
             else:
                 messages.success(request, f"✅ Abono de ${abono} registrado para {sancion.equipo.nombre}.")
             sancion.save()
-            
-            # Guardamos el abono vinculándolo al partido actual
             AbonoSancion.objects.create(sancion=sancion, monto=abono, partido=partido)
             return redirect('gestionar_vocalia', partido_id=partido.id)
 
-        # 👇 NUEVA LÓGICA DE W.O. 👇
         elif 'declarar_wo' in request.POST:
             tipo_wo = request.POST.get('tipo_wo')
             if tipo_wo == 'LOCAL':
@@ -894,9 +805,8 @@ def gestionar_vocalia(request, partido_id):
                 partido.estado = 'WO'
                 partido.goles_local = 0
                 partido.goles_visita = 0
-                partido.ganador_wo = None # Significa que ambos pierden
+                partido.ganador_wo = None
             
-            # Firmamos por ellos y blindamos
             partido.validado_local = True
             partido.validado_visita = True
             partido.sanciones_aplicadas = True 
@@ -904,16 +814,12 @@ def gestionar_vocalia(request, partido_id):
             messages.success(request, '🚨 Partido finalizado por W.O. exitosamente.')
             return redirect(f"/programar/?torneo={partido.torneo.id}")
 
-        # 👇 GUARDAR ACTA NORMAL 👇
         elif 'guardar_informe' in request.POST:
-            estado_anterior = partido.estado
-
             partido.informe_vocal = request.POST.get('informe_vocal')
             partido.informe_arbitro = request.POST.get('informe_arbitro')
             partido.validado_local = request.POST.get('validado_local') == 'on'
             partido.validado_visita = request.POST.get('validado_visita') == 'on'
             
-            # LÓGICA DE PENALES PARA FASES ELIMINATORIAS
             if partido.etapa in ['4TOS', 'SEMI', 'TERC', 'FINAL']:
                 p_local = request.POST.get('penales_local', 0)
                 p_visita = request.POST.get('penales_visita', 0)
@@ -929,18 +835,14 @@ def gestionar_vocalia(request, partido_id):
                     partido.penales_local = 0
                     partido.penales_visita = 0
 
-            # CIERRE ESTRICTO: ¿Están las DOS firmas?
             if partido.validado_local and partido.validado_visita:
                 partido.estado = 'JUG'
             else:
-                partido.estado = 'ACTA' # Limbo de Actas
+                partido.estado = 'ACTA'
             
             partido.save()
 
-            # 🔥 LÓGICA DE SANCIONES BLINDADA CONTRA DUPLICADOS 🔥
             if partido.estado == 'JUG' and not partido.sanciones_aplicadas:
-                
-                # 1. Reducir partidos de suspensión a los inactivos
                 jugadores_ambos_equipos = Jugador.objects.filter(equipo__in=[partido.equipo_local, partido.equipo_visita], partidos_suspension__gt=0)
                 detalles = DetallePartido.objects.filter(partido=partido)
                 
@@ -949,7 +851,6 @@ def gestionar_vocalia(request, partido_id):
                         j.partidos_suspension -= 1
                         j.save()
 
-                # 2. Generar multas y nuevas suspensiones (INCLUYE 3 ROJAS DIRECTAS = EXPULSIÓN)
                 jugadores_con_eventos = set([d.jugador for d in detalles])
                 for j in jugadores_con_eventos:
                     eventos_j = detalles.filter(jugador=j)
@@ -978,7 +879,6 @@ def gestionar_vocalia(request, partido_id):
                     if ta_partido > 0:
                         Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='AMARILLA', monto=partido.torneo.costo_amarilla, descripcion=f"Tarjeta Amarilla - {j.nombres}")
                         
-                        # REGLA DE LAS 4 AMARILLAS (REINICIO POR FASE)
                         if partido.etapa == 'F1':
                             fases_validas = ['F1']
                         elif partido.etapa == 'F2':
@@ -997,7 +897,6 @@ def gestionar_vocalia(request, partido_id):
                             j.partidos_suspension += 1
                             j.save()
 
-                # BLOQUEAR LAS SANCIONES PARA QUE NO SE REPITAN NUNCA MÁS
                 partido.sanciones_aplicadas = True
                 partido.save()
 
@@ -1016,7 +915,6 @@ def gestionar_vocalia(request, partido_id):
                          messages.warning(request, '⚠️ Faltan las firmas de ambos equipos para Finalizar el partido oficialmente.')
                          return redirect('gestionar_vocalia', partido_id=partido_id)
         
-        # 👇 NUEVA MULTA MANUAL 👇
         elif 'nueva_multa' in request.POST:
             equipo_id = request.POST.get('equipo_multa')
             motivo = request.POST.get('motivo_multa')
@@ -1034,7 +932,7 @@ def gestionar_vocalia(request, partido_id):
         'jugadores_visita': jugadores_visita,
         'asistencias_ids': asistencias_ids,
         'multas': multas,
-        'deudas_pendientes': deudas_pendientes # Pasamos la variable al HTML
+        'deudas_pendientes': deudas_pendientes
     })
 
 @login_required
@@ -1053,7 +951,6 @@ def registrar_incidencia(request, partido_id):
         
         jugador = get_object_or_404(Jugador, id=jugador_id)
 
-        # Usamos equipo_incidencia=jugador.equipo para que el evento se quede con el equipo actual
         if tipo_evento == 'TA':
             amarilla_previa = DetallePartido.objects.filter(partido=partido, jugador=jugador, tipo='TA').first()
             if amarilla_previa:
@@ -1077,10 +974,9 @@ def registrar_incidencia(request, partido_id):
             messages.success(request, f'⚽ ¡Gol de {jugador.nombres}!')
 
         elif tipo_evento == 'STAR':
-            # Verificamos que no haya más de 2 estrellas en TODO el partido
             estrellas_actuales = DetallePartido.objects.filter(partido=partido, tipo='STAR').count()
             if estrellas_actuales >= 2:
-                messages.error(request, '⭐ Error: Solo se pueden asignar máximo 2 figuras (estrellas) por partido.')
+                messages.error(request, '⭐ Error: Solo se pueden asignar máximo 2 figuras por partido.')
             else:
                 DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='STAR', equipo_incidencia=jugador.equipo)
                 messages.success(request, f'⭐ ¡{jugador.nombres} fue elegido como Figura del Partido!')
@@ -1113,7 +1009,6 @@ def eliminar_evento_ultimo(request, partido_id, jugador_id, tipo):
     if evento:
         partido = evento.partido
         if tipo == 'GOL':
-            # Verificamos mediante equipo_incidencia a quién restarle el gol
             if evento.equipo_incidencia == partido.equipo_local:
                 partido.goles_local = max(0, partido.goles_local - 1)
             else:
@@ -1210,12 +1105,11 @@ def tabla_posiciones(request, torneo_id):
             gf += goles_propios
             gc += goles_rival
             
-            # 👇 NUEVA LÓGICA DE PUNTOS QUE CONTEMPLA EL W.O. 👇
             if p.estado == 'WO':
                 if p.ganador_wo == equipo:
-                    pg += 1  # Gana el partido por WO
+                    pg += 1  
                 else:
-                    pp += 1  # Pierde por WO (ya sea en contra, o Doble WO donde ambos pierden)
+                    pp += 1  
             else:
                 if goles_propios > goles_rival: pg += 1
                 elif goles_propios < goles_rival: pp += 1
@@ -1344,7 +1238,6 @@ def tabla_posiciones_f2(request, torneo_id):
     })
 
 def seleccionar_reporte(request):
-    # Separamos y ordenamos: Activos por Categoría, Finalizados por Año
     torneos_activos = Torneo.objects.filter(activo=True).order_by('categoria__nombre', '-fecha_inicio')
     torneos_finalizados = Torneo.objects.filter(activo=False).order_by('-fecha_inicio')
     
@@ -1433,7 +1326,7 @@ def reporte_estadisticas(request, torneo_id):
     goleadores = DetallePartido.objects.filter(
         partido__torneo=torneo, 
         tipo='GOL',
-        equipo_incidencia=F('jugador__equipo') # 🛡️ LA REGLA DE ORO: El gol debe coincidir con su equipo actual
+        equipo_incidencia=F('jugador__equipo') 
     ).values(
         'jugador__nombres', 'jugador__equipo__nombre', 'jugador__equipo__escudo'
     ).annotate(
@@ -1487,7 +1380,6 @@ def reporte_estadisticas(request, torneo_id):
             equipo_seleccionado = None
 
     if equipo_seleccionado:
-        # ✨ MAGIA NEXT LEVEL: Obtenemos a los jugadores actuales Y a los que ya fueron traspasados pero dejaron goles/historial aquí
         jugadores_actuales = list(Jugador.objects.filter(equipo=equipo_seleccionado).values_list('id', flat=True))
         jugadores_historicos = list(DetallePartido.objects.filter(equipo_incidencia=equipo_seleccionado).values_list('jugador_id', flat=True))
         
@@ -1495,20 +1387,17 @@ def reporte_estadisticas(request, torneo_id):
         roster = Jugador.objects.filter(id__in=ids_unicos)
 
         for j in roster:
-            # 🛡️ Filtramos las estadísticas SOLO por lo que hizo con la camiseta de ESTE equipo
             stats = DetallePartido.objects.filter(
                 jugador=j, 
                 partido__torneo=torneo, 
                 equipo_incidencia=equipo_seleccionado
             )
             
-            # Si el jugador ya no está en el equipo actual, le agregamos una etiqueta para que el dirigente sepa
             nota_transferido = "" if j.id in jugadores_actuales else " (Transferido)"
 
             total_ta = stats.filter(tipo='TA').count()
             ta_mostrar = total_ta % 4 
             
-            # Solo agregamos a la lista si tiene alguna estadística o si sigue en el equipo actual
             if j.id in jugadores_actuales or stats.exists():
                 jugadores_detalle.append({
                     'nombre': j.nombres + nota_transferido, 
@@ -1517,7 +1406,7 @@ def reporte_estadisticas(request, torneo_id):
                     'da': stats.filter(tipo='DA').count(),
                     'tr': stats.filter(tipo='TR').count(), 
                     'goles': stats.filter(tipo='GOL').count(),
-                    'stars': stats.filter(tipo='STAR').count() # NUEVO
+                    'stars': stats.filter(tipo='STAR').count()
                 })
                 
     return render(request, 'core/reporte_estadisticas.html', {
@@ -1541,12 +1430,13 @@ def tabla_goleadores(request, torneo_id):
     goleadores = DetallePartido.objects.filter(
         partido__torneo=torneo, 
         tipo='GOL',
-        equipo_incidencia=F('jugador__equipo') # 🛡️ LA REGLA DE ORO: El gol debe coincidir con su equipo actual
+        equipo_incidencia=F('jugador__equipo') 
     ).values(
         'jugador__nombres', 'jugador__equipo__nombre', 'jugador__equipo__escudo'
     ).annotate(
         total_goles=Count('id')
     ).order_by('-total_goles', 'jugador__nombres')[:15]
+    
 # =========================================================
 # 5. GENERACIÓN DE PDF (ACTA) (ACCESO VOCAL Y ADMIN)
 # =========================================================
@@ -1563,8 +1453,6 @@ def generar_acta_pdf(request, partido_id):
     tarjetas = detalles.filter(tipo__in=['TA', 'TR', 'DA', 'AZUL', 'EBRI'])
     estrellas = detalles.filter(tipo='STAR') 
     abonos = AbonoSancion.objects.filter(partido=partido) 
-    
-    # 👇 NUEVO: Traemos las multas administrativas creadas en este partido
     multas = Sancion.objects.filter(partido=partido, tipo='ADMIN')
 
     template_path = 'core/acta_partido_pdf.html'
@@ -1572,7 +1460,7 @@ def generar_acta_pdf(request, partido_id):
         'partido': partido, 'asistencias_local': asistencias_local,
         'asistencias_visita': asistencias_visita, 'goles': goles,
         'tarjetas': tarjetas, 'estrellas': estrellas, 'abonos': abonos,
-        'multas': multas # 👇 NUEVO: Añadimos las multas al contexto del PDF
+        'multas': multas 
     }
     
     response = HttpResponse(content_type='application/pdf')
@@ -1652,7 +1540,7 @@ def generar_recibo_pago_pdf(request, pago_id):
     return response
 
 # =========================================================
-# 7. REGISTRO PÚBLICO Y RESERVAS
+# 7. REGISTRO PÚBLICO Y SOLICITUDES
 # =========================================================
 
 def registro_publico(request):
@@ -1669,214 +1557,7 @@ def registro_publico(request):
         
     return render(request, 'registration/registro_publico.html', {'form': form})
 
-def reservar_cancha(request):
-    manana = timezone.now().date() + timedelta(days=1)
-    
-    fecha_str = request.GET.get('fecha')
-    if fecha_str:
-        try:
-            fecha_consulta = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-            if fecha_consulta <= timezone.now().date():
-                messages.warning(request, "Recuerda: Solo se puede reservar con al menos 1 día de anticipación.")
-                fecha_consulta = manana
-        except ValueError:
-            fecha_consulta = manana
-    else:
-        fecha_consulta = manana
-
-    horarios_disponibles = []
-    
-    horarios_db = HorarioCancha.objects.filter(activo=True).order_by('hora_inicio')
-    reservas_del_dia = ReservaCancha.objects.filter(fecha=fecha_consulta).exclude(estado='CANCELADA')
-    partidos_del_dia = Partido.objects.filter(fecha_hora__date=fecha_consulta).exclude(estado='WO')
-
-    for tarifa in horarios_db:
-        hora_actual = tarifa.hora_inicio
-        hora_final = tarifa.hora_fin
-        
-        while hora_actual < hora_final:
-            dummy_date = datetime.today()
-            dt_actual = datetime.combine(dummy_date, hora_actual)
-            dt_siguiente = dt_actual + timedelta(hours=1)
-            hora_siguiente = dt_siguiente.time()
-            
-            if hora_siguiente > hora_final and hora_siguiente != time(0, 0):
-                hora_siguiente = hora_final 
-
-            ocupado = False
-            estado = 'LIBRE'
-
-            for r in reservas_del_dia:
-                if r.hora_inicio < hora_siguiente and r.hora_fin > hora_actual:
-                    ocupado = True
-                    estado = 'PENDIENTE' if r.estado == 'PENDIENTE' else 'OCUPADO'
-                    break
-            
-            if not ocupado:
-                for p in partidos_del_dia:
-                    if p.fecha_hora:
-                        p_inicio = p.fecha_hora.time()
-                        p_fin = (p.fecha_hora + timedelta(hours=2)).time()
-                        
-                        if p_inicio < hora_siguiente and p_fin > hora_actual:
-                            ocupado = True
-                            estado = 'TORNEO'
-                            break
-
-            # 🟢 CÁLCULO DE DESCUENTO 50% PARA DIRIGENTES
-            precio_mostrar = float(tarifa.precio)
-            if hasattr(request.user, 'perfil') and request.user.perfil.rol == 'DIR':
-                precio_mostrar = precio_mostrar * 0.60
-
-            horarios_disponibles.append({
-                'hora_mostrar': f"{hora_actual.strftime('%H:%M')} - {hora_siguiente.strftime('%H:%M')}",
-                'valor_inicio': hora_actual.strftime('%H:%M'),
-                'valor_fin': hora_siguiente.strftime('%H:%M'),
-                'precio': precio_mostrar,
-                'estado': estado
-            })
-
-            hora_actual = hora_siguiente
-
-    if request.method == 'POST':
-        hora_inicio_str = request.POST.get('hora_inicio')
-        hora_fin_str = request.POST.get('hora_fin')
-        fecha_str_post = request.POST.get('fecha')
-        # 🔥 CAPTURAMOS EL PRECIO REAL DESDE EL HTML (El que sumó JavaScript)
-        precio_total_post = request.POST.get('precio_total')
-        codigo_cupon = request.POST.get('codigo_cupon', '') # Opcional
-        
-        if hora_inicio_str and hora_fin_str and fecha_str_post and precio_total_post:
-            
-            # Convierte el string a float para asegurarnos de que es un número
-            try:
-                precio_base = float(precio_total_post)
-            except ValueError:
-                messages.error(request, "⚠️ Error: El precio total no es válido.")
-                return redirect(f"{request.path}?fecha={fecha_str_post}")
-
-            # 🟢 Aplicar descuento DIRIGENTE si corresponde (Aplica sobre el total sumado)
-            precio_final = str(precio_base)
-            
-            # Guardamos todo el paquete exacto en la sesión para el checkout
-            request.session['reserva_pendiente'] = {
-                'fecha': fecha_str_post,
-                'hora_inicio': hora_inicio_str,
-                'hora_fin': hora_fin_str,
-                'precio_fijo': precio_final, # ¡Aquí viaja el valor correcto!
-                'cupon': codigo_cupon
-            }
-            return redirect('checkout_pago')
-        else:
-            messages.error(request, "⚠️ Error: Faltan datos en la selección o no se calculó el precio.")
-            
-    else:
-        form = ReservaCanchaForm(initial={'fecha': fecha_consulta})
-
-    return render(request, 'core/reservar_cancha.html', {
-        'form': form, 
-        'horarios': horarios_disponibles,
-        'fecha_seleccionada': fecha_consulta, 
-        'manana': manana 
-    })
-
-@login_required
-def checkout_pago(request):
-    reserva_data = request.session.get('reserva_pendiente')
-    if not reserva_data:
-        messages.warning(request, "No tienes ninguna reserva en proceso.")
-        return redirect('reservar_cancha')
-
-    if request.method == 'POST':
-        h_inicio = str(reserva_data['hora_inicio'])
-        h_fin = str(reserva_data['hora_fin'])
-        
-        if len(h_inicio) == 5: h_inicio += ':00'
-        if len(h_fin) == 5: h_fin += ':00'
-
-        precio_final = reserva_data.get('precio_total', reserva_data.get('precio_fijo', 5))
-
-        reserva = ReservaCancha.objects.create(
-            usuario=request.user,
-            fecha=reserva_data['fecha'],
-            hora_inicio=h_inicio,
-            hora_fin=h_fin,
-            precio_total=precio_final,
-            estado='PENDIENTE'
-        )
-
-        del request.session['reserva_pendiente']
-
-        telefono_cliente = request.user.perfil.telefono if hasattr(request.user, 'perfil') and request.user.perfil.telefono else "No registrado"
-        nombre_cliente = f"{request.user.first_name} {request.user.last_name}".strip()
-        if not nombre_cliente:
-            nombre_cliente = request.user.username
-
-        # ENVIAR CORREO AL ORGANIZADOR
-        try:
-            from django.core.mail import send_mail
-            from django.conf import settings
-            
-            asunto = f"📅 NUEVA RESERVA: Cancha el {reserva_data['fecha']}"
-            mensaje_correo = f"""
-¡Hola Organizador!
-Alguien acaba de agendar un turno en la cancha.
-Cliente: {nombre_cliente}
-Celular: {telefono_cliente}
-Fecha: {reserva_data['fecha']}
-Horario: {reserva_data['hora_inicio']} a {reserva_data['hora_fin']}
-Total a cobrar: ${reserva.precio_total}  
-            """
-            send_mail(
-                subject=asunto, 
-                message=mensaje_correo,
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=['deyvi2413@gmail.com'], 
-                fail_silently=True
-            )
-        except Exception as e:
-            print("Error enviando email de reserva:", e)
-
-        mensaje = (
-            f" *NUEVA RESERVA - NEXT LEVEL* \n\n"
-            f" *Cliente:* {nombre_cliente}\n"
-            f" *Celular:* {telefono_cliente}\n"
-            f" *Fecha:* {reserva_data['fecha']}\n"
-            f" *Horario:* {reserva_data['hora_inicio']} a {reserva_data['hora_fin']}\n"
-            f" *Total a pagar:* ${reserva.precio_total}\n\n"
-            f"Hola, adjunto el comprobante de transferencia para confirmar mi turno."
-        )
-
-        numero_organizador = "593963395614" 
-        mensaje_codificado = urllib.parse.quote(mensaje)
-        url_whatsapp = f"https://wa.me/{numero_organizador}?text={mensaje_codificado}"
-
-        return render(request, 'core/reserva_exitosa.html', {'url_whatsapp': url_whatsapp, 'reserva': reserva})
-
-    return render(request, 'core/checkout_pago.html', {'reserva': reserva_data})
-
-
-@login_required
-def aprobar_reserva_admin(request, reserva_id):
-    if request.user.perfil.rol != 'ORG':
-        messages.error(request, 'No tienes permisos para realizar esta acción.')
-        return redirect('dashboard')
-        
-    reserva = get_object_or_404(ReservaCancha, id=reserva_id)
-    reserva.estado = 'ACTIVA'
-    reserva.pagado = True 
-    reserva.save()
-    
-    messages.success(request, f'✅ Turno de {reserva.usuario.first_name} aprobado y confirmado exitosamente.')
-    return redirect('dashboard')
-
-@login_required
-def mis_reservas(request):
-    reservas = ReservaCancha.objects.filter(usuario=request.user).order_by('-fecha')
-    return render(request, 'core/mis_reservas.html', {'reservas': reservas})
-
 def ver_torneos_activos(request):
-    # 🔥 ORDENAMOS POR CATEGORÍA DESDE LA BASE DE DATOS
     torneos_activos = Torneo.objects.filter(activo=True).order_by('categoria__nombre', 'fecha_inicio')
     torneos_finalizados = Torneo.objects.filter(activo=False).order_by('-fecha_inicio')
     
@@ -1936,13 +1617,13 @@ def solicitar_inscripcion(request, torneo_id):
                 from django.conf import settings
                 
                 asunto = f"🏆 NUEVA SOLICITUD: {equipo.nombre} quiere unirse"
-                # ... (texto del mensaje) ...
+                mensaje = "Nueva solicitud registrada en el sistema."
                 
                 send_mail(
                     subject=asunto,
                     message=mensaje,
                     from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=['deyvi2413@gmail.com'], # ¡Aquí está tu correo!
+                    recipient_list=['deyvi2413@gmail.com'],
                     fail_silently=True 
                 )
             except Exception as e:
@@ -1980,57 +1661,6 @@ def gestionar_solicitudes(request):
         return redirect('gestionar_solicitudes')
 
     return render(request, 'core/gestionar_solicitudes.html', {'solicitudes': solicitudes})
-
-def ver_carrito(request):
-    reserva_session = request.session.get('reserva_pendiente')
-    
-    if not reserva_session:
-        messages.info(request, "Tu carrito está vacío.")
-        return redirect('reservar_cancha')
-
-    ctx = {
-        'fecha': reserva_session.get('fecha'),
-        'inicio': reserva_session.get('hora_inicio'),
-        'fin': reserva_session.get('hora_fin'),
-    }
-    return render(request, 'core/carrito.html', ctx)
-
-
-@login_required
-def cancelar_reserva(request, reserva_id):
-    reserva = get_object_or_404(ReservaCancha, id=reserva_id)
-    
-    if request.user != reserva.usuario and request.user.perfil.rol != 'ORG':
-        messages.error(request, "No tienes permiso para cancelar esta reserva.")
-        return redirect('mis_reservas')
-
-    fecha_reserva = reserva.fecha 
-    fecha_hoy = timezone.now().date()
-    dias_faltantes = (fecha_reserva - fecha_hoy).days
-    
-    if dias_faltantes <= 2:
-        multa = float(reserva.precio_total) * 0.50
-        mensaje = f"⚠️ Cancelación tardía (faltan {dias_faltantes} días). Se aplicó multa del 50%."
-    else:
-        multa = 0
-        mensaje = "✅ Cancelación a tiempo. Reembolso completo."
-
-    reembolso = float(reserva.precio_total) - multa
-
-    if request.method == 'POST':
-        reserva.estado = 'CANCELADA'
-        reserva.monto_reembolso = reembolso
-        reserva.save()
-        messages.info(request, f"Reserva Cancelada. {mensaje} Reembolso: ${reembolso}")
-        return redirect('mis_reservas')
-
-    return render(request, 'core/confirmar_cancelacion.html', {
-        'objeto': reserva, 
-        'tipo': 'Reserva de Cancha',
-        'multa': multa,
-        'reembolso': reembolso,
-        'dias': dias_faltantes
-    })
 
 @login_required
 def cancelar_inscripcion_equipo(request, equipo_id):
@@ -2100,12 +1730,11 @@ def gestionar_finanzas(request):
     if request.user.perfil.rol != 'ORG':
         return redirect('dashboard')
         
-    # --- 1. LÓGICA PARA NUEVA DEUDA MANUAL ---
     if request.method == 'POST' and 'agregar_sancion_manual' in request.POST:
         form_sancion = SancionManualForm(request.POST)
         if form_sancion.is_valid():
             nueva_sancion = form_sancion.save(commit=False)
-            nueva_sancion.tipo = 'ADMIN' # Tipo administrativo
+            nueva_sancion.tipo = 'ADMIN'
             nueva_sancion.pagada = False
             from decimal import Decimal
             nueva_sancion.monto_pagado = Decimal('0.00')
@@ -2115,7 +1744,6 @@ def gestionar_finanzas(request):
         else:
             messages.error(request, '❌ Error al agregar la deuda. Revisa los campos.')
 
-    # --- 2. LÓGICA EXISTENTE PARA GENERAR INSCRIPCIONES ---
     if request.method == 'POST' and 'generar_inscripciones_viejas' in request.POST:
         equipos_aprobados = Equipo.objects.filter(estado_inscripcion='APROBADO')
         agregados = 0
@@ -2132,12 +1760,9 @@ def gestionar_finanzas(request):
         messages.success(request, f'✅ Se generaron {agregados} recibos de inscripción para los equipos.')
         return redirect('gestionar_finanzas')
 
-    # Instanciamos el formulario vacío para mandarlo al HTML
     form_sancion = SancionManualForm()
 
-    # --- CÁLCULOS MATEMÁTICOS EXISTENTES ---
     from decimal import Decimal
-    total_reservas = ReservaCancha.objects.filter(estado='ACTIVA', es_torneo=False).aggregate(Sum('precio_total'))['precio_total__sum'] or Decimal('0.00')
     
     inscripciones = Sancion.objects.filter(descripcion__icontains='Inscripci')
     inscripciones_pagadas_totalmente = inscripciones.filter(pagada=True).aggregate(Sum('monto'))['monto__sum'] or Decimal('0.00')
@@ -2156,13 +1781,13 @@ def gestionar_finanzas(request):
     lista_sanciones = Sancion.objects.all().select_related('equipo').order_by('pagada', '-id')
 
     ctx = {
-        'form_sancion': form_sancion, # <--- ENVIAMOS EL FORMULARIO AL HTML
-        'ingreso_canchas': float(total_reservas),
+        'form_sancion': form_sancion,
+        'ingreso_canchas': 0.00, # Variable mantenida para no romper el HTML
         'inscripciones_pagadas': float(dinero_real_inscripciones),
         'inscripciones_pendientes': float(saldo_real_inscripciones),
         'multas_pagadas': float(dinero_real_multas),
         'multas_pendientes': float(saldo_real_multas),
-        'total_caja': float(total_reservas + dinero_real_inscripciones + dinero_real_multas),
+        'total_caja': float(dinero_real_inscripciones + dinero_real_multas),
         'sanciones': lista_sanciones
     }
     return render(request, 'core/gestionar_finanzas.html', ctx)
@@ -2210,41 +1835,13 @@ def admin_gestion_usuarios(request):
     return render(request, 'core/admin_usuarios.html', {'usuarios': usuarios})
 
 # =========================================================
-# VISTAS RESTAURADAS (Horarios, Medios y Próxima Jornada)
+# VISTAS RESTAURADAS (Medios y Próxima Jornada)
 # =========================================================
-
-@login_required
-@user_passes_test(es_organizador)
-def gestionar_horarios(request):
-    horarios = HorarioCancha.objects.all().order_by('hora_inicio')
-    if request.method == 'POST':
-        form = HorarioCanchaForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, '✅ Horario y tarifa agregados correctamente.')
-            return redirect('gestionar_horarios')
-        else:
-            for campo, errores in form.errors.items():
-                for error in errores:
-                    messages.error(request, f"❌ Error en {campo}: {error}")
-    else:
-        form = HorarioCanchaForm()
-    return render(request, 'core/gestionar_horarios.html', {'form': form, 'horarios': horarios})
-
-@login_required
-@user_passes_test(es_organizador)
-def eliminar_horario(request, horario_id):
-    horario = get_object_or_404(HorarioCancha, id=horario_id)
-    hora_str = horario.hora_inicio.strftime('%H:%M')
-    horario.delete()
-    messages.warning(request, f'🗑️ El bloque de las {hora_str} ha sido eliminado.')
-    return redirect('gestionar_horarios')
 
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_medios(request):
     fotos = FotoGaleria.objects.all().order_by('orden', '-id')
-    publicidades = Publicidad.objects.all().order_by('-id')
 
     if request.method == 'POST':
         if 'btn_foto' in request.POST:
@@ -2253,17 +1850,10 @@ def gestionar_medios(request):
                 form_foto.save()
                 messages.success(request, '📸 Foto agregada a la galería con éxito.')
                 return redirect('gestionar_medios')
-        elif 'btn_publi' in request.POST:
-            form_publi = PublicidadForm(request.POST, request.FILES)
-            if form_publi.is_valid():
-                form_publi.save()
-                messages.success(request, '📢 Publicidad agregada correctamente.')
-                return redirect('gestionar_medios')
 
     form_foto = FotoGaleriaForm()
-    form_publi = PublicidadForm()
     return render(request, 'core/gestionar_medios.html', {
-        'fotos': fotos, 'publicidades': publicidades, 'form_foto': form_foto, 'form_publi': form_publi
+        'fotos': fotos, 'form_foto': form_foto
     })
 
 @login_required
@@ -2272,14 +1862,6 @@ def eliminar_foto(request, foto_id):
     foto = get_object_or_404(FotoGaleria, id=foto_id)
     foto.delete()
     messages.warning(request, "🗑️ Foto eliminada.")
-    return redirect('gestionar_medios')
-
-@login_required
-@user_passes_test(es_organizador)
-def eliminar_publicidad(request, pub_id):
-    pub = get_object_or_404(Publicidad, id=pub_id)
-    pub.delete()
-    messages.warning(request, "🗑️ Publicidad eliminada.")
     return redirect('gestionar_medios')
 
 @login_required
@@ -2309,9 +1891,6 @@ def proxima_jornada(request, torneo_id):
 # =========================================================
 # 8. GENERADOR AUTOMÁTICO DE FIXTURES (IDA Y VUELTA)
 # =========================================================
-# =========================================================
-# 8. GENERADOR AUTOMÁTICO DE FIXTURES (FASE 1)
-# =========================================================
 
 @login_required
 @user_passes_test(es_organizador)
@@ -2330,7 +1909,6 @@ def generar_fixture(request, torneo_id):
     fixture = []
     equipos_rotacion = equipos.copy()
 
-    # 1. Generamos los partidos de IDA
     for fecha in range(1, n):
         partidos_fecha = []
         for i in range(n // 2):
@@ -2343,16 +1921,13 @@ def generar_fixture(request, torneo_id):
         fixture.append({'numero_fecha': fecha, 'partidos': partidos_fecha})
         equipos_rotacion.insert(1, equipos_rotacion.pop())
 
-    # 2. Si se mandó el formulario (Botón Guardar DB)
     if request.method == 'POST':
         accion = request.POST.get('accion')
         
-        # Leemos el switch del HTML (¿Ida y Vuelta?)
         ida_y_vuelta_activado = request.POST.get('ida_y_vuelta_f1') == 'on'
         torneo.fase1_ida_vuelta = ida_y_vuelta_activado
         torneo.save()
 
-        # Si es Ida y Vuelta, clonamos el fixture invirtiendo las localías
         if torneo.fase1_ida_vuelta:
             n_fechas_ida = len(fixture)
             fixture_vuelta = []
@@ -2398,7 +1973,6 @@ def generar_fixture(request, torneo_id):
 # 9. MAGIA: TRANSICIONES Y LLAVES ELIMINATORIAS 
 # =========================================================
 
-# --- FUNCIONES DE CÁLCULO MATEMÁTICO ---
 def obtener_clasificados_fase1(torneo):
     equipos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO')
     lista_tabla = []
@@ -2659,7 +2233,6 @@ def generar_finales(request, torneo_id):
 
     if request.method == 'POST' and request.POST.get('accion') == 'guardar_db':
         with transaction.atomic():
-            # Finales y Tercer lugar se juegan a partido único SIEMPRE.
             Partido.objects.create(torneo=torneo, etapa='TERC', equipo_local=perdedores[0], equipo_visita=perdedores[1], numero_fecha=1)
             Partido.objects.create(torneo=torneo, etapa='FINAL', equipo_local=ganadores[0], equipo_visita=ganadores[1], numero_fecha=1)
 
@@ -2731,6 +2304,7 @@ def importar_equipo_existente(request, torneo_nuevo_id):
 
                 for j in jugadores_viejos:
                     if not getattr(j, 'esta_sancionado', False):
+                        j.pk = None
                         j.equipo = nuevo_equipo
                         j.rojas_directas_acumuladas = 0
                         j.partidos_suspension = 0
@@ -2757,13 +2331,9 @@ def revertir_transicion(request, torneo_id):
     torneo = get_object_or_404(Torneo, id=torneo_id)
     
     with transaction.atomic():
-        # 1. Borrar todos los partidos que NO sean de Fase 1
         Partido.objects.filter(torneo=torneo, etapa__in=['F2', '4TOS', 'SEMI', 'TERC', 'FINAL']).delete()
-        
-        # 2. Resetear los grupos y bonificaciones de los equipos (Volver a Fase 1)
         Equipo.objects.filter(torneo=torneo).update(grupo_fase2="", puntos_bonificacion=0)
         
-        # 3. Quitar los bloqueos de Ida y Vuelta de las fases eliminatorias
         torneo.fase2_ida_vuelta = False
         torneo.fase3_ida_vuelta = False
         torneo.save()
@@ -2786,13 +2356,9 @@ def activar_vuelta_f1(request, torneo_id):
 def cambiar_formato_fase1(request, torneo_id):
     torneo = get_object_or_404(Torneo, id=torneo_id)
     
-    # Si queremos DESACTIVAR la vuelta (volver a Solo Ida)
     if torneo.fase1_ida_vuelta:
-        # 🛡️ PROTECCIÓN: Calculamos cuántas fechas son la ida
         total_equipos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO').count()
         fechas_ida = total_equipos - 1 if total_equipos % 2 == 0 else total_equipos
-        
-        # ¿Existen ya partidos de vuelta programados?
         hay_vuelta = Partido.objects.filter(torneo=torneo, etapa='F1', numero_fecha__gt=fechas_ida).exists()
         
         if hay_vuelta:
@@ -2801,8 +2367,6 @@ def cambiar_formato_fase1(request, torneo_id):
             torneo.fase1_ida_vuelta = False
             torneo.save()
             messages.success(request, "✅ Formato restaurado a: SOLO IDA.")
-    
-    # Si queremos ACTIVAR la vuelta
     else:
         torneo.fase1_ida_vuelta = True
         torneo.save()
@@ -2810,12 +2374,8 @@ def cambiar_formato_fase1(request, torneo_id):
 
     return redirect(f"/programar/?torneo={torneo.id}")
 
-
 def buscar_jugador_api(request, cedula):
-    # Buscamos si existe algún jugador con esa cédula en la historia del sistema
-    # Usamos .first() ordenado por id descendente para traer su registro más reciente
     jugador = Jugador.objects.filter(cedula=cedula).order_by('-id').first()
-    
     if jugador:
         return JsonResponse({
             'encontrado': True,
@@ -2831,16 +2391,12 @@ def buscar_jugador_api(request, cedula):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_categorias(request):
-    from .models import Categoria 
-    
     if request.method == 'POST':
         nombre_categoria = request.POST.get('nombre')
-        color_elegido = request.POST.get('color_carnet') # <- Capturamos el color del formulario
+        color_elegido = request.POST.get('color_carnet') 
         
         if nombre_categoria:
-            # Validamos que no exista una con el mismo nombre
             if not Categoria.objects.filter(nombre__iexact=nombre_categoria).exists():
-                # 🔥 Guardamos la categoría junto con su color
                 Categoria.objects.create(nombre=nombre_categoria, color_carnet=color_elegido)
                 messages.success(request, f"✅ Categoría '{nombre_categoria}' creada exitosamente.")
             else:
@@ -2851,29 +2407,22 @@ def gestionar_categorias(request):
         return redirect('gestionar_categorias')
         
     categorias = Categoria.objects.all().order_by('nombre')
-    
-    return render(request, 'core/gestionar_categorias.html', {
-        'categorias': categorias
-    })
+    return render(request, 'core/gestionar_categorias.html', {'categorias': categorias})
 
 @login_required
 @user_passes_test(es_organizador)
 def editar_categoria(request, categoria_id):
-    from .models import Categoria
     categoria = get_object_or_404(Categoria, id=categoria_id)
     
     if request.method == 'POST':
         nuevo_nombre = request.POST.get('nombre')
-        nuevo_color = request.POST.get('color_carnet') # Capturamos el color del formulario
+        nuevo_color = request.POST.get('color_carnet') 
         
         if nuevo_nombre:
             if not Categoria.objects.filter(nombre__iexact=nuevo_nombre).exclude(id=categoria.id).exists():
                 categoria.nombre = nuevo_nombre
-                
-                # Guardamos el nuevo color si viene en el formulario
                 if nuevo_color:
                     categoria.color_carnet = nuevo_color
-                    
                 categoria.save()
                 messages.success(request, f"✅ Categoría actualizada a '{nuevo_nombre}'.")
             else:
@@ -2889,14 +2438,11 @@ def editar_categoria(request, categoria_id):
 @login_required
 @user_passes_test(es_organizador)
 def eliminar_categoria(request, categoria_id):
-    from .models import Categoria
     categoria = get_object_or_404(Categoria, id=categoria_id)
-    
     try:
         categoria.delete()
         messages.success(request, "✅ Categoría eliminada correctamente.")
     except Exception as e:
-        # Esto nos protege por si intentas borrar una categoría que ya tiene torneos asignados
         messages.error(request, "⛔ No se pudo eliminar la categoría porque ya tiene torneos o equipos vinculados.")
         
     return redirect('gestionar_categorias')
@@ -2906,10 +2452,7 @@ def eliminar_categoria(request, categoria_id):
 # =========================================================
 @login_required
 def imprimir_carnets(request, equipo_id):
-    from .models import Equipo, Jugador
-    
     equipo = get_object_or_404(Equipo, id=equipo_id)
-    # 🔥 AQUI ESTÁ EL CAMBIO: cambiamos 'numero' por 'dorsal'
     jugadores = Jugador.objects.filter(equipo=equipo, expulsado_torneo=False).order_by('dorsal')
     
     color_cat = "#1D4ED8" 
@@ -2931,15 +2474,13 @@ def imprimir_carnets(request, equipo_id):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_configuracion(request):
-    # Obtenemos la configuración principal (el ID 1) o la creamos si no existe
     config, created = Configuracion.objects.get_or_create(id=1) 
     
     if request.method == 'POST':
-        # El parámetro request.FILES es vital para procesar imágenes
         form = ConfiguracionForm(request.POST, request.FILES, instance=config)
         if form.is_valid():
             form.save()
-            messages.success(request, '✅ Configuración y Logo actualizados correctamente.')
+            messages.success(request, '✅ Configuración actualizada correctamente.')
             return redirect('dashboard')
     else:
         form = ConfiguracionForm(instance=config)
@@ -2947,25 +2488,7 @@ def gestionar_configuracion(request):
     return render(request, 'core/gestionar_configuracion.html', {'form': form})
 
 @login_required
-def rechazar_reserva_admin(request, reserva_id):
-    # Por seguridad, verificamos que solo el Organizador pueda hacer esto
-    if request.user.perfil.rol != 'ORG':
-        messages.error(request, 'No tienes permisos para realizar esta acción.')
-        return redirect('dashboard')
-        
-    reserva = get_object_or_404(ReservaCancha, id=reserva_id)
-    
-    # Eliminamos la reserva de la base de datos
-    reserva.delete()
-    
-    messages.success(request, '❌ Reserva rechazada y eliminada correctamente.')
-    
-    # Lo regresamos a la pantalla donde estaba (al Dashboard o a Solicitudes)
-    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
-
-@login_required
 def revertir_cobro_sancion(request, sancion_id):
-    # Verificamos que sea Organizador o Vocal
     if request.user.perfil.rol not in ['ORG', 'VOC']:
         messages.error(request, "No tienes permisos para realizar esta acción.")
         return redirect('dashboard')
@@ -2975,24 +2498,17 @@ def revertir_cobro_sancion(request, sancion_id):
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                # 1. Buscamos SOLAMENTE el último abono registrado para esta sanción
                 ultimo_abono = sancion.historial_abonos.order_by('-fecha', '-id').first()
                 
                 if ultimo_abono:
                     monto_a_reversar = ultimo_abono.monto
-                    
-                    # 2. Le restamos ese dinero a lo que ya había pagado
                     sancion.monto_pagado -= monto_a_reversar
                     
-                    # Si por seguridad matemática queda en negativo, lo forzamos a 0
                     if sancion.monto_pagado < Decimal('0.00'):
                         sancion.monto_pagado = Decimal('0.00')
                         
-                    # 3. Como le quitamos dinero, la deuda lógicamente ya no está 100% pagada
                     sancion.pagada = False
                     sancion.save()
-                    
-                    # 4. Eliminamos SOLO ese último registro de abono
                     ultimo_abono.delete()
                     
                     messages.success(request, f"🔄 Reverso exitoso: Se anuló el último abono de ${monto_a_reversar} para {sancion.equipo.nombre}.")
@@ -3002,5 +2518,41 @@ def revertir_cobro_sancion(request, sancion_id):
         except Exception as e:
             messages.error(request, f"Error al intentar reversar el pago: {str(e)}")
             
-    # Redirige a la misma página donde estaba el usuario
     return redirect(request.META.get('HTTP_REFERER', 'gestionar_finanzas'))
+
+# ---------------------------------------------------------
+# IMPORTANTE: VISTAS SAAS (PORTAL PÚBLICO)
+# ---------------------------------------------------------
+
+def landing_principal(request):
+    """ El inicio global de NEXUS SPORTOPS donde salen todas las canchas """
+    canchas = ComplejoDeportivo.objects.filter(activo=True)
+    config = Configuracion.objects.first() # Para sacar tu logo de NEXUS si lo subiste
+    
+    return render(request, 'core/landing_principal.html', {
+        'canchas': canchas, 
+        'config': config
+    })
+
+def portal_complejo(request, slug_complejo):
+    """ El inicio específico de CADA CANCHA (Público, sin login) """
+    complejo = get_object_or_404(ComplejoDeportivo, slug=slug_complejo)
+    
+    # Si la cancha no pagó, bloqueamos la vista (excepto para ti que eres superadmin)
+    if not complejo.esta_al_dia() and not request.user.is_superuser:
+        return render(request, 'core/suspendido.html', {'complejo': complejo})
+        
+    torneos_activos = complejo.torneos.filter(activo=True).order_by('categoria__nombre', '-fecha_inicio')
+    
+    # Preparamos el botón de WhatsApp del Organizador
+    url_whatsapp = None
+    if complejo.telefono_contacto:
+        mensaje = f"Hola {complejo.nombre}, vengo de NEXUS SPORTOPS y quisiera información sobre los torneos."
+        mensaje_codificado = urllib.parse.quote(mensaje)
+        url_whatsapp = f"https://wa.me/{complejo.telefono_contacto}?text={mensaje_codificado}"
+
+    return render(request, 'core/portal_publico.html', {
+        'complejo': complejo, 
+        'torneos': torneos_activos,
+        'url_whatsapp': url_whatsapp
+    })

@@ -1,14 +1,13 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Perfil, Torneo, Equipo, Jugador, Partido, Pago
 from django.core.exceptions import ValidationError
-from .models import ReservaCancha, Cupon
-from .models import HorarioCancha
-from .models import FotoGaleria, Publicidad
-from .models import Configuracion
-import requests
-from .models import Sancion
+
+# Importamos SOLO lo que sobrevivió a la limpieza SaaS
+from .models import (
+    Perfil, Torneo, Equipo, Jugador, Partido, Pago, 
+    Cupon, FotoGaleria, Configuracion, Sancion
+)
 
 # =====================================================
 # 1. CREAR USUARIOS
@@ -36,7 +35,6 @@ class RegistroUsuarioForm(UserCreationForm):
 class TorneoForm(forms.ModelForm):
     class Meta:
         model = Torneo
-        # 🧹 COMPLETAMENTE LIMPIO DE "CATEGORIA"
         fields = [
             'nombre', 
             'categoria', 
@@ -69,7 +67,7 @@ class TorneoForm(forms.ModelForm):
 class EquipoSolicitudForm(forms.ModelForm):
     class Meta:
         model = Equipo
-        fields = ['nombre', 'escudo', 'nombre_suplente_1', 'nombre_suplente_2'] 
+        fields = ['nombre', 'escudo', 'nombre_suplente_1', 'nombre_suplente_2', 'telefono_contacto'] 
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Los Rayados FC'}),
             'escudo': forms.FileInput(attrs={'class': 'form-control'}),
@@ -225,31 +223,6 @@ class RegistroPublicoForm(UserCreationForm):
             user.save()
         return user
     
-class ReservaCanchaForm(forms.ModelForm):
-    codigo_cupon = forms.CharField(required=False, widget=forms.TextInput(attrs={
-        'class': 'form-control', 'placeholder': '¿Tienes un código de descuento?'
-    }))
-
-    class Meta:
-        model = ReservaCancha
-        fields = ['fecha', 'hora_inicio', 'hora_fin']
-        widgets = {
-            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-            'hora_fin': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-        }
-
-class HorarioCanchaForm(forms.ModelForm):
-    class Meta:
-        model = HorarioCancha
-        fields = ['hora_inicio', 'hora_fin', 'precio', 'activo']
-        widgets = {
-            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-            'hora_fin': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-            'precio': forms.NumberInput(attrs={'step': '0.50', 'class': 'form-control', 'placeholder': 'Ej: 5.00'}),
-            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'})
-        }
-
 class FotoGaleriaForm(forms.ModelForm):
     class Meta:
         model = FotoGaleria
@@ -261,18 +234,8 @@ class FotoGaleriaForm(forms.ModelForm):
             'activa': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
 
-class PublicidadForm(forms.ModelForm):
-    enlace = forms.CharField(
-        required=False,
-        label="Número de WhatsApp o Link",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 0991234567 o un link a Facebook'})
-    )
-    class Meta:
-        model = Publicidad
-        fields = ['imagen', 'empresa', 'enlace', 'activa']
-
 # =====================================================
-# ✨ NUEVOS FORMULARIOS: TRASPASOS, CUPOS Y SANCIONES ✨
+# ✨ FORMULARIOS: TRASPASOS, CUPOS Y SANCIONES ✨
 # =====================================================
 
 class TraspasoJugadorForm(forms.Form):
@@ -293,7 +256,6 @@ class TraspasoJugadorForm(forms.Form):
         super().__init__(*args, **kwargs)
         
         if torneo_id and equipo_actual_id:
-            # 🛡️ Solo filtramos por equipos del MISMO torneo que estén aprobados
             equipos_validos = Equipo.objects.filter(
                 torneo_id=torneo_id, 
                 estado_inscripcion='APROBADO'
@@ -343,11 +305,14 @@ class SancionListaNegraForm(forms.ModelForm):
 class ConfiguracionForm(forms.ModelForm):
     class Meta:
         model = Configuracion
-        fields = ['logo_sistema', 'iva_porcentaje', 'precio_hora_cancha']
-        widgets = {
-            'logo_sistema': forms.FileInput(attrs={'class': 'form-control'}),
+        fields = ['iva_porcentaje']
+        labels = {
+            'iva_porcentaje': 'Porcentaje de IVA (%)'
         }
-
+        widgets = {
+            'iva_porcentaje': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
+        }
+        
 class SancionManualForm(forms.ModelForm):
     class Meta:
         model = Sancion

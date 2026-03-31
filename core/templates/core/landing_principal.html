@@ -1,0 +1,49 @@
+{% extends 'core/base.html' %}
+
+{% block title %}NEXUS SPORTOPS - Ligas y Torneos{% endblock %}
+
+{% block contenido %}
+<div class="container mt-5">
+    
+    <div class="text-center mb-5 animate__animated animate__fadeInDown">
+        <h1 class="display-4 fw-black text-white" style="font-weight: 900; letter-spacing: -1px;">
+            Encuentra tu <span class="brand-nexus">Cancha</span>
+        </h1>
+        <p class="text-muted fs-5 mt-3">Selecciona el complejo deportivo para ver las estadísticas, tablas y resultados en vivo.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        {% for cancha in canchas %}
+        <div class="col-md-6 col-lg-4 animate__animated animate__zoomIn" style="animation-delay: 0.{{ forloop.counter }}s;">
+            <div class="nexus-card h-100 text-center p-4" style="transition: all 0.3s; cursor: pointer;" onclick="window.location.href='{% url 'portal_complejo' cancha.slug %}'">
+                <div class="mb-4">
+                    {% if cancha.logo %}
+                        <img src="{{ cancha.logo.url }}" alt="{{ cancha.nombre }}" class="img-fluid rounded-circle shadow-lg" style="width: 120px; height: 120px; object-fit: cover; border: 3px solid var(--nexus-accent);">
+                    {% else %}
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center shadow-lg" style="width: 120px; height: 120px; background: var(--nexus-surface); border: 3px solid var(--nexus-accent);">
+                            <i class="bi bi-trophy-fill fs-1 text-white"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <h4 class="fw-bold text-white mb-1">{{ cancha.nombre }}</h4>
+                <p class="text-muted small mb-3"><i class="bi bi-geo-alt"></i> Sede Oficial</p>
+                <a href="{% url 'portal_complejo' cancha.slug %}" class="btn btn-outline-info rounded-pill px-4 fw-bold">Entrar al Portal <i class="bi bi-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center text-muted py-5">
+            <i class="bi bi-emoji-frown fs-1 d-block mb-3 opacity-50"></i>
+            <p class="fs-5">Aún no hay complejos deportivos afiliados a la plataforma.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .nexus-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 30px rgba(6, 182, 212, 0.2);
+        border-color: var(--nexus-accent);
+    }
+</style>
+{% endblock %}
