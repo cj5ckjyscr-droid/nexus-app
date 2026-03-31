@@ -3,52 +3,236 @@
 {% block title %}{{ complejo.nombre }} | Torneos{% endblock %}
 
 {% block contenido %}
-<div class="container-fluid mb-5 py-5" style="background: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.9)), url('{% if complejo.logo %}{{ complejo.logo.url }}{% endif %}') center/cover; border-bottom: 2px solid var(--nexus-primary);">
-    <div class="container text-center animate__animated animate__fadeIn">
+<style>
+    /* =========================================================
+       ESTILOS DEL PORTAL (MINIMALISTA, COMPACTO Y MÓVIL-FIRST)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed;
+        top: -10%; left: -10%;
+        width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 900;
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        color: #0F172A;
+    }
+
+    .fey-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid #E2E8F0;
+        padding: 6px 16px;
+        border-radius: 100px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: #475569;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .fey-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0;
+        border-radius: 20px;
+        padding: 30px;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    .fey-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.06);
+        border-color: #CBD5E1;
+        background: #FFFFFF;
+    }
+
+    /* Tarjeta VIP para Dirigentes */
+    .vip-card {
+        background: linear-gradient(145deg, #FFFFFF, #F8FAFC);
+        border: 2px solid var(--brand-primary);
+        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.1);
+    }
+
+    /* Botones de acción dentro de la tarjeta (Compactos) */
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        color: #0F172A;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 10px 16px;
+        border-radius: 12px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .action-btn:hover {
+        background: #FFFFFF;
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.1);
+        transform: translateY(-1px);
+    }
+
+    /* Animaciones */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    @keyframes revealUpAnim {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 576px) {
+        .fey-card { padding: 20px; border-radius: 16px; }
+        .action-btn { padding: 8px 12px; font-size: 0.8rem; }
+        .logo-cancha { width: 70px !important; height: 70px !important; }
+    }
+</style>
+
+<div class="ambient-glow"></div>
+
+<div class="container text-center pt-5 pb-4 reveal-up">
+    
+    <div class="mb-3">
         {% if complejo.logo %}
-            <img src="{{ complejo.logo.url }}" alt="Logo" class="rounded-3 shadow-lg mb-3" style="height: 100px; border: 2px solid var(--nexus-border);">
+            <div class="d-inline-block p-1 bg-white rounded-circle shadow-sm border border-light">
+                <img src="{{ complejo.logo.url }}" alt="Logo {{ complejo.nombre }}" class="rounded-circle logo-cancha" style="width: 90px; height: 90px; object-fit: cover;">
+            </div>
+        {% else %}
+            <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow-sm border border-light logo-cancha" style="width: 90px; height: 90px;">
+                <i class="bi bi-trophy-fill fs-1 text-primary"></i>
+            </div>
         {% endif %}
-        <h1 class="display-5 fw-black text-white mb-2">{{ complejo.nombre }}</h1>
-        <p class="text-info fw-bold mb-4">Portal Estadístico Oficial</p>
-        
-        {% if url_whatsapp %}
-            <a href="{{ url_whatsapp }}" target="_blank" class="btn btn-success fw-bold rounded-pill px-4 shadow-lg">
-                <i class="bi bi-whatsapp me-2"></i> Contactar al Organizador
+    </div>
+
+    <h1 class="fey-title mb-3">{{ complejo.nombre }}</h1>
+    
+    <div class="fey-pill mx-auto mb-4">
+        <span class="bg-success rounded-circle animate__animated animate__pulse animate__infinite" style="width: 8px; height: 8px;"></span>
+        Portal Estadístico Oficial
+    </div>
+    
+    {% if url_whatsapp %}
+        <div>
+            <a href="{{ url_whatsapp }}" target="_blank" class="btn btn-dark fw-bold rounded-pill px-4 py-2 shadow-sm" style="font-size: 0.9rem;">
+                <i class="bi bi-whatsapp text-success me-1"></i> Contactar Organizador
             </a>
-        {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<div class="container mb-5 reveal-up delay-1" style="max-width: 800px;">
+    <div class="fey-card vip-card p-3 p-md-4 flex-md-row justify-content-between align-items-center text-center text-md-start">
+        <div class="d-flex flex-column flex-md-row align-items-center gap-3 mb-3 mb-md-0">
+            <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center text-primary shadow-sm" style="width: 50px; height: 50px; min-width: 50px;">
+                <i class="bi bi-shield-shaded fs-4"></i>
+            </div>
+            <div>
+                {% if not user.is_authenticated %}
+                    <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">¿Eres Dirigente de un Equipo?</h5>
+                    <p class="text-muted small m-0">Inicia sesión para gestionar tus jugadores, carnets y verificar deudas.</p>
+                {% else %}
+                    <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Hola, {{ user.first_name|default:user.username }}</h5>
+                    <p class="text-muted small m-0">Accede a tu panel para administrar tu equipo.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="mt-2 mt-md-0">
+            {% if not user.is_authenticated %}
+                <a href="{% url 'login' %}" class="btn btn-nexus rounded-pill px-4 fw-bold shadow-sm w-100">
+                    Iniciar Sesión <i class="bi bi-box-arrow-in-right ms-1"></i>
+                </a>
+            {% else %}
+                <a href="{% url 'dashboard' %}" class="btn btn-nexus rounded-pill px-4 fw-bold shadow-sm w-100">
+                    Ir a mi Panel <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-<div class="container">
-    <h3 class="fw-black text-white mb-4"><i class="bi bi-trophy-fill me-2" style="color: var(--nexus-primary);"></i> Torneos Activos</h3>
+<div class="container pb-5 reveal-up delay-2">
     
-    <div class="row g-4">
+    <div class="d-flex align-items-center mb-4 px-2">
+        <h4 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">
+            <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Torneos Activos
+        </h4>
+    </div>
+    
+    <div class="row g-3 g-md-4">
         {% for torneo in torneos %}
-        <div class="col-md-6 col-xl-4">
-            <div class="nexus-card h-100">
-                <div class="nexus-card-header d-flex justify-content-between align-items-center">
-                    <span class="badge bg-primary">{{ torneo.categoria.nombre|default:"Libre" }}</span>
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="fey-card">
+                
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge bg-slate-50 text-slate-600 border border-secondary border-opacity-25 px-2 py-1 rounded-2">
+                        {{ torneo.categoria.nombre|default:"Libre" }}
+                    </span>
+                    
                     {% if torneo.inscripcion_abierta %}
-                        <span class="badge bg-success bg-opacity-25 text-success border border-success">Inscripciones Abiertas</span>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-2">
+                            Abiertas
+                        </span>
                     {% else %}
-                        <span class="badge bg-secondary">En Juego</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-2">
+                            En Juego
+                        </span>
                     {% endif %}
                 </div>
-                <div class="card-body p-4 text-center">
-                    <h5 class="fw-bold text-white mb-3">{{ torneo.nombre }}</h5>
+                
+                <h5 class="fw-black text-dark mb-4" style="font-family: 'Outfit', sans-serif; line-height: 1.3;">
+                    {{ torneo.nombre }}
+                </h5>
+                
+                <div class="mt-auto d-flex flex-column gap-2">
+                    <a href="{% url 'tabla_posiciones' torneo.id %}" class="action-btn">
+                        <i class="bi bi-list-ol text-primary fs-6"></i> Posiciones y Resultados
+                    </a>
                     
-                    <div class="d-grid gap-2">
-                        <a href="{% url 'tabla_posiciones' torneo.id %}" class="btn btn-outline-light fw-bold"><i class="bi bi-list-ol"></i> Ver Posiciones</a>
-                        <a href="{% url 'proxima_jornada' torneo.id %}" class="btn btn-outline-info fw-bold"><i class="bi bi-calendar-event"></i> Ver Calendario</a>
-                        <a href="{% url 'tabla_goleadores' torneo.id %}" class="btn btn-outline-warning fw-bold"><i class="bi bi-heptagon-fill"></i> Goleadores</a>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'proxima_jornada' torneo.id %}" class="action-btn w-100">
+                                <i class="bi bi-calendar-event text-info"></i> Fixture
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'tabla_goleadores' torneo.id %}" class="action-btn w-100">
+                                <i class="bi bi-heptagon-fill text-warning"></i> Goleadores
+                            </a>
+                        </div>
                     </div>
                 </div>
+
             </div>
         </div>
         {% empty %}
-        <div class="col-12 text-center text-muted py-5 border rounded-4 border-secondary border-opacity-25">
-            <i class="bi bi-hourglass-split fs-1 d-block mb-3"></i>
-            <p>No hay torneos activos en este complejo por el momento.</p>
+        <div class="col-12 text-center py-5">
+            <div class="fey-card mx-auto" style="max-width: 400px; background: transparent; box-shadow: none; border-style: dashed;">
+                <i class="bi bi-hourglass-split fs-1 text-slate-600 opacity-25 d-block mb-3"></i>
+                <h5 class="fw-bold text-dark">Sin torneos activos</h5>
+                <p class="text-muted small m-0">Este complejo aún no ha publicado sus torneos.</p>
+            </div>
         </div>
         {% endfor %}
     </div>

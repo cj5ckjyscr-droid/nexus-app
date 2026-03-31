@@ -6,7 +6,8 @@ from django.core.exceptions import ValidationError
 # Importamos SOLO lo que sobrevivió a la limpieza SaaS
 from .models import (
     Perfil, Torneo, Equipo, Jugador, Partido, Pago, 
-    Cupon, FotoGaleria, Configuracion, Sancion
+    Cupon, FotoGaleria, Configuracion, Sancion,
+    ComplejoDeportivo, PlanSuscripcion, PagoSuscripcionSaaS
 )
 
 # =====================================================
@@ -312,7 +313,7 @@ class ConfiguracionForm(forms.ModelForm):
         widgets = {
             'iva_porcentaje': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
         }
-        
+
 class SancionManualForm(forms.ModelForm):
     class Meta:
         model = Sancion
@@ -326,4 +327,46 @@ class SancionManualForm(forms.ModelForm):
         labels = {
             'monto': 'Monto de la Deuda ($)',
             'descripcion': 'Motivo / Detalle de la Deuda'
+        }
+
+# =====================================================
+# ✨ FORMULARIOS DEL DUEÑO DEL SOFTWARE (SaaS) ✨
+# =====================================================
+
+class PlanSuscripcionForm(forms.ModelForm):
+    class Meta:
+        model = PlanSuscripcion
+        fields = ['nombre', 'costo_inscripcion', 'precio_mensual', 'max_torneos', 'max_categorias_por_torneo']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Plan Premium'}),
+            'costo_inscripcion': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Costo del primer mes'}),
+            'precio_mensual': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Costo a partir del segundo mes'}),
+            'max_torneos': forms.NumberInput(attrs={'class': 'form-control'}),
+            'max_categorias_por_torneo': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+        
+class ComplejoDeportivoForm(forms.ModelForm):
+    class Meta:
+        model = ComplejoDeportivo
+        fields = ['nombre', 'slug', 'organizador', 'plan', 'activo', 'fecha_vencimiento', 'logo', 'telefono_contacto']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la Cancha'}),
+            'slug': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'nombre-sin-espacios'}),
+            'organizador': forms.Select(attrs={'class': 'form-select'}),
+            'plan': forms.Select(attrs={'class': 'form-select'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input ms-2'}),
+            'fecha_vencimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'logo': forms.FileInput(attrs={'class': 'form-control'}),
+            'telefono_contacto': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '09...'})
+        }
+        
+class PagoSaaSForm(forms.ModelForm):
+    class Meta:
+        model = PagoSuscripcionSaaS
+        fields = ['complejo', 'monto', 'meses_pagados', 'observacion']
+        widgets = {
+            'complejo': forms.Select(attrs={'class': 'form-select'}),
+            'monto': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'meses_pagados': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'observacion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Pago en efectivo'}),
         }

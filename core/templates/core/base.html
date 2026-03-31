@@ -6,217 +6,204 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}{% if complejo %}{{ complejo.nombre }}{% else %}NEXUS SPORTOPS{% endif %}{% endblock %}</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     
     <style>
         :root {
-            /* --- PALETA NEXUS 2026 (CLARA, VIBRANTE Y CON ALTO CONTRASTE) --- */
-            --bg-main: #F4F7FB;            /* Fondo general gris azulado muy suave */
-            --surface-white: #FFFFFF;      /* Blanco puro para las tarjetas */
-            --primary-indigo: #4338CA;     /* Índigo vibrante (Principal) */
-            --primary-cyan: #0284C7;       /* Cyan profundo para contrastes */
-            --text-dark: #0F172A;          /* Azul marino casi negro para textos (ALTO CONTRASTE) */
-            --text-muted: #475569;         /* Gris oscuro para subtítulos */
-            --border-soft: #E2E8F0;        /* Bordes ultra finos */
+            /* --- PALETA MINIMALISTA SAAS --- */
+            --bg-app: #F3F6F8;             /* Fondo gris técnico muy sutil */
+            --bg-surface: #FFFFFF;         /* Blanco puro para contenedores */
+            --text-main: #0F172A;          /* Slate 900: Casi negro, elegante y muy legible */
+            --text-soft: #64748B;          /* Slate 500: Gris medio para subtítulos */
+            --border-light: #E2E8F0;       /* Bordes muy delicados */
             
-            /* Sombras modernas (suaves y amplias) */
-            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
-            --shadow-hover: 0 20px 40px -10px rgba(67, 56, 202, 0.2);
+            /* Acentos */
+            --brand-primary: #4F46E5;      /* Índigo profundo y profesional */
+            --brand-hover: #4338CA;
+            
+            /* Sombras Minimalistas */
+            --shadow-float: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.01);
+            --shadow-nav: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+            
+            /* Radios de borde modernos pero estructurados */
+            --radius-md: 12px;
+            --radius-btn: 8px;
         }
 
         body {
-            background-color: var(--bg-main);
-            color: var(--text-dark);
+            background-color: var(--bg-app);
+            color: var(--text-main);
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.01em;
         }
 
         h1, h2, h3, h4, h5, .brand-text, .btn-nexus {
             font-family: 'Outfit', sans-serif;
-            letter-spacing: -0.5px;
-            color: var(--text-dark);
+            letter-spacing: -0.02em;
+            color: var(--text-main);
         }
 
-        /* --- NAVBAR GLASSMORPHISM (Cristal Claro con Letras Oscuras) --- */
+        /* --- NAVBAR MINIMALISTA --- */
         .navbar-custom {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-soft);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
-            padding: 0.8rem 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border-light);
+            box-shadow: var(--shadow-nav);
+            padding: 0.6rem 0;
+            transition: all 0.3s ease;
         }
 
         .brand-logo-img {
-            height: 42px;
+            height: 38px;
             width: auto;
-            border-radius: 10px;
+            border-radius: 8px;
             margin-right: 12px;
-            box-shadow: var(--shadow-sm);
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        .navbar-brand:hover .brand-logo-img {
-            transform: scale(1.08) rotate(-3deg);
+            border: 1px solid var(--border-light);
         }
 
         .brand-text {
-            font-weight: 900;
-            font-size: 1.4rem;
-            letter-spacing: 0px;
-            background: linear-gradient(135deg, var(--primary-indigo) 0%, var(--primary-cyan) 100%);
+            font-weight: 800;
+            font-size: 1.3rem;
+            /* Degradado sutil para la marca */
+            background: linear-gradient(90deg, #0F172A 0%, #4F46E5 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        /* Enlaces del menú (Textos Oscuros para Alto Contraste) */
+        /* Enlaces del menú */
         .nav-link {
-            font-weight: 600;
-            color: var(--text-muted) !important;
-            transition: all 0.3s ease;
-            padding: 0.5rem 1.2rem !important;
-            border-radius: 50px;
+            font-weight: 500;
+            color: var(--text-soft) !important;
+            transition: color 0.2s ease;
+            padding: 0.5rem 1rem !important;
             font-size: 0.95rem;
         }
-        
         .nav-link:hover, .nav-link.active {
-            color: var(--primary-indigo) !important;
-            background: rgba(67, 56, 202, 0.08);
+            color: var(--brand-primary) !important;
+        }
+
+        /* --- BOTONES SAAS --- */
+        .btn-nexus {
+            background-color: var(--brand-primary);
+            color: #FFFFFF !important;
+            border: none;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border-radius: var(--radius-btn);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+        }
+        .btn-nexus:hover {
+            background-color: var(--brand-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-outline-nexus {
+            background-color: transparent;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-light);
+            font-weight: 500;
+            padding: 0.5rem 1.5rem;
+            border-radius: var(--radius-btn);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        .btn-outline-nexus:hover {
+            background-color: #F8FAFC;
+            border-color: #CBD5E1;
+            color: var(--text-main) !important;
+        }
+
+        /* --- MENÚ DESPLEGABLE (Dropdown) --- */
+        .dropdown-menu {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-float);
+            border-radius: var(--radius-md);
+            padding: 0.5rem;
+            margin-top: 0.5rem !important;
+        }
+        .dropdown-item {
+            color: var(--text-main);
+            font-weight: 500;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            transition: background-color 0.15s;
+        }
+        .dropdown-item:hover {
+            background-color: #F1F5F9;
+            color: var(--brand-primary);
         }
 
         /* --- CONTENEDOR PRINCIPAL --- */
         .main-content {
             flex: 1;
-            margin-top: 100px;
+            margin-top: 90px;
             padding-bottom: 60px;
         }
 
-        /* --- TARJETAS MODERNAS (Blancas, redondas y textos oscuros) --- */
-        .card-pro {
-            border: 1px solid var(--border-soft);
-            border-radius: 20px;
-            background: var(--surface-white);
-            box-shadow: var(--shadow-md);
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-            overflow: hidden;
-            color: var(--text-dark);
-        }
-        
-        .card-pro:hover {
-            transform: translateY(-6px);
-            box-shadow: var(--shadow-hover);
-            border-color: rgba(67, 56, 202, 0.3);
-        }
-
-        /* --- BOTONES NEXUS 2026 --- */
-        .btn-nexus {
-            background: linear-gradient(135deg, var(--primary-indigo), var(--primary-cyan));
-            color: #ffffff !important; /* El texto del botón principal SÍ es blanco porque el fondo es oscuro/vibrante */
-            border: none;
-            font-weight: 700;
-            padding: 10px 24px;
-            border-radius: 50px; 
-            font-size: 0.95rem;
-            box-shadow: 0 4px 15px rgba(67, 56, 202, 0.3);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        .btn-nexus:hover {
-            filter: brightness(1.15);
-            box-shadow: 0 8px 25px rgba(2, 132, 199, 0.4);
-            transform: translateY(-2px) scale(1.02);
-        }
-
-        .btn-outline-nexus {
-            background: var(--surface-white);
-            color: var(--primary-indigo) !important;
-            border: 2px solid var(--primary-indigo);
-            font-weight: 700;
-            padding: 8px 22px;
-            border-radius: 50px;
-            transition: all 0.3s ease;
-        }
-        .btn-outline-nexus:hover {
-            background: var(--primary-indigo);
-            color: #ffffff !important;
-            box-shadow: 0 4px 15px rgba(67, 56, 202, 0.3);
-        }
-
-        /* --- MENÚ DESPLEGABLE (Dropdown Blanco con Letras Negras) --- */
-        .dropdown-menu {
-            background-color: var(--surface-white);
-            border: 1px solid var(--border-soft);
-            box-shadow: var(--shadow-md);
-            border-radius: 16px;
-            padding: 10px;
-        }
-        .dropdown-item {
-            color: var(--text-dark);
-            font-weight: 600;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        .dropdown-item:hover {
-            background-color: rgba(67, 56, 202, 0.08);
-            color: var(--primary-indigo);
-        }
-
-        /* --- FOOTER LUMINOSO --- */
+        /* --- FOOTER MINIMALISTA --- */
         .footer-pro {
-            background: var(--surface-white);
-            color: var(--text-muted);
-            text-align: center;
+            background-color: var(--bg-surface);
+            border-top: 1px solid var(--border-light);
             padding: 2rem 0;
             margin-top: auto;
-            font-size: 0.95rem;
-            border-top: 1px solid var(--border-soft);
         }
 
-        /* --- BOTÓN FLOTANTE WSP --- */
+        /* --- BOTÓN WHATSAPP --- */
         .btn-flotante-wsp {
             position: fixed;
-            width: 60px;
-            height: 60px;
+            width: 54px;
+            height: 54px;
             bottom: 30px;
             right: 30px;
-            background: linear-gradient(135deg, #25D366, #128C7E);
-            color: #FFF;
+            background-color: #25D366;
+            color: #FFFFFF;
             border-radius: 50%;
-            text-align: center;
-            font-size: 30px;
-            box-shadow: 0px 10px 20px rgba(37, 211, 102, 0.3);
-            z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            font-size: 26px;
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+            z-index: 1000;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             text-decoration: none;
-            border: 3px solid #fff;
         }
         .btn-flotante-wsp:hover {
-            transform: scale(1.15) translateY(-5px) rotate(10deg);
-            box-shadow: 0px 15px 25px rgba(37, 211, 102, 0.5);
-            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(37, 211, 102, 0.4);
+            color: #FFFFFF;
         }
 
-        /* Responsive */
+        /* --- ALERTAS TOAST (Estilo Notificación Mac) --- */
+        .toast {
+            background-color: var(--bg-surface) !important;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-float);
+            color: var(--text-main) !important;
+        }
+
         @media (max-width: 991px) {
             .navbar-collapse {
-                background: rgba(255, 255, 255, 0.95);
-                border-radius: 16px;
-                padding: 15px;
-                box-shadow: var(--shadow-md);
-                margin-top: 10px;
+                background: var(--bg-surface);
+                border: 1px solid var(--border-light);
+                border-radius: var(--radius-md);
+                padding: 1rem;
+                margin-top: 0.5rem;
+                box-shadow: var(--shadow-float);
             }
-            .btn-nexus { width: 100%; margin-bottom: 10px; }
+            .btn-nexus, .btn-outline-nexus { width: 100%; margin-bottom: 0.5rem; text-align: center; }
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -233,28 +220,34 @@
                     {% else %}
                         <i class="bi bi-geo-alt-fill text-primary me-2 fs-4"></i>
                     {% endif %}
-                    <span class="brand-text fs-5" style="color: var(--text-dark) !important; background: none; -webkit-text-fill-color: var(--text-dark);">{{ complejo.nombre }}</span>
+                    <span class="brand-text" style="background: none; -webkit-text-fill-color: var(--text-main);">{{ complejo.nombre }}</span>
                 {% else %}
                     {% if config.logo_sistema %}
                         <img src="{{ config.logo_sistema.url }}" alt="Logo Nexus" class="brand-logo-img">
                     {% else %}
-                        <i class="bi bi-hurricane me-2 fs-3" style="color: var(--primary-indigo);"></i>
+                        <i class="bi bi-layers-fill me-2 fs-4" style="color: var(--brand-primary);"></i>
                     {% endif %}
                     <span class="brand-text">NEXUS SPORTOPS</span>
                 {% endif %}
             </a>
             
-            <button class="navbar-toggler border-0 p-2 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <i class="bi bi-list fs-1 text-dark"></i>
+            <button class="navbar-toggler border-0 p-1 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="bi bi-list fs-2 text-dark"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-lg-center gap-2 mt-3 mt-lg-0">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
                     
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold {% if request.resolver_match.url_name == 'precios_publicos' %}text-primary{% endif %}" href="{% url 'precios_publicos' %}">
+                            Planes y Precios
+                        </a>
+                    </li>
+
                     {% if complejo %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'portal_complejo' %}active{% endif %}" href="{% url 'portal_complejo' complejo.slug %}">
-                                <i class="bi bi-trophy-fill me-1"></i> Torneos
+                                Torneos
                             </a>
                         </li>
                     {% endif %}
@@ -262,34 +255,28 @@
                     {% if user.is_authenticated %}
                         
                         {% if user.is_superuser %}
-                            <li class="nav-item">
-                                <a class="nav-link text-primary fw-bold" href="/admin/">
-                                    <i class="bi bi-rocket-takeoff-fill me-1"></i> Panel SaaS (Mensualidades)
-                                </a>
-                            </li>
-                        {% endif %}
-
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
-                                <i class="bi bi-grid-fill me-1"></i> Dashboard
-                            </a>
-                        </li>
-
-                        {% if user.perfil.rol == 'ORG' or user.is_superuser %}
-                            <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_equipos' %}"><i class="bi bi-shield-shaded me-1"></i> Equipos</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_finanzas' %}"><i class="bi bi-wallet2 me-1"></i> Finanzas del Torneo</a></li>
+                            <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'dashboard_saas' %}">Control SaaS</a></li>
+                            <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_canchas_saas' %}">Canchas</a></li>
+                            <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_planes_saas' %}">Planes</a></li>
+                            
+                        {% elif user.perfil.rol == 'ORG' %}
+                            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Panel</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_equipos' %}">Equipos</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_finanzas' %}">Finanzas</a></li>
+                        {% elif user.perfil.rol == 'DIR' %}
+                            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Mi Equipo</a></li>
                         {% endif %}
 
                         <li class="nav-item dropdown ms-lg-2 mt-2 mt-lg-0">
-                            <a class="nav-link dropdown-toggle btn btn-outline-nexus px-4 d-flex align-items-center justify-content-center" href="#" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle me-2 fs-5"></i>
+                            <a class="nav-link dropdown-toggle btn-outline-nexus d-flex align-items-center justify-content-center" href="#" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle me-2"></i>
                                 {{ user.username|capfirst }}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-soft rounded-4 mt-2 p-2">
+                            <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
-                                    <form action="{% url 'logout' %}" method="post">
+                                    <form action="{% url 'logout' %}" method="post" class="m-0">
                                         {% csrf_token %}
-                                        <button type="submit" class="dropdown-item text-danger fw-bold py-2">
+                                        <button type="submit" class="dropdown-item text-danger d-flex align-items-center">
                                             <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
                                         </button>
                                     </form>
@@ -297,9 +284,9 @@
                             </ul>
                         </li>
                     {% else %}
-                        <li class="nav-item ms-lg-3 d-flex flex-column flex-lg-row gap-2 mt-2 mt-lg-0">
-                            <a class="btn btn-outline-nexus" href="{% url 'login' %}">Iniciar Sesión</a>
-                            <a class="btn btn-nexus" href="{% url 'registro_publico' %}">Crear Cuenta</a>
+                        <li class="nav-item ms-lg-3 d-flex flex-column flex-lg-row gap-2 mt-3 mt-lg-0">
+                            <a class="btn-outline-nexus" href="{% url 'login' %}">Iniciar Sesión</a>
+                            <a class="btn-nexus" href="{% url 'registro_publico' %}">Crear Cuenta</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -308,25 +295,24 @@
     </nav>
 
     {% if messages %}
-    <div class="toast-container position-fixed end-0 p-3" style="top: 90px; z-index: 1090;">
+    <div class="toast-container position-fixed end-0 p-3" style="top: 80px; z-index: 1090;">
         {% for message in messages %}
-            <div class="toast align-items-center shadow-lg mb-3" role="alert" aria-live="assertive" aria-atomic="true" style="background: var(--surface-white); border: 1px solid var(--border-soft);">
+            <div class="toast align-items-center mb-3 border-start border-4 {% if message.tags == 'error' %}border-danger{% elif message.tags == 'success' %}border-success{% elif message.tags == 'warning' %}border-warning{% else %}border-primary{% endif %}" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex p-2">
-                    <div class="toast-body fw-bold fs-6 text-dark">
+                    <div class="toast-body fw-medium fs-6 text-dark d-flex align-items-center">
                         {% if message.tags == 'error' %}
-                            <i class="bi bi-x-circle-fill fs-4 me-2 text-danger align-middle"></i>
+                            <i class="bi bi-x-circle text-danger fs-5 me-2"></i>
                         {% elif message.tags == 'success' %}
-                            <i class="bi bi-check-circle-fill fs-4 me-2 text-success align-middle"></i>
+                            <i class="bi bi-check2-circle text-success fs-5 me-2"></i>
                         {% elif message.tags == 'warning' %}
-                            <i class="bi bi-exclamation-circle-fill fs-4 me-2 text-warning align-middle"></i>
+                            <i class="bi bi-exclamation-circle text-warning fs-5 me-2"></i>
                         {% else %}
-                            <i class="bi bi-info-circle-fill fs-4 me-2 text-info align-middle"></i>
+                            <i class="bi bi-info-circle text-primary fs-5 me-2"></i>
                         {% endif %}
-                        <span class="align-middle">{{ message }}</span>
+                        {{ message }}
                     </div>
                     <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
                 </div>
-                <div style="height: 4px; width: 100%; background: linear-gradient(90deg, var(--primary-indigo), var(--primary-cyan)); border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;"></div>
             </div>
         {% endfor %}
     </div>
@@ -339,23 +325,17 @@
     <footer class="footer-pro">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                    <span class="fw-black text-dark fs-5" style="font-family: 'Outfit', sans-serif;">NEXUS SPORTOPS</span>
+                <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
+                    <span class="fw-bold text-dark fs-6" style="font-family: 'Outfit', sans-serif;">NEXUS SPORTOPS</span>
                     <span class="mx-2 d-none d-md-inline text-muted opacity-50">|</span>
-                    <small class="d-block d-md-inline mt-1 mt-md-0 fw-medium">SaaS de Gestión Deportiva</small>
+                    <small class="d-block d-md-inline text-muted mt-1 mt-md-0">Smart Sports Management</small>
                 </div>
                 
                 <div class="col-md-6 text-center text-md-end">
-                    <div class="mb-1"><small class="fw-bold text-dark">&copy; {% now "Y" %} Todos los derechos reservados.</small></div>
-                    <small class="text-muted fw-medium">
-                        <i class="bi bi-code-slash me-1 text-primary"></i> Desarrollado por 
-                        <a href="https://wa.me/593987408528?text=Hola%20Deyvi,%20vengo%20desde%20la%20plataforma%20NEXUS%20SPORTOPS." 
-                           target="_blank" 
-                           class="fw-bold text-decoration-none"
-                           style="color: var(--primary-indigo); transition: color 0.3s ease;"
-                           onmouseover="this.style.color='#25D366'" 
-                           onmouseout="this.style.color='var(--primary-indigo)'">
-                           Deyvi Rivera <i class="bi bi-whatsapp ms-1"></i>
+                    <small class="text-muted">
+                        &copy; {% now "Y" %}. Desarrollado por 
+                        <a href="https://wa.me/593987408528" target="_blank" class="fw-semibold text-decoration-none text-dark" style="transition: color 0.2s;" onmouseover="this.style.color='var(--brand-primary)'" onmouseout="this.style.color='var(--text-main)'">
+                           Deyvi Rivera <i class="bi bi-whatsapp ms-1 text-success"></i>
                         </a>
                     </small>
                 </div>
@@ -368,7 +348,7 @@
             <i class="bi bi-whatsapp"></i>
         </a>
     {% else %}
-        <a href="https://wa.me/593987408528?text=Hola,%20tengo%20una%20consulta%20sobre%20la%20plataforma%20NEXUS%20SPORTOPS." class="btn-flotante-wsp animate__animated animate__zoomIn" target="_blank" title="Contactar a Soporte NEXUS (Deyvi)">
+        <a href="https://wa.me/593987408528?text=Hola,%20tengo%20una%20consulta%20sobre%20la%20plataforma%20NEXUS%20SPORTOPS." class="btn-flotante-wsp animate__animated animate__zoomIn" target="_blank" title="Contactar a Soporte NEXUS">
             <i class="bi bi-whatsapp"></i>
         </a>
     {% endif %}
@@ -379,7 +359,7 @@
         document.addEventListener("DOMContentLoaded", function(){
             var toastElList = [].slice.call(document.querySelectorAll('.toast'))
             var toastList = toastElList.map(function(toastEl) {
-                return new bootstrap.Toast(toastEl, { delay: 4500 });
+                return new bootstrap.Toast(toastEl, { delay: 4000 });
             });
             toastList.forEach(toast => toast.show());
         });

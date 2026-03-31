@@ -37,13 +37,14 @@ validador_letras = RegexValidator(
 # =====================================================
 
 class PlanSuscripcion(models.Model):
-    nombre = models.CharField(max_length=50, help_text="Ej: Básico, Pro, Premium")
-    precio_mensual = models.DecimalField(max_digits=6, decimal_places=2)
-    max_torneos = models.IntegerField(help_text="Límite de torneos activos permitidos")
-    max_categorias_por_torneo = models.IntegerField(help_text="Límite de categorías por torneo")
-    
+    nombre = models.CharField(max_length=100, unique=True)
+    costo_inscripcion = models.DecimalField(max_digits=8, decimal_places=2, default=0.00, verbose_name="Costo de Inscripción (Pago único)")
+    precio_mensual = models.DecimalField(max_digits=8, decimal_places=2)
+    max_torneos = models.PositiveIntegerField(default=1)
+    max_categorias_por_torneo = models.PositiveIntegerField(default=1)
+
     def __str__(self):
-        return f"{self.nombre} - ${self.precio_mensual}"
+        return f"{self.nombre} - ${self.precio_mensual}/mes"
 
 class ComplejoDeportivo(models.Model):
     nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre de la Cancha / Complejo")
@@ -443,3 +444,17 @@ class AbonoSancion(models.Model):
 
     def __str__(self):
         return f"Abono ${self.monto} - {self.sancion.equipo.nombre}"
+    
+# =====================================================
+# 12. CONTABILIDAD DEL SOFTWARE (TUS GANANCIAS COMO DUEÑO)
+# =====================================================
+class PagoSuscripcionSaaS(models.Model):
+    complejo = models.ForeignKey(ComplejoDeportivo, on_delete=models.CASCADE, related_name='pagos_saas')
+    monto = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="Monto Pagado a NEXUS")
+    fecha_pago = models.DateTimeField(auto_now_add=True)
+    meses_pagados = models.PositiveIntegerField(default=1, help_text="¿Cuántos meses pagó?")
+    observacion = models.CharField(max_length=200, blank=True)
+
+    def __str__(self):
+        return f"Pago de {self.complejo.nombre} - ${self.monto}"
+    

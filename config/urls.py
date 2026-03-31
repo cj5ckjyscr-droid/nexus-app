@@ -13,6 +13,7 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('registro/', views.registro_publico, name='registro_publico'),
+    path('nexus-admin/planes/', views.gestionar_planes_saas, name='gestionar_planes_saas'),
     
     # 2. PORTAL MULTI-TENANT (PÚBLICO POR CANCHA)
     # Por ahora lo dejamos simple, luego se puede expandir
@@ -47,6 +48,7 @@ urlpatterns = [
 
     # Calendario y Vocalía
     path('programar/', views.programar_partidos, name='programar_partidos'),
+    path('torneo/<int:torneo_id>/cambiar-formato/', views.cambiar_formato_fase1, name='cambiar_formato_fase1'),
     path('partido/editar/<int:partido_id>/', views.editar_partido, name='editar_partido'),
     path('partido/eliminar/<int:partido_id>/', views.eliminar_partido, name='eliminar_partido'),
     path('partido/reiniciar/<int:partido_id>/', views.reiniciar_partido, name='reiniciar_partido'),
@@ -112,6 +114,13 @@ urlpatterns = [
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='core/password_reset_done.html'), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='core/password_reset_confirm.html'), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='core/password_reset_complete.html'), name='password_reset_complete'),
+    path('nexus-admin/', views.dashboard_saas, name='dashboard_saas'),
+    path('nexus-admin/', views.dashboard_saas, name='dashboard_saas'),
+    path('nexus-admin/canchas/', views.gestionar_canchas_saas, name='gestionar_canchas_saas'),
+    path('nexus-admin/canchas/editar/<int:cancha_id>/', views.editar_cancha_saas, name='editar_cancha_saas'),
+    path('nexus-admin/pagos/', views.registrar_pago_saas, name='registrar_pago_saas'),
+
+    path('precios/', views.precios_publicos, name='precios_publicos'),
 ]
 
 # Servir archivos estáticos/media en entorno local de desarrollo

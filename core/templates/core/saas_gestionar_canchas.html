@@ -1,0 +1,49 @@
+{% extends 'core/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-black text-dark"><i class="bi bi-buildings-fill text-primary"></i> Gestión de Clientes (Canchas)</h2>
+    <a href="{% url 'dashboard_saas' %}" class="btn btn-outline-secondary rounded-pill">Volver al Panel</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card-pro p-4">
+            <h5 class="fw-bold mb-3">Registrar Nueva Cancha</h5>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-nexus w-100 mt-3">Crear Complejo</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card-pro p-4">
+            <h5 class="fw-bold mb-3">Canchas Activas</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Slug (URL)</th>
+                            <th>Plan</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in canchas %}
+                        <tr>
+                            <td class="fw-bold">{{ c.nombre }}</td>
+                            <td class="text-muted">{{ c.slug }}</td>
+                            <td><span class="badge bg-primary bg-opacity-10 text-primary">{{ c.plan.nombre }}</span></td>
+                            <td>{% if c.activo %}<span class="badge bg-success">Activo</span>{% else %}<span class="badge bg-danger">Suspendido</span>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

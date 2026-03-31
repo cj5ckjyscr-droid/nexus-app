@@ -21,14 +21,16 @@ from .forms import (
     ProgramarPartidoForm, PagoForm, RegistroPublicoForm,
     EquipoSolicitudForm, FotoGaleriaForm,
     TraspasoJugadorForm, AsignarCuposForm, SancionListaNegraForm, 
-    SancionManualForm, ConfiguracionForm
+    SancionManualForm, ConfiguracionForm,
+    ComplejoDeportivoForm, PlanSuscripcionForm, PagoSaaSForm
 )
 
-# Modelos SaaS (Aislados de basura)
+# Modelos SaaS (De .models)
 from .models import (
     Configuracion, Torneo, Equipo, Jugador, Partido, 
     DetallePartido, Pago, Perfil, Sancion, FotoGaleria, 
-    AbonoSancion, ComplejoDeportivo, PlanSuscripcion, Categoria
+    AbonoSancion, ComplejoDeportivo, PlanSuscripcion, Categoria,
+    PagoSuscripcionSaaS
 )
 
 from .utils import validar_cedula_ecuador, consultar_sri
@@ -52,42 +54,48 @@ def es_dirigente_o_admin(user):
 
 @login_required
 def dashboard(request):
+    if request.user.is_superuser:
+        return redirect('dashboard_saas')
+
     ctx = {}
     ahora = timezone.now()
     
-    # Asumimos temporalmente que mostramos todos (Luego en el SaaS filtraremos por complejo)
-    ctx['torneos'] = Torneo.objects.filter(activo=True).order_by('-id')
-    torneo_id = request.GET.get('torneo')
-    if torneo_id:
-        ctx['torneo_actual'] = int(torneo_id)
-        
-    partidos_qs = Partido.objects.filter(
-        estado='PROG',
-        fecha_hora__gte=ahora
-    ).select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
-
-    for p in partidos_qs:
-        p.fecha_local = timezone.localtime(p.fecha_hora).date()
-        
-    ctx['proximos_partidos'] = partidos_qs
-    ctx['fotos_galeria'] = FotoGaleria.objects.filter(activa=True).order_by('orden', '-id')
-
     if request.user.is_authenticated and hasattr(request.user, 'perfil'):
         rol = request.user.perfil.rol
 
         if rol == 'ORG':
-            deudas_pendientes = Sancion.objects.filter(pagada=False).exclude(descripcion__icontains='Inscripci').select_related('equipo', 'torneo', 'partido', 'jugador').order_by('-partido__fecha_hora', '-id')
+            # 🔥 MAGIA SAAS: Buscamos la cancha exclusiva de este organizador
+            mi_complejo = ComplejoDeportivo.objects.filter(organizador=request.user, activo=True).first()
+            
+            if not mi_complejo:
+                messages.error(request, "Tu complejo está suspendido por falta de pago o aún no tienes uno asignado.")
+                return redirect('landing_principal')
+            
+            ctx['mi_complejo'] = mi_complejo
+            
+            # 🔥 FILTRAMOS ABSOLUTAMENTE TODO SOLO PARA SU CANCHA
+            ctx['torneos'] = Torneo.objects.filter(complejo=mi_complejo, activo=True).order_by('-id')
+            
+            partidos_qs = Partido.objects.filter(
+                torneo__complejo=mi_complejo,
+                estado='PROG',
+                fecha_hora__gte=ahora
+            ).select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
+
+            for p in partidos_qs:
+                p.fecha_local = timezone.localtime(p.fecha_hora).date()
+            ctx['proximos_partidos'] = partidos_qs
+
+            deudas_pendientes = Sancion.objects.filter(torneo__complejo=mi_complejo, pagada=False).exclude(descripcion__icontains='Inscripci')
             total = deudas_pendientes.aggregate(Sum('monto'))['monto__sum'] or 0
             
-            inscripciones_pendientes = Sancion.objects.filter(pagada=False, descripcion__icontains='Inscripci').aggregate(Sum('monto'))['monto__sum'] or 0
-            abonos_inscripciones = Sancion.objects.filter(pagada=False, descripcion__icontains='Inscripci').aggregate(Sum('monto_pagado'))['monto_pagado__sum'] or 0
+            inscripciones_pendientes = Sancion.objects.filter(torneo__complejo=mi_complejo, pagada=False, descripcion__icontains='Inscripci').aggregate(Sum('monto'))['monto__sum'] or 0
+            abonos_inscripciones = Sancion.objects.filter(torneo__complejo=mi_complejo, pagada=False, descripcion__icontains='Inscripci').aggregate(Sum('monto_pagado'))['monto_pagado__sum'] or 0
             saldo_inscripciones = inscripciones_pendientes - abonos_inscripciones
-            
-            equipos_pendientes = Equipo.objects.filter(estado_inscripcion='PENDIENTE')
             
             ctx['deudas'] = deudas_pendientes
             ctx['total_por_cobrar'] = total + saldo_inscripciones 
-            ctx['equipos_pendientes'] = equipos_pendientes 
+            ctx['equipos_pendientes'] = Equipo.objects.filter(torneo__complejo=mi_complejo, estado_inscripcion='PENDIENTE')
 
         elif rol == 'DIR':
             mis_equipos = Equipo.objects.filter(dirigente=request.user)
@@ -104,16 +112,8 @@ def dashboard(request):
                 ctx['mi_equipo'] = None
 
         elif rol == 'VOC':
-            partidos_pendientes = Partido.objects.filter(
-                estado__in=['PROG', 'VIVO']
-            ).select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
-            
-            actas_pendientes = Partido.objects.filter(
-                estado='ACTA'
-            ).select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
-            
-            ctx['partidos_vocal'] = partidos_pendientes
-            ctx['actas_pendientes'] = actas_pendientes
+            ctx['partidos_vocal'] = Partido.objects.filter(estado__in=['PROG', 'VIVO']).select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
+            ctx['actas_pendientes'] = Partido.objects.filter(estado='ACTA').select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
 
     return render(request, 'core/dashboard.html', ctx)
 
@@ -150,19 +150,20 @@ def gestionar_usuarios(request):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_torneos(request):
-    torneos = Torneo.objects.all().order_by('categoria__nombre', '-fecha_inicio')
+    mi_complejo = get_object_or_404(ComplejoDeportivo, organizador=request.user)
+    torneos = Torneo.objects.filter(complejo=mi_complejo).order_by('categoria__nombre', '-fecha_inicio')
+    
     if request.method == 'POST':
         form = TorneoForm(request.POST)
         if form.is_valid():
             t = form.save(commit=False)
             t.organizador = request.user
+            t.complejo = mi_complejo # Asigna el torneo automáticamente a SU cancha
             t.save()
-            messages.success(request, f'✅ Torneo "{t.nombre}" creado exitosamente.')
+            messages.success(request, f'✅ Torneo "{t.nombre}" creado en {mi_complejo.nombre}.')
             return redirect('gestionar_torneos')
         else:
-            for campo, errores in form.errors.items():
-                for error in errores:
-                    messages.error(request, f"❌ Error en {campo}: {error}")
+            messages.error(request, "Error al crear el torneo.")
     else:
         form = TorneoForm()
     return render(request, 'core/gestionar_torneos.html', {'form': form, 'torneos': torneos})
@@ -199,7 +200,8 @@ def eliminar_torneo(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_equipos(request):
-    equipos = Equipo.objects.filter(torneo__activo=True).select_related(
+    mi_complejo = get_object_or_404(ComplejoDeportivo, organizador=request.user)
+    equipos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).select_related(
         'torneo', 'torneo__categoria', 'dirigente'
     ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
     
@@ -210,20 +212,16 @@ def gestionar_equipos(request):
             if not nuevo_equipo.torneo.cobro_por_jugador:
                 costo_inscripcion = getattr(nuevo_equipo.torneo, 'costo_inscripcion', Decimal('0.00')) 
                 Sancion.objects.create(
-                    torneo=nuevo_equipo.torneo,
-                    equipo=nuevo_equipo,
-                    tipo='ADMIN',
-                    monto=costo_inscripcion,
-                    monto_pagado=Decimal('0.00'),
-                    descripcion=f"Inscripción al Torneo {nuevo_equipo.torneo.nombre}",
-                    pagada=False
+                    torneo=nuevo_equipo.torneo, equipo=nuevo_equipo, tipo='ADMIN',
+                    monto=costo_inscripcion, monto_pagado=Decimal('0.00'),
+                    descripcion=f"Inscripción al Torneo {nuevo_equipo.torneo.nombre}", pagada=False
                 )
             messages.success(request, '¡Equipo inscrito correctamente!')
             return redirect('gestionar_equipos')
     else:
         form = EquipoForm()
         
-    form.fields['torneo'].queryset = Torneo.objects.filter(activo=True).order_by('categoria__nombre', 'nombre')
+    form.fields['torneo'].queryset = Torneo.objects.filter(complejo=mi_complejo, activo=True).order_by('categoria__nombre', 'nombre')
     return render(request, 'core/gestionar_equipos.html', {'form': form, 'equipos': equipos})
 
 @login_required
@@ -1081,7 +1079,7 @@ def toggle_asistencia(request, partido_id, jugador_id):
 # 4. REPORTES Y ESTADÍSTICAS
 # =========================================================
 
-@login_required
+
 def tabla_posiciones(request, torneo_id):
     torneo = Torneo.objects.get(id=torneo_id)
     equipos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO')
@@ -1424,18 +1422,24 @@ def reporte_estadisticas(request, torneo_id):
         'hay_llaves': hay_llaves
     })
 
-@login_required
 def tabla_goleadores(request, torneo_id):
-    torneo = Torneo.objects.get(id=torneo_id)
+    torneo = get_object_or_404(Torneo, id=torneo_id)
+    
     goleadores = DetallePartido.objects.filter(
         partido__torneo=torneo, 
         tipo='GOL',
-        equipo_incidencia=F('jugador__equipo') 
+        equipo_incidencia=F('jugador__equipo') # 🛡️ LA REGLA DE ORO: El gol debe coincidir con su equipo actual
     ).values(
         'jugador__nombres', 'jugador__equipo__nombre', 'jugador__equipo__escudo'
     ).annotate(
         total_goles=Count('id')
     ).order_by('-total_goles', 'jugador__nombres')[:15]
+    
+    # 🔥 AQUÍ ESTABA EL ERROR: Faltaba esta línea para enviar los datos al HTML
+    return render(request, 'core/tabla_goleadores.html', {
+        'torneo': torneo,
+        'goleadores': goleadores
+    })
     
 # =========================================================
 # 5. GENERACIÓN DE PDF (ACTA) (ACCESO VOCAL Y ADMIN)
@@ -1640,19 +1644,18 @@ def solicitar_inscripcion(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_solicitudes(request):
-    solicitudes = Equipo.objects.filter(estado_inscripcion='PENDIENTE').select_related('torneo', 'dirigente')
+    mi_complejo = get_object_or_404(ComplejoDeportivo, organizador=request.user)
+    solicitudes = Equipo.objects.filter(torneo__complejo=mi_complejo, estado_inscripcion='PENDIENTE').select_related('torneo', 'dirigente')
     
     if request.method == 'POST':
         equipo_id = request.POST.get('equipo_id')
         accion = request.POST.get('accion') 
-        
-        equipo = get_object_or_404(Equipo, id=equipo_id)
+        equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
         
         if accion == 'APROBAR':
             equipo.estado_inscripcion = 'APROBADO'
             equipo.save()
             messages.success(request, f'✅ {equipo.nombre} APROBADO.')
-
         elif accion == 'RECHAZAR':
             equipo.estado_inscripcion = 'RECHAZADO'
             equipo.save()
@@ -1730,8 +1733,13 @@ def gestionar_finanzas(request):
     if request.user.perfil.rol != 'ORG':
         return redirect('dashboard')
         
+    mi_complejo = get_object_or_404(ComplejoDeportivo, organizador=request.user)
+        
     if request.method == 'POST' and 'agregar_sancion_manual' in request.POST:
         form_sancion = SancionManualForm(request.POST)
+        # Limitar los equipos del formulario a los de SU cancha
+        form_sancion.fields['equipo'].queryset = Equipo.objects.filter(torneo__complejo=mi_complejo)
+        
         if form_sancion.is_valid():
             nueva_sancion = form_sancion.save(commit=False)
             nueva_sancion.tipo = 'ADMIN'
@@ -1739,13 +1747,11 @@ def gestionar_finanzas(request):
             from decimal import Decimal
             nueva_sancion.monto_pagado = Decimal('0.00')
             nueva_sancion.save()
-            messages.success(request, f'✅ Sanción de ${nueva_sancion.monto} agregada a {nueva_sancion.equipo.nombre} ({nueva_sancion.descripcion}).')
+            messages.success(request, f'✅ Sanción agregada a {nueva_sancion.equipo.nombre}.')
             return redirect('gestionar_finanzas')
-        else:
-            messages.error(request, '❌ Error al agregar la deuda. Revisa los campos.')
 
     if request.method == 'POST' and 'generar_inscripciones_viejas' in request.POST:
-        equipos_aprobados = Equipo.objects.filter(estado_inscripcion='APROBADO')
+        equipos_aprobados = Equipo.objects.filter(torneo__complejo=mi_complejo, estado_inscripcion='APROBADO')
         agregados = 0
         from decimal import Decimal
         for eq in equipos_aprobados:
@@ -1757,32 +1763,33 @@ def gestionar_finanzas(request):
                     monto_pagado=Decimal('0.00'), descripcion=f"Inscripción al Torneo {eq.torneo.nombre}", pagada=False
                 )
                 agregados += 1
-        messages.success(request, f'✅ Se generaron {agregados} recibos de inscripción para los equipos.')
+        messages.success(request, f'✅ Se generaron {agregados} recibos de inscripción.')
         return redirect('gestionar_finanzas')
 
     form_sancion = SancionManualForm()
+    form_sancion.fields['torneo'].queryset = Torneo.objects.filter(complejo=mi_complejo)
+    form_sancion.fields['equipo'].queryset = Equipo.objects.filter(torneo__complejo=mi_complejo)
 
     from decimal import Decimal
-    
-    inscripciones = Sancion.objects.filter(descripcion__icontains='Inscripci')
+    inscripciones = Sancion.objects.filter(torneo__complejo=mi_complejo, descripcion__icontains='Inscripci')
     inscripciones_pagadas_totalmente = inscripciones.filter(pagada=True).aggregate(Sum('monto'))['monto__sum'] or Decimal('0.00')
     abonos_inscripciones = inscripciones.filter(pagada=False).aggregate(Sum('monto_pagado'))['monto_pagado__sum'] or Decimal('0.00')
     dinero_real_inscripciones = inscripciones_pagadas_totalmente + abonos_inscripciones
     inscripciones_pendientes = inscripciones.filter(pagada=False).aggregate(Sum('monto'))['monto__sum'] or Decimal('0.00')
     saldo_real_inscripciones = inscripciones_pendientes - abonos_inscripciones
     
-    multas = Sancion.objects.exclude(descripcion__icontains='Inscripci')
+    multas = Sancion.objects.filter(torneo__complejo=mi_complejo).exclude(descripcion__icontains='Inscripci')
     multas_pagadas_totalmente = multas.filter(pagada=True).aggregate(Sum('monto'))['monto__sum'] or Decimal('0.00')
     abonos_multas = multas.filter(pagada=False).aggregate(Sum('monto_pagado'))['monto_pagado__sum'] or Decimal('0.00')
     dinero_real_multas = multas_pagadas_totalmente + abonos_multas
     multas_pendientes = multas.filter(pagada=False).aggregate(Sum('monto'))['monto__sum'] or Decimal('0.00')
     saldo_real_multas = multas_pendientes - abonos_multas
     
-    lista_sanciones = Sancion.objects.all().select_related('equipo').order_by('pagada', '-id')
+    lista_sanciones = Sancion.objects.filter(torneo__complejo=mi_complejo).select_related('equipo').order_by('pagada', '-id')
 
     ctx = {
         'form_sancion': form_sancion,
-        'ingreso_canchas': 0.00, # Variable mantenida para no romper el HTML
+        'ingreso_canchas': 0.00, 
         'inscripciones_pagadas': float(dinero_real_inscripciones),
         'inscripciones_pendientes': float(saldo_real_inscripciones),
         'multas_pagadas': float(dinero_real_multas),
@@ -1864,7 +1871,7 @@ def eliminar_foto(request, foto_id):
     messages.warning(request, "🗑️ Foto eliminada.")
     return redirect('gestionar_medios')
 
-@login_required
+
 def proxima_jornada(request, torneo_id):
     torneo = get_object_or_404(Torneo, id=torneo_id)
     partidos_futuros = Partido.objects.filter(torneo=torneo, estado='PROG').exclude(fecha_hora__isnull=True).order_by('fecha_hora')
@@ -2556,3 +2563,173 @@ def portal_complejo(request, slug_complejo):
         'torneos': torneos_activos,
         'url_whatsapp': url_whatsapp
     })
+
+from django.core.mail import send_mail
+from django.conf import settings
+
+@login_required
+def dashboard_saas(request):
+    """ EL PANEL DE CONTROL ABSOLUTO DEL DUEÑO DEL SOFTWARE """
+    if not request.user.is_superuser:
+        messages.error(request, "Acceso denegado. Solo el dueño de NEXUS SPORTOPS puede entrar aquí.")
+        return redirect('dashboard')
+
+    canchas = ComplejoDeportivo.objects.all().order_by('fecha_vencimiento')
+    
+    # 1. Tu contabilidad personal
+    total_ingresos_saas = PagoSuscripcionSaaS.objects.aggregate(Sum('monto'))['monto__sum'] or 0
+    canchas_activas = canchas.filter(activo=True).count()
+    canchas_suspendidas = canchas.filter(activo=False).count()
+
+    # 2. LÓGICA DE RECORDATORIOS (Se ejecuta al entrar al dashboard)
+    hoy = timezone.now().date()
+    limite_aviso = hoy + timedelta(days=3)
+    
+    canchas_por_vencer = canchas.filter(fecha_vencimiento__lte=limite_aviso, activo=True)
+    canchas_vencidas = canchas.filter(fecha_vencimiento__lt=hoy, activo=True)
+    
+    # Si le das al botón de "Enviar Correos de Cobro"
+    if request.method == 'POST' and 'enviar_recordatorios' in request.POST:
+        mensajes_enviados = 0
+        for c in canchas_por_vencer:
+            asunto = f"⚠️ ALERTA DE COBRO: {c.nombre} está por vencer"
+            texto = f"""
+            Hola Deyvi,
+            
+            El plan del organizador de la cancha "{c.nombre}" vence el {c.fecha_vencimiento}.
+            
+            Datos de contacto del Organizador:
+            - Nombre: {c.organizador.first_name} {c.organizador.last_name} ({c.organizador.username})
+            - Teléfono / Celular: {c.telefono_contacto}
+            
+            No olvides contactarlo para renovar su plan y registrar el pago en el sistema.
+            """
+            send_mail(asunto, texto, settings.EMAIL_HOST_USER, ['deyvi2413@gmail.com'], fail_silently=True)
+            mensajes_enviados += 1
+            
+        messages.success(request, f"✉️ Se enviaron {mensajes_enviados} recordatorios a tu correo.")
+        return redirect('dashboard_saas')
+
+    # 3. Lógica para suspender automáticamente si ya venció la fecha
+    if request.method == 'POST' and 'suspender_morosos' in request.POST:
+        suspendidos = 0
+        for c in canchas_vencidas:
+            c.activo = False
+            c.save()
+            suspendidos += 1
+        messages.warning(request, f"🚫 Se suspendió el acceso a {suspendidos} canchas por falta de pago.")
+        return redirect('dashboard_saas')
+
+    return render(request, 'core/dashboard_saas.html', {
+        'canchas': canchas,
+        'total_ingresos': total_ingresos_saas,
+        'canchas_activas': canchas_activas,
+        'canchas_suspendidas': canchas_suspendidas,
+        'canchas_por_vencer': canchas_por_vencer
+    })
+
+@login_required
+def gestionar_canchas_saas(request):
+    if not request.user.is_superuser:
+        return redirect('dashboard')
+        
+    canchas = ComplejoDeportivo.objects.all().order_by('-id')
+    
+    if request.method == 'POST':
+        form = ComplejoDeportivoForm(request.POST, request.FILES)
+        if form.is_valid():
+            cancha = form.save()
+            
+            # 🔥 MAGIA: Convertimos automáticamente al usuario en ORGANIZADOR (ORG)
+            if hasattr(cancha.organizador, 'perfil'):
+                cancha.organizador.perfil.rol = 'ORG'
+                cancha.organizador.perfil.save()
+                
+            messages.success(request, f"✅ Cancha registrada. {cancha.organizador.username} ahora es Organizador Oficial.")
+            return redirect('gestionar_canchas_saas')
+    else:
+        form = ComplejoDeportivoForm()
+        
+    return render(request, 'core/saas_gestionar_canchas.html', {'form': form, 'canchas': canchas})
+
+@login_required
+def editar_cancha_saas(request, cancha_id):
+    if not request.user.is_superuser:
+        return redirect('dashboard')
+        
+    cancha = get_object_or_404(ComplejoDeportivo, id=cancha_id)
+    
+    if request.method == 'POST':
+        form = ComplejoDeportivoForm(request.POST, request.FILES, instance=cancha)
+        if form.is_valid():
+            cancha_actualizada = form.save()
+            
+            # 🔥 ASEGURAR ROL: Por si cambiaste de dueño de la cancha
+            if hasattr(cancha_actualizada.organizador, 'perfil'):
+                cancha_actualizada.organizador.perfil.rol = 'ORG'
+                cancha_actualizada.organizador.perfil.save()
+                
+            messages.success(request, f"✅ Datos de {cancha_actualizada.nombre} actualizados.")
+            return redirect('dashboard_saas')
+    else:
+        form = ComplejoDeportivoForm(instance=cancha)
+        
+    return render(request, 'core/saas_editar_cancha.html', {'form': form, 'cancha': cancha})
+
+@login_required
+def registrar_pago_saas(request):
+    if not request.user.is_superuser:
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        form = PagoSaaSForm(request.POST)
+        if form.is_valid():
+            pago = form.save()
+            
+            # 🔥 LÓGICA AUTOMÁTICA: Si te pagan, se renueva la fecha de vencimiento de la cancha
+            cancha = pago.complejo
+            from datetime import timedelta
+            from django.utils import timezone
+            
+            fecha_base = cancha.fecha_vencimiento if cancha.fecha_vencimiento and cancha.fecha_vencimiento >= timezone.now().date() else timezone.now().date()
+            dias_extra = 30 * pago.meses_pagados
+            cancha.fecha_vencimiento = fecha_base + timedelta(days=dias_extra)
+            cancha.activo = True # Reactivamos por si estaba suspendida
+            cancha.save()
+            
+            messages.success(request, f"💰 Pago de ${pago.monto} registrado. {cancha.nombre} renovado hasta {cancha.fecha_vencimiento}.")
+            return redirect('dashboard_saas')
+    else:
+        form = PagoSaaSForm()
+        
+    return render(request, 'core/saas_registrar_pago.html', {'form': form})
+
+# =========================================================
+# PLANES Y PRECIOS (SAAS)
+# =========================================================
+
+def precios_publicos(request):
+    """ Vista pública para mostrar los planes a posibles clientes """
+    planes = PlanSuscripcion.objects.all().order_by('precio_mensual')
+    return render(request, 'core/precios_publicos.html', {'planes': planes})
+
+@login_required
+def gestionar_planes_saas(request):
+    """ Vista privada para que el Súper Admin cree/edite planes """
+    if not request.user.is_superuser:
+        return redirect('dashboard')
+        
+    planes = PlanSuscripcion.objects.all().order_by('precio_mensual')
+    
+    if request.method == 'POST':
+        from .forms import PlanSuscripcionForm # Lo importamos aquí rápido
+        form = PlanSuscripcionForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "✅ Nuevo plan de suscripción creado con éxito.")
+            return redirect('gestionar_planes_saas')
+    else:
+        from .forms import PlanSuscripcionForm
+        form = PlanSuscripcionForm()
+        
+    return render(request, 'core/saas_gestionar_planes.html', {'form': form, 'planes': planes})

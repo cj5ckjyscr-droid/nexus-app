@@ -1,0 +1,141 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Control NEXUS SPORTOPS{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4 animate__animated animate__fadeInDown">
+    <div>
+        <h2 class="fw-black text-dark mb-0"><i class="bi bi-building-gear text-primary me-2"></i> Panel Matriz SaaS</h2>
+        <p class="text-muted">Gestión de clientes, mensualidades y estados de servicio.</p>
+    </div>
+</div>
+
+<div class="row g-4 mb-5 animate__animated animate__fadeInUp">
+    <div class="col-md-4">
+        <div class="card-pro p-4 h-100" style="border-bottom: 4px solid #10B981;">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="text-muted fw-bold mb-1">Ganancias NEXUS</p>
+                    <h3 class="fw-black text-dark mb-0">${{ total_ingresos }}</h3>
+                </div>
+                <div class="bg-success bg-opacity-10 text-success p-3 rounded-4 d-flex align-items-center">
+                    <i class="bi bi-cash-stack fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card-pro p-4 h-100" style="border-bottom: 4px solid var(--primary-cyan);">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="text-muted fw-bold mb-1">Canchas Activas</p>
+                    <h3 class="fw-black text-dark mb-0">{{ canchas_activas }}</h3>
+                </div>
+                <div class="bg-info bg-opacity-10 text-info p-3 rounded-4 d-flex align-items-center">
+                    <i class="bi bi-buildings fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card-pro p-4 h-100" style="border-bottom: 4px solid #EF4444;">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="text-muted fw-bold mb-1">Suspendidas (Morosos)</p>
+                    <h3 class="fw-black text-dark mb-0">{{ canchas_suspendidas }}</h3>
+                </div>
+                <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-4 d-flex align-items-center">
+                    <i class="bi bi-exclamation-octagon fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 animate__animated animate__fadeIn">
+    
+    <div class="col-lg-4">
+        <div class="card-pro p-4 h-100 bg-warning bg-opacity-10 border-warning">
+            <h5 class="fw-black text-dark mb-3"><i class="bi bi-bell-fill text-warning me-2"></i> Próximos Vencimientos</h5>
+            <p class="text-muted small">Canchas cuyo plan vence en los próximos 3 días o ya venció.</p>
+            
+            <ul class="list-group list-group-flush bg-transparent mb-4">
+                {% for c in canchas_por_vencer %}
+                    <li class="list-group-item bg-transparent px-0 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong class="d-block text-dark">{{ c.nombre }}</strong>
+                            <small class="text-danger">Vence: {{ c.fecha_vencimiento }}</small>
+                        </div>
+                        <a href="https://wa.me/{{ c.telefono_contacto|default:'' }}" target="_blank" class="btn btn-sm btn-success rounded-pill"><i class="bi bi-whatsapp"></i></a>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item bg-transparent px-0 text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Todos están al día.</li>
+                {% endfor %}
+            </ul>
+
+            <form method="post" class="d-grid gap-2">
+                {% csrf_token %}
+                <button type="submit" name="enviar_recordatorios" class="btn btn-warning fw-bold text-dark rounded-pill shadow-sm">
+                    <i class="bi bi-envelope-paper-heart me-1"></i> Notificarme a mi correo
+                </button>
+                <button type="submit" name="suspender_morosos" class="btn btn-outline-danger fw-bold rounded-pill" onclick="return confirm('¿Seguro que quieres suspender todas las canchas vencidas? Sus portales dejarán de funcionar.')">
+                    <i class="bi bi-power me-1"></i> Cortar servicio a morosos
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card-pro p-0 h-100">
+            <div class="p-4 border-bottom border-soft d-flex justify-content-between align-items-center">
+                <h5 class="fw-black text-dark m-0"><i class="bi bi-people-fill text-primary me-2"></i> Tus Clientes (Canchas)</h5>
+                <div>
+                    <a href="{% url 'registrar_pago_saas' %}" class="btn btn-sm btn-success me-2"><i class="bi bi-cash-coin"></i> Registrar Mensualidad</a>
+                    <a href="{% url 'gestionar_canchas_saas' %}" class="btn btn-sm btn-nexus"><i class="bi bi-plus-lg"></i> Gestionar Canchas</a>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Complejo Deportivo</th>
+                            <th>Organizador</th>
+                            <th>Plan / Vence</th>
+                            <th>Estado</th>
+                            <th class="pe-4 text-end">Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cancha in canchas %}
+                        <tr>
+                            <td class="ps-4 fw-bold">
+                                {% if cancha.logo %}<img src="{{ cancha.logo.url }}" width="30" class="rounded me-2">{% endif %}
+                                {{ cancha.nombre }}
+                            </td>
+                            <td>{{ cancha.organizador.first_name }} <br><small class="text-muted"><i class="bi bi-telephone"></i> {{ cancha.telefono_contacto|default:"Sin registro" }}</small></td>
+                            <td>
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">{{ cancha.plan.nombre }}</span><br>
+                                <small class="text-muted fw-bold">{{ cancha.fecha_vencimiento|date:"d M Y" }}</small>
+                            </td>
+                            <td>
+                                {% if cancha.activo %}
+                                    <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-wifi"></i> Online</span>
+                                {% else %}
+                                    <span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-wifi-off"></i> Suspendido</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 text-end">
+                                <a href="{% url 'editar_cancha_saas' cancha.id %}" class="btn btn-sm btn-outline-nexus rounded-circle" title="Editar Cancha / Cambiar Plan"><i class="bi bi-pencil-fill"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

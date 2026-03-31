@@ -1,0 +1,59 @@
+{% extends 'core/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}NEXUS | Editar Cancha{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4 animate__animated animate__fadeInDown">
+    <div>
+        <h2 class="fw-black text-dark mb-0"><i class="bi bi-pencil-square text-primary me-2"></i> Editar: {{ cancha.nombre }}</h2>
+        <p class="text-muted">Modifica los datos, asigna un nuevo plan o cambia el estado del cliente.</p>
+    </div>
+    <a href="{% url 'dashboard_saas' %}" class="btn btn-outline-secondary rounded-pill fw-bold px-4">
+        <i class="bi bi-arrow-left me-1"></i> Volver
+    </a>
+</div>
+
+<div class="row animate__animated animate__fadeInUp">
+    <div class="col-12">
+        <div class="card-pro p-4 p-md-5 border-top border-primary border-4">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <h5 class="fw-bold mb-3 text-primary border-bottom pb-2">Información del Cliente</h5>
+                        {{ form.nombre|as_crispy_field }}
+                        {{ form.slug|as_crispy_field }}
+                        {{ form.organizador|as_crispy_field }}
+                        {{ form.telefono_contacto|as_crispy_field }}
+                        {{ form.logo|as_crispy_field }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5 class="fw-bold mb-3 text-success border-bottom pb-2">Control SaaS</h5>
+                        {{ form.plan|as_crispy_field }}
+                        {{ form.fecha_vencimiento|as_crispy_field }}
+                        
+                        <div class="mt-4 p-3 bg-light rounded-3 border">
+                            {{ form.activo|as_crispy_field }}
+                            <small class="text-muted d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i> Si desmarcas esta casilla, el portal de este cliente quedará suspendido.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4 text-muted">
+                
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'dashboard_saas' %}" class="btn btn-light fw-bold px-4 border">Cancelar</a>
+                    <button type="submit" class="btn btn-nexus px-5">
+                        <i class="bi bi-save me-1"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
