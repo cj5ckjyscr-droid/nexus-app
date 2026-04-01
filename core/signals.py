@@ -6,12 +6,9 @@ from .models import Perfil
 @receiver(post_save, sender=User)
 def crear_perfil(sender, instance, created, **kwargs):
     if created:
-        # Si el usuario es un administrador creado por consola (superuser)
-        if instance.is_superuser:
-            Perfil.objects.create(usuario=instance, rol='ORG')
-        else:
-            # Si es un usuario normal que se registra en la web, nace como Dirigente
-            Perfil.objects.create(usuario=instance, rol='DIR')
+        # Ya no asignamos el 'rol' aquí porque ahora los roles dependen
+        # de cada cancha (modelo RolComplejo). Solo creamos el perfil base.
+        Perfil.objects.get_or_create(usuario=instance)
 
 @receiver(post_save, sender=User)
 def guardar_perfil(sender, instance, **kwargs):

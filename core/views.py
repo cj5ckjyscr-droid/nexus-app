@@ -25,28 +25,56 @@ from .forms import (
     ComplejoDeportivoForm, PlanSuscripcionForm, PagoSaaSForm
 )
 
-# Modelos SaaS (De .models)
+# Modelos SaaS (De .models) - Añadido RolComplejo
 from .models import (
     Configuracion, Torneo, Equipo, Jugador, Partido, 
     DetallePartido, Pago, Perfil, Sancion, FotoGaleria, 
     AbonoSancion, ComplejoDeportivo, PlanSuscripcion, Categoria,
-    PagoSuscripcionSaaS
+    PagoSuscripcionSaaS, RolComplejo
 )
 
 from .utils import validar_cedula_ecuador, consultar_sri
 
 # =========================================================
-# --- FUNCIONES DE CONTROL DE ACCESO (PERMISOS) ---
+# --- FUNCIONES DE CONTROL DE ACCESO (PERMISOS CONTEXTUALES) ---
 # =========================================================
 
 def es_organizador(user):
-    return user.is_superuser or (user.is_authenticated and hasattr(user, 'perfil') and user.perfil.rol == 'ORG')
+    if not user.is_authenticated: return False
+    if user.is_superuser: return True
+    return ComplejoDeportivo.objects.filter(organizador=user, activo=True).exists() or \
+           RolComplejo.objects.filter(usuario=user, rol='ORG').exists()
 
 def es_vocal_o_admin(user):
-    return user.is_superuser or (user.is_authenticated and hasattr(user, 'perfil') and user.perfil.rol in ['ORG', 'VOC'])
+    if not user.is_authenticated: return False
+    if user.is_superuser: return True
+    return ComplejoDeportivo.objects.filter(organizador=user, activo=True).exists() or \
+           RolComplejo.objects.filter(usuario=user, rol__in=['ORG', 'VOC']).exists()
 
 def es_dirigente_o_admin(user):
-    return user.is_superuser or (user.is_authenticated and hasattr(user, 'perfil') and user.perfil.rol in ['ORG', 'DIR'])
+    if not user.is_authenticated: return False
+    if user.is_superuser: return True
+    return ComplejoDeportivo.objects.filter(organizador=user, activo=True).exists() or \
+           RolComplejo.objects.filter(usuario=user, rol__in=['ORG', 'DIR']).exists()
+
+def obtener_mi_complejo(user):
+    """Obtiene la cancha donde el usuario es DUEÑO o STAFF(ORG)"""
+    if not user.is_authenticated: return None
+    c = ComplejoDeportivo.objects.filter(organizador=user, activo=True).first()
+    if c: return c
+    rc = RolComplejo.objects.filter(usuario=user, rol='ORG').first()
+    if rc: return rc.complejo
+    return None
+
+def obtener_rol_principal(user):
+    """Infiere el rol principal del usuario para pintar la interfaz adecuadamente"""
+    if user.is_superuser: return 'ORG'
+    if ComplejoDeportivo.objects.filter(organizador=user).exists(): return 'ORG'
+    rc = RolComplejo.objects.filter(usuario=user).order_by('id').first() # El primer rol que tenga
+    if rc: return rc.rol
+    # Fallback por si migraron datos y tiene equipo pero no RolComplejo
+    if Equipo.objects.filter(dirigente=user).exists(): return 'DIR'
+    return 'FAN'
 
 # =========================================================
 # 1. VISTAS GENERALES Y DE GESTIÓN (CRUD)
@@ -60,12 +88,13 @@ def dashboard(request):
     ctx = {}
     ahora = timezone.now()
     
-    if request.user.is_authenticated and hasattr(request.user, 'perfil'):
-        rol = request.user.perfil.rol
+    if request.user.is_authenticated:
+        rol = obtener_rol_principal(request.user)
+        ctx['mi_rol_principal'] = rol # Pasamos el rol a la plantilla
 
         if rol == 'ORG':
             # 🔥 MAGIA SAAS: Buscamos la cancha exclusiva de este organizador
-            mi_complejo = ComplejoDeportivo.objects.filter(organizador=request.user, activo=True).first()
+            mi_complejo = obtener_mi_complejo(request.user)
             
             if not mi_complejo:
                 messages.error(request, "Tu complejo está suspendido por falta de pago o aún no tienes uno asignado.")
@@ -112,22 +141,31 @@ def dashboard(request):
                 ctx['mi_equipo'] = None
 
         elif rol == 'VOC':
-            ctx['partidos_vocal'] = Partido.objects.filter(estado__in=['PROG', 'VIVO']).select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
-            ctx['actas_pendientes'] = Partido.objects.filter(estado='ACTA').select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
+            # Filtra solo los partidos de las canchas donde este usuario es Vocal
+            mis_canchas_vocal = RolComplejo.objects.filter(usuario=request.user, rol='VOC').values_list('complejo_id', flat=True)
+            ctx['partidos_vocal'] = Partido.objects.filter(torneo__complejo_id__in=mis_canchas_vocal, estado__in=['PROG', 'VIVO']).select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
+            ctx['actas_pendientes'] = Partido.objects.filter(torneo__complejo_id__in=mis_canchas_vocal, estado='ACTA').select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
 
     return render(request, 'core/dashboard.html', ctx)
 
 @login_required
 @user_passes_test(es_organizador)
 def crear_usuario(request):
+    mi_complejo = obtener_mi_complejo(request.user)
     if request.method == 'POST':
         form = RegistroUsuarioForm(request.POST)
         if form.is_valid():
             u = form.save()
-            u.perfil.rol = form.cleaned_data['rol']
-            u.perfil.save()
-            messages.success(request, f'Usuario "{u.username}" creado.')
-            return redirect('dashboard')
+            # 🔥 MULTI-TENANCY: Se crea el rol SOLO para la cancha actual
+            RolComplejo.objects.create(
+                usuario=u,
+                complejo=mi_complejo,
+                rol=form.cleaned_data['rol']
+            )
+            # Creamos su perfil global base
+            Perfil.objects.get_or_create(usuario=u)
+            messages.success(request, f'Usuario "{u.username}" creado y asignado a {mi_complejo.nombre}.')
+            return redirect('gestionar_usuarios')
     else:
         form = RegistroUsuarioForm()
     return render(request, 'core/crear_usuario.html', {'form': form})
@@ -135,22 +173,26 @@ def crear_usuario(request):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_usuarios(request):
-    perfiles = Perfil.objects.all().exclude(usuario=request.user).select_related('usuario').order_by('-id')
+    mi_complejo = obtener_mi_complejo(request.user)
+    # Filtramos SOLO los usuarios que pertenecen a ESTA cancha
+    roles_cancha = RolComplejo.objects.filter(complejo=mi_complejo).exclude(usuario=request.user).select_related('usuario').order_by('-id')
+    
     if request.method == 'POST':
-        perfil_id = request.POST.get('perfil_id')
+        rol_cancha_id = request.POST.get('rol_cancha_id')
         nuevo_rol = request.POST.get('nuevo_rol')
-        if perfil_id and nuevo_rol:
-            p = Perfil.objects.get(id=perfil_id)
-            p.rol = nuevo_rol
-            p.save()
-            messages.success(request, f'Rol de {p.usuario.username} actualizado a {p.get_rol_display()}')
+        if rol_cancha_id and nuevo_rol:
+            rc = RolComplejo.objects.get(id=rol_cancha_id, complejo=mi_complejo)
+            rc.rol = nuevo_rol
+            rc.save()
+            messages.success(request, f'Rol de {rc.usuario.username} actualizado a {rc.get_rol_display()} en esta cancha.')
             return redirect('gestionar_usuarios')
-    return render(request, 'core/gestionar_usuarios.html', {'perfiles': perfiles})
+            
+    return render(request, 'core/gestionar_usuarios.html', {'perfiles': roles_cancha})
 
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_torneos(request):
-    mi_complejo = get_object_or_404(ComplejoDeportivo, organizador=request.user)
+    mi_complejo = obtener_mi_complejo(request.user)
     torneos = Torneo.objects.filter(complejo=mi_complejo).order_by('categoria__nombre', '-fecha_inicio')
     
     if request.method == 'POST':
@@ -171,7 +213,8 @@ def gestionar_torneos(request):
 @login_required
 @user_passes_test(es_organizador)
 def editar_torneo(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     if request.method == 'POST':
         form = TorneoForm(request.POST, instance=torneo)
         if form.is_valid():
@@ -185,13 +228,14 @@ def editar_torneo(request, torneo_id):
     else:
         form = TorneoForm(instance=torneo)
     return render(request, 'core/gestionar_torneos.html', {
-        'form': form, 'torneos': Torneo.objects.all().order_by('-id'), 'editando': True, 'torneo_edit': torneo
+        'form': form, 'torneos': Torneo.objects.filter(complejo=mi_complejo).order_by('-id'), 'editando': True, 'torneo_edit': torneo
     })
 
 @login_required
 @user_passes_test(es_organizador)
 def eliminar_torneo(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     nombre_torneo = torneo.nombre
     torneo.delete()
     messages.success(request, f'🗑️ El torneo "{nombre_torneo}" ha sido eliminado completamente.')
@@ -200,7 +244,7 @@ def eliminar_torneo(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_equipos(request):
-    mi_complejo = get_object_or_404(ComplejoDeportivo, organizador=request.user)
+    mi_complejo = obtener_mi_complejo(request.user)
     equipos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).select_related(
         'torneo', 'torneo__categoria', 'dirigente'
     ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
@@ -209,6 +253,14 @@ def gestionar_equipos(request):
         form = EquipoForm(request.POST, request.FILES)
         if form.is_valid():
             nuevo_equipo = form.save()
+            
+            # 🔥 MULTI-TENANCY: Aseguramos que el dirigente tenga rol DIR en esta cancha
+            RolComplejo.objects.get_or_create(
+                usuario=nuevo_equipo.dirigente,
+                complejo=mi_complejo,
+                defaults={'rol': 'DIR'}
+            )
+            
             if not nuevo_equipo.torneo.cobro_por_jugador:
                 costo_inscripcion = getattr(nuevo_equipo.torneo, 'costo_inscripcion', Decimal('0.00')) 
                 Sancion.objects.create(
@@ -227,18 +279,25 @@ def gestionar_equipos(request):
 @login_required
 @user_passes_test(es_organizador)
 def editar_equipo(request, equipo_id):
-    equipo = get_object_or_404(Equipo, id=equipo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
     if request.method == 'POST':
         form = EquipoForm(request.POST, request.FILES, instance=equipo)
         if form.is_valid():
             form.save()
+            # 🔥 MULTI-TENANCY: Actualiza RolComplejo por si se cambió el dirigente
+            RolComplejo.objects.get_or_create(
+                usuario=equipo.dirigente,
+                complejo=mi_complejo,
+                defaults={'rol': 'DIR'}
+            )
             messages.success(request, 'Equipo actualizado correctamente.')
             return redirect('gestionar_equipos')
     else:
         form = EquipoForm(instance=equipo)
         
-    form.fields['torneo'].queryset = Torneo.objects.filter(activo=True).order_by('categoria__nombre', 'nombre')
-    equipos = Equipo.objects.filter(torneo__activo=True).select_related(
+    form.fields['torneo'].queryset = Torneo.objects.filter(complejo=mi_complejo, activo=True).order_by('categoria__nombre', 'nombre')
+    equipos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).select_related(
         'torneo', 'torneo__categoria', 'dirigente'
     ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
     
@@ -247,7 +306,8 @@ def editar_equipo(request, equipo_id):
 @login_required
 @user_passes_test(es_organizador)
 def eliminar_equipo(request, equipo_id):
-    equipo = get_object_or_404(Equipo, id=equipo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
     equipo.delete()
     messages.success(request, 'Equipo eliminado. Los jugadores quedaron libres.')
     return redirect('gestionar_equipos')
@@ -258,10 +318,10 @@ def eliminar_equipo(request, equipo_id):
 
 @login_required
 def gestionar_jugadores(request):
-    perfil = request.user.perfil
+    rol_principal = obtener_rol_principal(request.user)
     puede_fichar = True 
     
-    if perfil.rol == 'DIR':
+    if rol_principal == 'DIR':
         mis_equipos = Equipo.objects.filter(dirigente=request.user)
         if not mis_equipos.exists():
             messages.error(request, 'No tienes un equipo inscrito. Inscríbete a un torneo primero.')
@@ -337,10 +397,11 @@ def gestionar_jugadores(request):
             form = JugadorForm(initial={'equipo': mi_equipo})
             form.fields['equipo'].queryset = mis_equipos 
 
-    elif perfil.rol == 'ORG':
-        equipos_activos = Equipo.objects.filter(torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
+    elif rol_principal == 'ORG':
+        mi_complejo = obtener_mi_complejo(request.user)
+        equipos_activos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
         equipo_id = request.GET.get('equipo')
-        mi_equipo = Equipo.objects.filter(id=equipo_id).first() if equipo_id else equipos_activos.first()
+        mi_equipo = Equipo.objects.filter(id=equipo_id, torneo__complejo=mi_complejo).first() if equipo_id else equipos_activos.first()
             
         if mi_equipo:
             jugadores = Jugador.objects.filter(equipo=mi_equipo).order_by('dorsal')
@@ -399,8 +460,8 @@ def gestionar_jugadores(request):
 
     return render(request, 'core/gestionar_jugadores.html', {
         'form': form, 'jugadores': jugadores, 
-        'equipos_activos': equipos_activos if perfil.rol == 'ORG' else mis_equipos.filter(torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre'), 
-        'equipo_seleccionado': equipo_seleccionado, 'es_dirigente': (perfil.rol == 'DIR'),
+        'equipos_activos': equipos_activos if rol_principal == 'ORG' else mis_equipos.filter(torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre'), 
+        'equipo_seleccionado': equipo_seleccionado, 'es_dirigente': (rol_principal == 'DIR'),
         'puede_fichar': puede_fichar,
         'equipo_obj': mi_equipo 
     })
@@ -408,9 +469,16 @@ def gestionar_jugadores(request):
 @login_required
 def editar_jugador(request, jugador_id):
     jugador = get_object_or_404(Jugador, id=jugador_id)
-    if request.user.perfil.rol != 'ORG':
+    rol_principal = obtener_rol_principal(request.user)
+    
+    if rol_principal != 'ORG':
         messages.error(request, "⛔ Solo el Organizador puede editar los datos de un jugador ya inscrito.")
         return redirect(f"/jugadores/?equipo={jugador.equipo.id}")
+
+    mi_complejo = obtener_mi_complejo(request.user)
+    if jugador.equipo.torneo.complejo != mi_complejo:
+        messages.error(request, "Acceso denegado. Este jugador pertenece a otro complejo.")
+        return redirect('dashboard')
 
     if request.method == 'POST':
         form = JugadorForm(request.POST, request.FILES, instance=jugador)
@@ -423,7 +491,7 @@ def editar_jugador(request, jugador_id):
     else:
         form = JugadorForm(instance=jugador)
 
-    equipos_activos = Equipo.objects.filter(torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
+    equipos_activos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
 
     return render(request, 'core/gestionar_jugadores.html', {
         'form': form, 
@@ -439,8 +507,10 @@ def editar_jugador(request, jugador_id):
 @login_required
 def eliminar_jugador(request, jugador_id):
     jugador = get_object_or_404(Jugador, id=jugador_id)
-    es_admin = request.user.perfil.rol == 'ORG'
-    es_dueno = (request.user.perfil.rol == 'DIR' and jugador.equipo.dirigente == request.user)
+    rol_principal = obtener_rol_principal(request.user)
+    
+    es_admin = rol_principal == 'ORG' and jugador.equipo.torneo.complejo == obtener_mi_complejo(request.user)
+    es_dueno = (rol_principal == 'DIR' and jugador.equipo.dirigente == request.user)
 
     if not (es_admin or es_dueno):
         messages.error(request, "No tienes permiso para eliminar a este jugador.")
@@ -466,7 +536,12 @@ def eliminar_jugador(request, jugador_id):
 @user_passes_test(es_organizador)
 def traspasar_jugador(request, jugador_id):
     jugador = get_object_or_404(Jugador, id=jugador_id)
+    mi_complejo = obtener_mi_complejo(request.user)
     
+    if jugador.equipo.torneo.complejo != mi_complejo:
+        messages.error(request, "Acceso denegado a este complejo.")
+        return redirect('dashboard')
+        
     if request.method == 'POST':
         form = TraspasoJugadorForm(
             request.POST, 
@@ -498,7 +573,8 @@ def traspasar_jugador(request, jugador_id):
 @login_required
 @user_passes_test(es_organizador)
 def asignar_cupos(request, equipo_id):
-    equipo = get_object_or_404(Equipo, id=equipo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
     cupos_anteriores = equipo.cupos_pagados
 
     if request.method == 'POST':
@@ -530,7 +606,9 @@ def asignar_cupos(request, equipo_id):
 @login_required
 @user_passes_test(es_organizador)
 def sancionar_equipo(request, equipo_id):
-    equipo = get_object_or_404(Equipo, id=equipo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
+    
     if request.method == 'POST':
         form = SancionListaNegraForm(request.POST, instance=equipo)
         if form.is_valid():
@@ -565,13 +643,22 @@ def api_consultar_cedula(request):
 @login_required
 @user_passes_test(es_vocal_o_admin)
 def programar_partidos(request):
-    torneos = Torneo.objects.filter(activo=True).order_by('-fecha_inicio')
+    mis_canchas_ids = RolComplejo.objects.filter(usuario=request.user, rol__in=['ORG', 'VOC']).values_list('complejo_id', flat=True)
+    if request.user.is_superuser:
+        torneos = Torneo.objects.filter(activo=True).order_by('-fecha_inicio')
+    else:
+        torneos = Torneo.objects.filter(activo=True, complejo_id__in=mis_canchas_ids).order_by('-fecha_inicio')
+        
     torneo_id_get = request.GET.get('torneo')
     torneo_obj = None
     partidos = []
 
     if torneo_id_get:
         torneo_obj = get_object_or_404(Torneo, id=torneo_id_get)
+        if not request.user.is_superuser and torneo_obj.complejo.id not in mis_canchas_ids:
+            messages.error(request, "Acceso denegado a este complejo.")
+            return redirect('dashboard')
+            
         partidos_qs = Partido.objects.filter(torneo=torneo_obj)\
             .select_related('equipo_local', 'equipo_visita')\
             .order_by('etapa', 'numero_fecha', 'fecha_hora')
@@ -590,7 +677,10 @@ def programar_partidos(request):
     if request.method == 'POST' and es_organizador(request.user):
         form = ProgramarPartidoForm(request.POST)
         if 'torneo' in form.fields:
-            form.fields['torneo'].queryset = Torneo.objects.filter(activo=True)
+            if request.user.is_superuser:
+                form.fields['torneo'].queryset = Torneo.objects.filter(activo=True)
+            else:
+                form.fields['torneo'].queryset = Torneo.objects.filter(activo=True, complejo_id__in=mis_canchas_ids)
             
         if form.is_valid():
             t_form = form.cleaned_data['torneo']
@@ -648,7 +738,10 @@ def programar_partidos(request):
     else:
         form = ProgramarPartidoForm(initial={'torneo': torneo_id_get})
         if 'torneo' in form.fields:
-            form.fields['torneo'].queryset = Torneo.objects.filter(activo=True).order_by('-fecha_inicio')
+            if request.user.is_superuser:
+                form.fields['torneo'].queryset = Torneo.objects.filter(activo=True).order_by('-fecha_inicio')
+            else:
+                form.fields['torneo'].queryset = Torneo.objects.filter(activo=True, complejo_id__in=mis_canchas_ids).order_by('-fecha_inicio')
             
         if torneo_obj:
             equipos_aprobados = Equipo.objects.filter(torneo=torneo_obj, estado_inscripcion='APROBADO')
@@ -669,6 +762,10 @@ def programar_partidos(request):
 @user_passes_test(es_organizador)
 def editar_partido(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    if partido.torneo.complejo != mi_complejo and not request.user.is_superuser:
+        return redirect('dashboard')
+        
     if request.method == 'POST':
         form = ProgramarPartidoForm(request.POST, instance=partido)
         if form.is_valid():
@@ -683,6 +780,10 @@ def editar_partido(request, partido_id):
 @user_passes_test(es_organizador)
 def eliminar_partido(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    if partido.torneo.complejo != mi_complejo and not request.user.is_superuser:
+        return redirect('dashboard')
+        
     torneo_id = partido.torneo.id
     partido.delete()
     messages.warning(request, 'Partido eliminado del calendario.')
@@ -692,6 +793,10 @@ def eliminar_partido(request, partido_id):
 @user_passes_test(es_organizador)
 def reiniciar_partido(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    if partido.torneo.complejo != mi_complejo and not request.user.is_superuser:
+        return redirect('dashboard')
+        
     partido.detalles.all().delete()
     Sancion.objects.filter(partido=partido).delete() 
     
@@ -716,10 +821,18 @@ def reiniciar_partido(request, partido_id):
 # 3. JUEGO, VOCALÍA Y RESULTADOS (ACCESO VOCAL Y ADMIN)
 # =========================================================
 
+def verificar_acceso_partido(user, partido):
+    if user.is_superuser: return True
+    rc = RolComplejo.objects.filter(usuario=user, complejo=partido.torneo.complejo).first()
+    if rc and rc.rol in ['ORG', 'VOC']: return True
+    return False
+
 @login_required
 @user_passes_test(es_vocal_o_admin)
 def registrar_resultado(request, partido_id):
-    partido = Partido.objects.get(id=partido_id)
+    partido = get_object_or_404(Partido, id=partido_id)
+    if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
+
     if request.method == 'POST':
         goles_local = request.POST.get('goles_local')
         goles_visita = request.POST.get('goles_visita')
@@ -743,6 +856,7 @@ def registrar_resultado(request, partido_id):
 @user_passes_test(es_vocal_o_admin)
 def gestionar_vocalia(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
     
     jugadores_local = Jugador.objects.filter(equipo=partido.equipo_local).annotate(
         goles_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='GOL')),
@@ -937,10 +1051,7 @@ def gestionar_vocalia(request, partido_id):
 @user_passes_test(es_vocal_o_admin)
 def registrar_incidencia(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
-    
-    if request.user.perfil.rol not in ['VOC', 'ORG']:
-        messages.error(request, "No tienes permiso para realizar esta acción.")
-        return redirect('dashboard')
+    if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
 
     if request.method == 'POST':
         jugador_id = request.POST.get('jugador_id')
@@ -989,6 +1100,9 @@ def registrar_incidencia(request, partido_id):
 @login_required
 @user_passes_test(es_vocal_o_admin)
 def eliminar_evento_ultimo(request, partido_id, jugador_id, tipo):
+    partido = get_object_or_404(Partido, id=partido_id)
+    if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
+    
     if tipo == 'TA':
         evento_da = DetallePartido.objects.filter(partido_id=partido_id, jugador_id=jugador_id, tipo='DA').last()
         if evento_da:
@@ -1005,7 +1119,6 @@ def eliminar_evento_ultimo(request, partido_id, jugador_id, tipo):
     ).last()
     
     if evento:
-        partido = evento.partido
         if tipo == 'GOL':
             if evento.equipo_incidencia == partido.equipo_local:
                 partido.goles_local = max(0, partido.goles_local - 1)
@@ -1023,6 +1136,7 @@ def eliminar_evento_ultimo(request, partido_id, jugador_id, tipo):
 def eliminar_evento(request, evento_id):
     evento = DetallePartido.objects.get(id=evento_id)
     partido = evento.partido
+    if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
     
     if evento.tipo == 'GOL':
         if evento.equipo_incidencia == partido.equipo_local:
@@ -1040,6 +1154,9 @@ def eliminar_evento(request, evento_id):
 @user_passes_test(es_vocal_o_admin)
 def eliminar_multa(request, multa_id):
     sancion = get_object_or_404(Sancion, id=multa_id)
+    partido = sancion.partido
+    if partido and not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
+    
     partido_id = sancion.partido.id if sancion.partido else None
     sancion.delete()
     messages.success(request, 'Sanción administrativa eliminada correctamente.')
@@ -1053,6 +1170,7 @@ def eliminar_multa(request, multa_id):
 @user_passes_test(es_vocal_o_admin)
 def toggle_asistencia(request, partido_id, jugador_id):
     partido = get_object_or_404(Partido, id=partido_id)
+    if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
     jugador = get_object_or_404(Jugador, id=jugador_id)
     
     asistencia = DetallePartido.objects.filter(partido=partido, jugador=jugador, tipo='ASIS').first()
@@ -1078,7 +1196,6 @@ def toggle_asistencia(request, partido_id, jugador_id):
 # =========================================================
 # 4. REPORTES Y ESTADÍSTICAS
 # =========================================================
-
 
 def tabla_posiciones(request, torneo_id):
     torneo = Torneo.objects.get(id=torneo_id)
@@ -1137,7 +1254,8 @@ def tabla_posiciones(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def generar_fase2(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     equipos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO')
     
     ida_y_vuelta = request.POST.get('ida_y_vuelta') == 'on'
@@ -1181,7 +1299,6 @@ def generar_fase2(request, torneo_id):
     messages.success(request, f'✅ Fase 2 generada en formato: {formato_texto}. Equipos divididos y bonos asignados.')
     return redirect('tabla_posiciones_f2', torneo_id=torneo.id)
 
-@login_required
 def tabla_posiciones_f2(request, torneo_id):
     torneo = Torneo.objects.get(id=torneo_id)
     
@@ -1226,13 +1343,15 @@ def tabla_posiciones_f2(request, torneo_id):
     
     cuartos_generados = Partido.objects.filter(torneo=torneo, etapa='4TOS').exists()
 
+    es_org = request.user.is_authenticated and obtener_rol_principal(request.user) == 'ORG'
+
     return render(request, 'core/tabla_posiciones_f2.html', {
         'torneo': torneo, 
         'tabla_a': tabla_a, 
         'tabla_b': tabla_b,
         'fase': 2,
         'cuartos_generados': cuartos_generados,
-        'es_organizador': request.user.perfil.rol == 'ORG'
+        'es_organizador': es_org
     })
 
 def seleccionar_reporte(request):
@@ -1247,8 +1366,7 @@ def seleccionar_reporte(request):
 @login_required
 def reporte_estadisticas(request, torneo_id):
     torneo = get_object_or_404(Torneo, id=torneo_id)
-    user_perfil = request.user.perfil if hasattr(request.user, 'perfil') else None
-    rol = user_perfil.rol if user_perfil else 'FAN'
+    rol = obtener_rol_principal(request.user)
 
     hay_fase1 = Partido.objects.filter(torneo=torneo, etapa='F1').exists()
     hay_fase2 = Partido.objects.filter(torneo=torneo, etapa='F2').exists()
@@ -1428,14 +1546,13 @@ def tabla_goleadores(request, torneo_id):
     goleadores = DetallePartido.objects.filter(
         partido__torneo=torneo, 
         tipo='GOL',
-        equipo_incidencia=F('jugador__equipo') # 🛡️ LA REGLA DE ORO: El gol debe coincidir con su equipo actual
+        equipo_incidencia=F('jugador__equipo') 
     ).values(
         'jugador__nombres', 'jugador__equipo__nombre', 'jugador__equipo__escudo'
     ).annotate(
         total_goles=Count('id')
     ).order_by('-total_goles', 'jugador__nombres')[:15]
     
-    # 🔥 AQUÍ ESTABA EL ERROR: Faltaba esta línea para enviar los datos al HTML
     return render(request, 'core/tabla_goleadores.html', {
         'torneo': torneo,
         'goleadores': goleadores
@@ -1449,6 +1566,8 @@ def tabla_goleadores(request, torneo_id):
 @user_passes_test(es_vocal_o_admin)
 def generar_acta_pdf(request, partido_id):
     partido = Partido.objects.get(id=partido_id)
+    if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
+    
     detalles = DetallePartido.objects.filter(partido=partido).select_related('jugador')
     
     asistencias_local = detalles.filter(tipo='ASIS', equipo_incidencia=partido.equipo_local)
@@ -1486,8 +1605,9 @@ def generar_acta_pdf(request, partido_id):
 @login_required
 @user_passes_test(es_organizador)
 def registrar_pago(request):
+    mi_complejo = obtener_mi_complejo(request.user)
     equipo_id = request.GET.get('equipo')
-    equipo = get_object_or_404(Equipo, id=equipo_id) if equipo_id else None
+    equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo) if equipo_id else None
 
     if request.method == 'POST':
         form = PagoForm(request.POST, request.FILES)
@@ -1506,7 +1626,7 @@ def registrar_pago(request):
     else:
         initial_data = {'equipo': equipo} if equipo else {}
         form = PagoForm(initial=initial_data)
-        form.fields['equipo'].queryset = Equipo.objects.filter(estado_inscripcion='APROBADO')
+        form.fields['equipo'].queryset = Equipo.objects.filter(torneo__complejo=mi_complejo, estado_inscripcion='APROBADO')
 
     return render(request, 'core/registrar_pago.html', {
         'form': form, 
@@ -1517,7 +1637,8 @@ def registrar_pago(request):
 @login_required
 @user_passes_test(es_organizador)
 def historial_pagos_equipo(request, equipo_id):
-    equipo = get_object_or_404(Equipo, id=equipo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
     pagos = Pago.objects.filter(equipo=equipo).order_by('-fecha', '-id')
     
     return render(request, 'core/historial_pagos.html', {
@@ -1527,7 +1648,7 @@ def historial_pagos_equipo(request, equipo_id):
 
 def generar_recibo_pago_pdf(request, pago_id):
     pago = get_object_or_404(Pago, id=pago_id)
-    
+    # Lógica PDF
     template_path = 'core/acta_pago_pdf.html'
     context = {'pago': pago}
     
@@ -1553,6 +1674,7 @@ def registro_publico(request):
         
         if form.is_valid():
             usuario = form.save()
+            Perfil.objects.get_or_create(usuario=usuario)
             login(request, usuario)
             messages.success(request, f'¡Bienvenido crack! Tu cuenta ha sido creada y ya estás dentro.')
             return redirect('dashboard') 
@@ -1566,7 +1688,8 @@ def ver_torneos_activos(request):
     torneos_finalizados = Torneo.objects.filter(activo=False).order_by('-fecha_inicio')
     
     mis_torneos_ids = []
-    if request.user.is_authenticated and hasattr(request.user, 'perfil') and request.user.perfil.rol == 'DIR':
+    if request.user.is_authenticated:
+        # Aunque tenga otro rol principal, si tiene equipos los mostramos
         mis_torneos_ids = list(Equipo.objects.filter(dirigente=request.user).values_list('torneo_id', flat=True))
 
     return render(request, 'core/ver_torneos_activos.html', {
@@ -1612,9 +1735,12 @@ def solicitar_inscripcion(request, torneo_id):
                     }
                 )
             
-            if hasattr(request.user, 'perfil') and request.user.perfil.rol == 'FAN':
-                request.user.perfil.rol = 'DIR'
-                request.user.perfil.save()
+            # 🔥 MULTI-TENANCY: Al inscribirse, se crea RolComplejo de DIR en la cancha actual
+            RolComplejo.objects.get_or_create(
+                usuario=request.user, 
+                complejo=torneo.complejo, 
+                defaults={'rol': 'DIR'}
+            )
             
             try:
                 from django.core.mail import send_mail
@@ -1644,7 +1770,7 @@ def solicitar_inscripcion(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_solicitudes(request):
-    mi_complejo = get_object_or_404(ComplejoDeportivo, organizador=request.user)
+    mi_complejo = obtener_mi_complejo(request.user)
     solicitudes = Equipo.objects.filter(torneo__complejo=mi_complejo, estado_inscripcion='PENDIENTE').select_related('torneo', 'dirigente')
     
     if request.method == 'POST':
@@ -1655,6 +1781,8 @@ def gestionar_solicitudes(request):
         if accion == 'APROBAR':
             equipo.estado_inscripcion = 'APROBADO'
             equipo.save()
+            # Aseguramos el rol en caso de aprobación manual de importación
+            RolComplejo.objects.get_or_create(usuario=equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
             messages.success(request, f'✅ {equipo.nombre} APROBADO.')
         elif accion == 'RECHAZAR':
             equipo.estado_inscripcion = 'RECHAZADO'
@@ -1668,8 +1796,9 @@ def gestionar_solicitudes(request):
 @login_required
 def cancelar_inscripcion_equipo(request, equipo_id):
     equipo = get_object_or_404(Equipo, id=equipo_id)
+    rol_principal = obtener_rol_principal(request.user)
     
-    if request.user != equipo.dirigente and request.user.perfil.rol != 'ORG':
+    if request.user != equipo.dirigente and rol_principal != 'ORG':
         return redirect('dashboard')
 
     precio_inscripcion = float(equipo.torneo.costo_inscripcion)
@@ -1699,11 +1828,10 @@ def cancelar_inscripcion_equipo(request, equipo_id):
     })
 
 @login_required
+@user_passes_test(es_organizador)
 def cobrar_sancion(request, sancion_id):
-    if request.user.perfil.rol != 'ORG':
-        return redirect('dashboard')
-        
-    sancion = get_object_or_404(Sancion, id=sancion_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    sancion = get_object_or_404(Sancion, id=sancion_id, torneo__complejo=mi_complejo)
     
     if request.method == 'POST':
         abono_str = request.POST.get('monto_abono')
@@ -1729,15 +1857,12 @@ def cobrar_sancion(request, sancion_id):
 
 
 @login_required
+@user_passes_test(es_organizador)
 def gestionar_finanzas(request):
-    if request.user.perfil.rol != 'ORG':
-        return redirect('dashboard')
-        
-    mi_complejo = get_object_or_404(ComplejoDeportivo, organizador=request.user)
+    mi_complejo = obtener_mi_complejo(request.user)
         
     if request.method == 'POST' and 'agregar_sancion_manual' in request.POST:
         form_sancion = SancionManualForm(request.POST)
-        # Limitar los equipos del formulario a los de SU cancha
         form_sancion.fields['equipo'].queryset = Equipo.objects.filter(torneo__complejo=mi_complejo)
         
         if form_sancion.is_valid():
@@ -1800,12 +1925,11 @@ def gestionar_finanzas(request):
     return render(request, 'core/gestionar_finanzas.html', ctx)
 
 @login_required
+@user_passes_test(es_organizador)
 def admin_gestion_jugadores(request):
-    if request.user.perfil.rol != 'ORG':
-        return redirect('dashboard')
-        
+    mi_complejo = obtener_mi_complejo(request.user)
     query = request.GET.get('q')
-    jugadores = Jugador.objects.all().select_related('equipo').order_by('equipo', 'dorsal')
+    jugadores = Jugador.objects.filter(equipo__torneo__complejo=mi_complejo).select_related('equipo').order_by('equipo', 'dorsal')
     
     if query:
         jugadores = jugadores.filter(
@@ -1817,29 +1941,10 @@ def admin_gestion_jugadores(request):
     return render(request, 'core/admin_jugadores.html', {'jugadores': jugadores})
 
 @login_required
+@user_passes_test(es_organizador)
 def admin_gestion_usuarios(request):
-    if request.user.perfil.rol != 'ORG':
-        return redirect('dashboard')
-
-    if request.method == 'POST':
-        perfil_id = request.POST.get('perfil_id')
-        nuevo_rol = request.POST.get('nuevo_rol')
-        
-        if perfil_id and nuevo_rol:
-            perfil_usuario = get_object_or_404(Perfil, id=perfil_id)
-            
-            if perfil_usuario.usuario == request.user:
-                messages.error(request, "No puedes cambiar tu propio rol aquí.")
-            else:
-                perfil_usuario.rol = nuevo_rol
-                perfil_usuario.save()
-                messages.success(request, f'Rol de "{perfil_usuario.usuario.username}" actualizado a {perfil_usuario.get_rol_display()}.')
-            
-            return redirect('admin_gestion_usuarios')
-
-    usuarios = User.objects.all().select_related('perfil').order_by('-date_joined')
-    
-    return render(request, 'core/admin_usuarios.html', {'usuarios': usuarios})
+    # Esto ya se cubre con gestionar_usuarios, pero si tienes una ruta separada:
+    return redirect('gestionar_usuarios')
 
 # =========================================================
 # VISTAS RESTAURADAS (Medios y Próxima Jornada)
@@ -1848,6 +1953,7 @@ def admin_gestion_usuarios(request):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_medios(request):
+    mi_complejo = obtener_mi_complejo(request.user)
     fotos = FotoGaleria.objects.all().order_by('orden', '-id')
 
     if request.method == 'POST':
@@ -1902,7 +2008,8 @@ def proxima_jornada(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def generar_fixture(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     equipos = list(Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO'))
     
     if len(equipos) < 2:
@@ -2045,7 +2152,8 @@ def obtener_ganador_llave(torneo, etapa, eq1, eq2):
 @login_required
 @user_passes_test(es_organizador)
 def generar_cuartos_directos(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     ida_y_vuelta = request.POST.get('ida_y_vuelta') == 'on'
 
     clasificados = obtener_clasificados_fase1(torneo) 
@@ -2082,7 +2190,9 @@ def generar_cuartos_directos(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def generar_semis_directas(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    
     if Partido.objects.filter(torneo=torneo, etapa='SEMI').exists():
         messages.error(request, "Las Semifinales ya fueron generadas.")
         return redirect(f"/programar/?torneo={torneo.id}")
@@ -2123,7 +2233,9 @@ def generar_semis_directas(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def generar_cuartos_final(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    
     if Partido.objects.filter(torneo=torneo, etapa='4TOS').exists():
         messages.error(request, "Los Cuartos de Final ya fueron generados.")
         return redirect(f"/programar/?torneo={torneo.id}")
@@ -2168,7 +2280,9 @@ def generar_cuartos_final(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def generar_semifinales(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    
     if Partido.objects.filter(torneo=torneo, etapa='SEMI').exists():
         messages.error(request, "Las Semifinales ya fueron generadas.")
         return redirect(f"/programar/?torneo={torneo.id}")
@@ -2213,7 +2327,9 @@ def generar_semifinales(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def generar_finales(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    
     if Partido.objects.filter(torneo=torneo, etapa='FINAL').exists():
         messages.error(request, "Las Finales ya fueron generadas.")
         return redirect(f"/programar/?torneo={torneo.id}")
@@ -2295,6 +2411,9 @@ def importar_equipo_existente(request, torneo_nuevo_id):
                     estado_inscripcion='PENDIENTE'
                 )
 
+                # 🔥 MULTI-TENANCY: Actualizamos o creamos RolComplejo en la nueva cancha
+                RolComplejo.objects.get_or_create(usuario=request.user, complejo=torneo_nuevo.complejo, defaults={'rol': 'DIR'})
+
                 costo_inscripcion = getattr(torneo_nuevo, 'costo_inscripcion', Decimal('0.00')) 
                 if not torneo_nuevo.cobro_por_jugador:
                     Sancion.objects.create(
@@ -2335,7 +2454,8 @@ def importar_equipo_existente(request, torneo_nuevo_id):
 @login_required
 @user_passes_test(es_organizador)
 def revertir_transicion(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     
     with transaction.atomic():
         Partido.objects.filter(torneo=torneo, etapa__in=['F2', '4TOS', 'SEMI', 'TERC', 'FINAL']).delete()
@@ -2352,7 +2472,8 @@ def revertir_transicion(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def activar_vuelta_f1(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     torneo.fase1_ida_vuelta = True
     torneo.save()
     messages.success(request, "🔄 Formato actualizado: Ahora puedes programar partidos de Vuelta en la Fase 1.")
@@ -2361,7 +2482,8 @@ def activar_vuelta_f1(request, torneo_id):
 @login_required
 @user_passes_test(es_organizador)
 def cambiar_formato_fase1(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     
     if torneo.fase1_ida_vuelta:
         total_equipos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO').count()
@@ -2496,7 +2618,8 @@ def gestionar_configuracion(request):
 
 @login_required
 def revertir_cobro_sancion(request, sancion_id):
-    if request.user.perfil.rol not in ['ORG', 'VOC']:
+    rol_principal = obtener_rol_principal(request.user)
+    if rol_principal not in ['ORG', 'VOC']:
         messages.error(request, "No tienes permisos para realizar esta acción.")
         return redirect('dashboard')
         
@@ -2640,12 +2763,14 @@ def gestionar_canchas_saas(request):
         if form.is_valid():
             cancha = form.save()
             
-            # 🔥 MAGIA: Convertimos automáticamente al usuario en ORGANIZADOR (ORG)
-            if hasattr(cancha.organizador, 'perfil'):
-                cancha.organizador.perfil.rol = 'ORG'
-                cancha.organizador.perfil.save()
+            # 🔥 MULTI-TENANCY: Convertimos automáticamente al usuario en ORGANIZADOR (ORG) en la tabla RolComplejo
+            RolComplejo.objects.get_or_create(
+                usuario=cancha.organizador,
+                complejo=cancha,
+                defaults={'rol': 'ORG'}
+            )
                 
-            messages.success(request, f"✅ Cancha registrada. {cancha.organizador.username} ahora es Organizador Oficial.")
+            messages.success(request, f"✅ Cancha registrada. {cancha.organizador.username} ahora es Organizador Oficial de {cancha.nombre}.")
             return redirect('gestionar_canchas_saas')
     else:
         form = ComplejoDeportivoForm()
@@ -2664,10 +2789,12 @@ def editar_cancha_saas(request, cancha_id):
         if form.is_valid():
             cancha_actualizada = form.save()
             
-            # 🔥 ASEGURAR ROL: Por si cambiaste de dueño de la cancha
-            if hasattr(cancha_actualizada.organizador, 'perfil'):
-                cancha_actualizada.organizador.perfil.rol = 'ORG'
-                cancha_actualizada.organizador.perfil.save()
+            # 🔥 MULTI-TENANCY: Asegurar rol si cambiaste de dueño de la cancha
+            RolComplejo.objects.get_or_create(
+                usuario=cancha_actualizada.organizador,
+                complejo=cancha_actualizada,
+                defaults={'rol': 'ORG'}
+            )
                 
             messages.success(request, f"✅ Datos de {cancha_actualizada.nombre} actualizados.")
             return redirect('dashboard_saas')
@@ -2686,7 +2813,6 @@ def registrar_pago_saas(request):
         if form.is_valid():
             pago = form.save()
             
-            # 🔥 LÓGICA AUTOMÁTICA: Si te pagan, se renueva la fecha de vencimiento de la cancha
             cancha = pago.complejo
             from datetime import timedelta
             from django.utils import timezone

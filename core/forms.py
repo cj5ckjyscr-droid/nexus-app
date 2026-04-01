@@ -7,7 +7,8 @@ from django.core.exceptions import ValidationError
 from .models import (
     Perfil, Torneo, Equipo, Jugador, Partido, Pago, 
     Cupon, FotoGaleria, Configuracion, Sancion,
-    ComplejoDeportivo, PlanSuscripcion, PagoSuscripcionSaaS
+    ComplejoDeportivo, PlanSuscripcion, PagoSuscripcionSaaS,
+    RolComplejo, ComplejoDeportivo
 )
 
 # =====================================================
@@ -15,7 +16,7 @@ from .models import (
 # =====================================================
 class RegistroUsuarioForm(UserCreationForm):
     rol = forms.ChoiceField(
-        choices=Perfil.ROLES, 
+        choices=RolComplejo.ROLES,  # <--- AQUÍ ESTÁ EL CAMBIO CLAVE
         label="Rol del Usuario",
         widget=forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'})
     )
@@ -29,7 +30,6 @@ class RegistroUsuarioForm(UserCreationForm):
             'last_name': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary'}),
             'email': forms.EmailInput(attrs={'class': 'form-control bg-dark text-white border-secondary'}),
         }
-
 # =====================================================
 # 2. CREAR TORNEOS
 # =====================================================
@@ -206,22 +206,31 @@ class RegistroPublicoForm(UserCreationForm):
             'username': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
-    def save(self, commit=True):
-        user = super().save(commit=True)
-        if hasattr(user, 'perfil'):
-            perfil = user.perfil
-        else:
-            perfil = Perfil.objects.create(usuario=user)
-        
-        perfil.telefono = self.cleaned_data.get('telefono')
-        perfil.rol = 'FAN' 
-        perfil.save()
-        
+    # Le agregamos el parámetro "complejo=None" por si se registran desde la página de una cancha específica
+    def save(self, complejo=None, commit=True):
+        # Guardamos el usuario base
+        user = super().save(commit=False)
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.email = self.cleaned_data['email']
+        
         if commit:
             user.save()
+            
+        # 1. Creamos el Perfil GLOBAL (Solo datos personales)
+        perfil, created = Perfil.objects.get_or_create(usuario=user)
+        perfil.telefono = self.cleaned_data.get('telefono')
+        # ELIMINADO: perfil.rol = 'FAN' <-- Esto ya no va aquí
+        perfil.save()
+        
+        # 2. Asignamos el Rol CONTEXTUAL (Solo si sabemos en qué cancha se está registrando)
+        if complejo:
+            RolComplejo.objects.get_or_create(
+                usuario=user,
+                complejo=complejo,
+                defaults={'rol': 'FAN'} # Aficionado por defecto en ESTA cancha
+            )
+            
         return user
     
 class FotoGaleriaForm(forms.ModelForm):

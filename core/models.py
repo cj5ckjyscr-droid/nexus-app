@@ -72,30 +72,38 @@ class ComplejoDeportivo(models.Model):
 # =====================================================
 # 1. USUARIOS Y PERFILES (CON SANCIONES)
 # =====================================================
+# 1. PERFIL GLOBAL (Solo datos personales)
 class Perfil(models.Model):
-    ROLES = [
-        ('ORG', 'Organizador'),       # Dueño del Complejo
-        ('VOC', 'Vocal de Mesa'),       # Ayudante del Complejo
-        ('DIR', 'Dirigente de Equipo'), # Cliente Torneo
-        ('FAN', 'Aficionado / Cliente'),# Espectador
-    ]
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
-    
-    # Añadimos vínculo opcional al Complejo para saber de quién es este Vocal
-    complejo = models.ForeignKey(ComplejoDeportivo, on_delete=models.CASCADE, null=True, blank=True, related_name='staff')
-    
-    rol = models.CharField(max_length=3, choices=ROLES, default='FAN') 
     telefono = models.CharField(max_length=15, blank=True, null=True)
     foto = models.ImageField(upload_to='perfiles/', blank=True, null=True)
-    
-    sancionado_hasta = models.DateField(null=True, blank=True, verbose_name="Suspendido (Lista Negra) hasta:")
+    sancionado_hasta = models.DateField(null=True, blank=True, verbose_name="Suspendido (Lista Negra) Global hasta:")
 
     def __str__(self):
-        return f"{self.usuario.username} - {self.get_rol_display()}"
+        return f"{self.usuario.username}"
     
     @property
     def esta_sancionado(self):
         return self.sancionado_hasta and self.sancionado_hasta >= date.today()
+
+# 2. NUEVA TABLA: ROLES POR CANCHA (Multi-tenancy real)
+class RolComplejo(models.Model):
+    ROLES = [
+        ('ORG', 'Organizador / Staff'), # Puede ayudar al dueño
+        ('VOC', 'Vocal de Mesa'),       
+        ('DIR', 'Dirigente de Equipo'), 
+        ('FAN', 'Aficionado / Cliente'),
+    ]
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roles_cancha')
+    complejo = models.ForeignKey(ComplejoDeportivo, on_delete=models.CASCADE, related_name='usuarios')
+    rol = models.CharField(max_length=3, choices=ROLES, default='FAN')
+
+    class Meta:
+        # Esto garantiza que un usuario no tenga dos roles repetidos en la misma cancha
+        unique_together = ('usuario', 'complejo') 
+
+    def __str__(self):
+        return f"{self.usuario.username} es {self.get_rol_display()} en {self.complejo.nombre}"
 
 # =====================================================
 # 2. CONFIGURACIÓN GLOBAL (AHORA POR COMPLEJO)
