@@ -1,184 +1,275 @@
 {% extends 'core/base.html' %}
 {% load humanize %}
 
+{% block title %}Competencias | NEXUS SPORTOPS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================================
+       ESTÉTICA FEY - COMPETENCIAS Y TORNEOS (ALTO CONTRASTE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1;
+    }
+
+    /* Section Headers */
+    .section-header {
+        display: flex; align-items: center; padding-bottom: 12px; margin-bottom: 24px;
+        border-bottom: 2px solid #CBD5E1; margin-top: 30px;
+    }
+    .section-header h4 { font-family: 'Outfit', sans-serif; font-weight: 900; color: #0F172A; margin: 0; letter-spacing: -0.5px; }
+
+    /* Acordeones de Alto Contraste */
+    .accordion-item {
+        background: #FFFFFF; border: 1px solid #94A3B8 !important; border-radius: 20px !important;
+        margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    }
+    .accordion-button {
+        background: #F8FAFC !important; color: #0F172A !important; font-family: 'Outfit', sans-serif;
+        font-weight: 900; font-size: 1.15rem; padding: 20px 24px; border: none !important; box-shadow: none !important;
+    }
+    .accordion-button:not(.collapsed) {
+        background: #FFFFFF !important; border-bottom: 3px solid var(--brand-primary) !important;
+    }
+    .accordion-body { padding: 24px; background: #F1F5F9; }
+
+    /* Tarjetas de Torneo (Tournament Cards) */
+    .tournament-card {
+        background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 20px;
+        padding: 0; box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04); transition: all 0.3s ease;
+        display: flex; flex-direction: column; height: 100%; overflow: hidden;
+    }
+    .tournament-card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08); border-color: #94A3B8; }
+
+    .tc-header { padding: 24px; border-bottom: 1px dashed #CBD5E1; }
+    .tc-body { padding: 24px; flex-grow: 1; background: #F8FAFC; }
+    .tc-footer { padding: 20px 24px; background: #FFFFFF; border-top: 1px dashed #CBD5E1; }
+
+    /* Listas de Beneficios */
+    .benefit-list { list-style: none; padding: 0; margin: 0; }
+    .benefit-list li { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; color: #475569; font-weight: 700; font-size: 0.9rem; }
+    .benefit-list li:last-child { margin-bottom: 0; }
+    .benefit-list i { color: #10B981; font-size: 1.2rem; }
+
+    /* Botones de Acción */
+    .btn-join-pro {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white;
+        font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1rem; padding: 14px; 
+        border-radius: 12px; border: none; width: 100%; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); 
+        transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: center; align-items: center;
+    }
+    .btn-join-pro:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4); color: white; }
+
+    .btn-renew-pro {
+        background: #0F172A; color: white; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.9rem; 
+        padding: 12px; border-radius: 12px; border: none; width: 100%; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
+        transition: all 0.2s ease; display: flex; justify-content: center; align-items: center;
+    }
+    .btn-renew-pro:hover { background: #1E293B; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); color: white; }
+
+    .btn-disabled-pro {
+        background: #F1F5F9; color: #64748B; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.95rem; 
+        padding: 14px; border-radius: 12px; border: 2px solid #CBD5E1; width: 100%; cursor: not-allowed;
+        display: flex; justify-content: center; align-items: center;
+    }
+
+    /* Historial */
+    .history-card {
+        background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 16px; padding: 24px;
+        text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); transition: all 0.2s ease; height: 100%;
+    }
+    .history-card:hover { border-color: #94A3B8; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05); }
+
+    .btn-history {
+        background: #F8FAFC; color: #0F172A; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.85rem; 
+        padding: 10px 20px; border-radius: 10px; border: 2px solid #94A3B8; text-decoration: none; transition: all 0.2s ease;
+    }
+    .btn-history:hover { background: #E2E8F0; border-color: #475569; }
+
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+</style>
+{% endblock %}
+
 {% block contenido %}
-<div class="container animate__animated animate__fadeIn">
+<div class="ambient-glow"></div>
+
+<div class="container py-4 pb-5">
     
-    <div class="text-center mb-5 mt-4">
-        <h6 class="text-uppercase fw-bold ls-1 mb-2" style="color: var(--accent-green); letter-spacing: 1px;">
-            <i class="bi bi-trophy-fill me-1"></i> Competencias
-        </h6>
-        <h2 class="display-5 fw-black mb-3" style="color: var(--primary-dark); letter-spacing: -1px;">Únete al Campeonato</h2>
-        <p class="text-muted fs-5 fw-medium">Elige el torneo y registra a tu equipo para competir por la gloria.</p>
+    <div class="text-center mb-5 reveal-up">
+        <div class="badge bg-slate-100 text-dark border border-secondary px-3 py-2 mb-3 rounded-pill fw-black shadow-sm" style="font-size: 0.75rem; letter-spacing: 1px;">
+            <i class="bi bi-trophy-fill text-success me-1"></i> COMPETENCIAS
+        </div>
+        <h2 class="fey-title mb-2">Únete al Campeonato</h2>
+        <p class="text-slate-600 fw-bold m-0" style="font-size: 1.05rem;">Elige el torneo y registra a tu equipo para competir por la gloria.</p>
     </div>
 
     {% if torneos_activos %}
-        <div class="d-flex align-items-center mb-4 border-bottom pb-2">
-            <i class="bi bi-play-circle-fill text-success fs-3 me-2"></i>
-            <h4 class="fw-black m-0 text-dark">Inscripciones Abiertas</h4>
-        </div>
+        <div class="reveal-up" style="animation-delay: 0.1s;">
+            <div class="section-header">
+                <i class="bi bi-play-circle-fill text-success fs-3 me-2"></i>
+                <h4>Inscripciones Abiertas</h4>
+            </div>
 
-        {% regroup torneos_activos by categoria as torneos_por_categoria %}
-        <div class="accordion mb-5" id="accordionCategorias">
-            {% for grupo in torneos_por_categoria %}
-            <div class="accordion-item border-0 mb-4 shadow-sm rounded-4 overflow-hidden" style="background-color: transparent;">
-                <h2 class="accordion-header" id="headingCat{{ forloop.counter }}">
-                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} fw-black fs-5 rounded-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCat{{ forloop.counter }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapseCat{{ forloop.counter }}" style="background-color: white; color: var(--primary-dark); border: 1px solid rgba(0,0,0,0.05);">
-                        <i class="bi bi-tags-fill me-2 text-success"></i> 
-                        Categoría: {{ grupo.grouper.nombre|default:"General (Sin Categoría)"|upper }}
-                        <span class="badge bg-success ms-3 rounded-pill shadow-sm" style="font-size: 0.8rem;">{{ grupo.list|length }} Torneo(s)</span>
-                    </button>
-                </h2>
-                
-                <div id="collapseCat{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="headingCat{{ forloop.counter }}">
-                    <div class="accordion-body pt-4 pb-2 px-1">
-                        <div class="row g-4 justify-content-center">
-                            {% for t in grupo.list %}
-                            <div class="col-md-6 col-lg-4">
-                                <div class="card card-pro h-100 border-0 shadow-lg rounded-4 overflow-hidden" style="transition: transform 0.3s; border: 1px solid rgba(0,0,0,0.05) !important;">
-                                    
-                                    <div class="card-header bg-transparent border-bottom-0 pt-4 px-4 pb-0">
-                                        <div class="d-flex justify-content-between align-items-start mb-3">
-                                            <span class="badge rounded-pill" style="background-color: rgba(16, 185, 129, 0.1); color: #065f46; border: 1px solid rgba(16, 185, 129, 0.2); padding: 8px 14px; font-weight: 700;">
-                                                <i class="bi bi-calendar-event me-1"></i> Inicio: {{ t.fecha_inicio|date:"d M Y" }}
-                                            </span>
-                                            {% if t.categoria %}
-                                                <span class="badge bg-dark text-white rounded-pill shadow-sm px-3 py-2 fw-bold" style="font-size: 0.7rem;">
-                                                    {{ t.categoria.nombre|upper }}
-                                                </span>
-                                            {% endif %}
-                                        </div>
+            {% regroup torneos_activos by categoria as torneos_por_categoria %}
+            <div class="accordion" id="accordionCategorias">
+                {% for grupo in torneos_por_categoria %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingCat{{ forloop.counter }}">
+                        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCat{{ forloop.counter }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapseCat{{ forloop.counter }}">
+                            <i class="bi bi-tags-fill me-3 text-primary"></i> 
+                            CATEGORÍA: {{ grupo.grouper.nombre|default:"GENERAL"|upper }}
+                            <span class="badge bg-dark text-white ms-auto rounded-pill px-3 py-2 shadow-sm" style="font-size: 0.8rem;">{{ grupo.list|length }} Torneos</span>
+                        </button>
+                    </h2>
+                    
+                    <div id="collapseCat{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="headingCat{{ forloop.counter }}">
+                        <div class="accordion-body">
+                            <div class="row g-4 justify-content-center">
+                                {% for t in grupo.list %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="tournament-card">
                                         
-                                        <h3 class="fw-black mb-2" style="color: var(--primary-dark); font-size: 1.5rem; line-height: 1.2;">{{ t.nombre }}</h3>
-                                        <p class="text-muted small fw-bold mb-0">
-                                            <i class="bi bi-person-badge me-1"></i>Org: {{ t.organizador.first_name }} {{ t.organizador.last_name }}
-                                        </p>
-                                    </div>
-
-                                    <div class="card-body px-4 mt-3">
-                                        <div class="d-flex justify-content-between align-items-center rounded-4 p-3 mb-4 shadow-sm" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
-                                            <span class="small fw-black text-muted" style="letter-spacing: 0.5px;">INSCRIPCIÓN</span>
-                                            <div class="text-end lh-1">
-                                                <span class="fs-3 fw-black" style="color: var(--accent-green);">
-                                                    {% if t.cobro_por_jugador %}
-                                                        ${{ t.costo_inscripcion_jugador|intcomma }}<span class="fs-6 text-muted">/por jugador</span>
-                                                    {% else %}
-                                                        ${{ t.costo_inscripcion|intcomma }}
-                                                    {% endif %}
+                                        <div class="tc-header">
+                                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill fw-bold shadow-sm" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-calendar-event me-1"></i> Inicio: {{ t.fecha_inicio|date:"d M Y" }}
                                                 </span>
-                                            </div>
-                                        </div>
-
-                                        <ul class="list-unstyled text-muted small fw-medium mb-2 px-1">
-                                            <li class="mb-3 d-flex align-items-center">
-                                                <i class="bi bi-check-circle-fill fs-5 me-3" style="color: var(--accent-green);"></i>
-                                                <span>Cupos limitados por categoría</span>
-                                            </li>
-                                            <li class="mb-3 d-flex align-items-center">
-                                                <i class="bi bi-cash-coin fs-5 me-3" style="color: var(--accent-green);"></i>
-                                                <span>Premios en efectivo</span>
-                                            </li>
-                                            <li class="d-flex align-items-center">
-                                                <i class="bi bi-shield-check fs-5 me-3" style="color: var(--accent-green);"></i>
-                                                <span>Arbitraje profesional</span>
-                                            </li>
-                                        </ul>
-                                    </div>
-
-                                    <div class="card-footer bg-transparent border-0 px-4 pb-4">
-                                        {% if user.is_authenticated and t.id in mis_torneos_ids %}
-                                            <div class="d-grid">
-                                                <button class="btn btn-light w-100 py-3 fw-bold rounded-pill text-muted border shadow-sm" disabled>
-                                                    <i class="bi bi-clock-history me-2"></i>Ya Estás Inscrito
-                                                </button>
-                                                <small class="text-center text-muted mt-3 fw-semibold" style="font-size: 0.75rem;">
-                                                    <i class="bi bi-info-circle me-1 text-info"></i> Revisa el estado de tu equipo
-                                                </small>
-                                            </div>
-                                        {% else %}
-                                            <div class="d-grid gap-2">
-                                                {% if t.inscripcion_abierta %}
-                                                    <a href="{% url 'solicitar_inscripcion' t.id %}" class="btn btn-success w-100 py-3 d-flex justify-content-center align-items-center rounded-pill fw-black shadow-sm" style="font-size: 0.95rem; letter-spacing: 0.5px;">
-                                                        NUEVO EQUIPO <i class="bi bi-plus-circle-fill ms-2 fs-5 opacity-75"></i>
-                                                    </a>
-                                                    {% if request.user.is_authenticated and request.user.perfil.rol == 'DIR' %}
-                                                        <a href="{% url 'importar_equipo_existente' t.id %}" class="btn btn-outline-dark w-100 py-2 rounded-pill fw-bold" style="font-size: 0.8rem;">
-                                                            <i class="bi bi-arrow-repeat me-1"></i> Renovar Equipo Pasado
-                                                        </a>
-                                                    {% endif %}
-                                                {% else %}
-                                                    <button class="btn btn-secondary w-100 py-3 d-flex justify-content-center align-items-center rounded-pill fw-black shadow-sm" disabled style="font-size: 0.95rem; letter-spacing: 0.5px; opacity: 0.7;">
-                                                        <i class="bi bi-lock-fill me-2 fs-5"></i> INSCRIPCIONES CERRADAS
-                                                    </button>
+                                                {% if t.categoria %}
+                                                    <span class="badge bg-dark text-white border border-secondary px-3 py-2 rounded-pill fw-bold shadow-sm" style="font-size: 0.7rem;">
+                                                        {{ t.categoria.nombre|upper }}
+                                                    </span>
                                                 {% endif %}
                                             </div>
-                                        {% endif %}
+                                            <h3 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; line-height: 1.1;">{{ t.nombre }}</h3>
+                                            <p class="text-slate-500 small fw-bold mt-2 m-0"><i class="bi bi-person-vcard-fill me-1"></i> Org: {{ t.organizador.first_name }} {{ t.organizador.last_name }}</p>
+                                        </div>
+
+                                        <div class="tc-body">
+                                            <div class="bg-white border border-secondary rounded-4 p-3 mb-4 shadow-sm d-flex justify-content-between align-items-center">
+                                                <span class="small fw-black text-slate-500" style="letter-spacing: 0.5px;">PRECIO</span>
+                                                <div class="text-end">
+                                                    <span class="fw-black text-success" style="font-family: 'Outfit', sans-serif; font-size: 1.8rem; line-height: 1; letter-spacing: -1px;">
+                                                        {% if t.cobro_por_jugador %}
+                                                            ${{ t.costo_inscripcion_jugador|intcomma }}<span class="text-slate-500" style="font-size: 0.8rem;">/jug</span>
+                                                        {% else %}
+                                                            ${{ t.costo_inscripcion|intcomma }}
+                                                        {% endif %}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <ul class="benefit-list">
+                                                <li><i class="bi bi-check-circle-fill"></i> Cupos limitados por categoría</li>
+                                                <li><i class="bi bi-cash-coin"></i> Premios en efectivo al Campeón</li>
+                                                <li><i class="bi bi-shield-check"></i> Arbitraje profesional</li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="tc-footer">
+                                            {% if user.is_authenticated and t.id in mis_torneos_ids %}
+                                                <div class="btn-disabled-pro">
+                                                    <i class="bi bi-clock-history me-2"></i> YA ESTÁS INSCRITO
+                                                </div>
+                                                <div class="text-center mt-2">
+                                                    <small class="text-slate-500 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-info-circle-fill me-1 text-primary"></i> Revisa el estado en tu panel</small>
+                                                </div>
+                                            {% else %}
+                                                <div class="d-grid gap-2">
+                                                    {% if t.inscripcion_abierta %}
+                                                        <a href="{% url 'solicitar_inscripcion' t.id %}" class="btn-join-pro">
+                                                            NUEVO EQUIPO <i class="bi bi-arrow-right-circle-fill ms-2 fs-5"></i>
+                                                        </a>
+                                                        {% if request.user.is_authenticated and request.user.perfil.rol == 'DIR' %}
+                                                            <a href="{% url 'importar_equipo_existente' t.id %}" class="btn-renew-pro">
+                                                                <i class="bi bi-arrow-repeat me-2"></i> Renovar Equipo Pasado
+                                                            </a>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <div class="btn-disabled-pro">
+                                                            <i class="bi bi-lock-fill me-2"></i> INSCRIPCIONES CERRADAS
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     {% else %}
-        <div class="text-center py-5 my-4">
-            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-4 shadow-sm" style="width: 110px; height: 110px; background-color: #f8fafc; border: 1px solid rgba(0,0,0,0.05);">
-                <i class="bi bi-calendar-x text-muted" style="font-size: 3rem; opacity: 0.5;"></i>
+        <div class="text-center py-5 my-4 reveal-up" style="animation-delay: 0.1s;">
+            <div class="bg-white border border-secondary rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm mb-4" style="width: 100px; height: 100px;">
+                <i class="bi bi-calendar-x text-slate-400" style="font-size: 3rem;"></i>
             </div>
-            <h4 class="fw-black text-dark">No hay torneos activos</h4>
-            <p class="text-muted mb-4 fs-5 fw-medium">En este momento no hay inscripciones abiertas.<br>¡Vuelve pronto!</p>
+            <h4 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">No hay torneos activos</h4>
+            <p class="text-slate-600 fw-bold m-0 mt-2">En este momento no hay inscripciones abiertas.<br>¡Vuelve pronto!</p>
         </div>
     {% endif %}
 
-
     {% if torneos_finalizados %}
-        <div class="d-flex align-items-center mb-4 border-bottom pb-2 mt-5 opacity-75">
-            <i class="bi bi-archive-fill text-secondary fs-3 me-2"></i>
-            <h4 class="fw-black m-0 text-muted">Historial de Campeonatos</h4>
-        </div>
+        <div class="reveal-up" style="animation-delay: 0.2s;">
+            <div class="section-header mt-5">
+                <i class="bi bi-archive-fill text-slate-500 fs-3 me-2"></i>
+                <h4 class="text-slate-700">Historial de Campeonatos</h4>
+            </div>
 
-        {% regroup torneos_finalizados by fecha_inicio.year as torneos_por_anio %}
-        <div class="accordion mb-5 opacity-75" id="accordionAnios" style="filter: grayscale(20%);">
-            {% for grupo in torneos_por_anio %}
-            <div class="accordion-item border-0 mb-3 shadow-sm rounded-4 overflow-hidden" style="background-color: transparent;">
-                <h2 class="accordion-header" id="headingAnio{{ forloop.counter }}">
-                    <button class="accordion-button collapsed fw-black fs-5 rounded-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnio{{ forloop.counter }}" aria-expanded="false" aria-controls="collapseAnio{{ forloop.counter }}" style="background-color: #f1f5f9; color: #64748b; border: 1px solid rgba(0,0,0,0.05);">
-                        <i class="bi bi-calendar3 me-2"></i> Año: {{ grupo.grouper }}
-                        <span class="badge bg-secondary ms-3 rounded-pill shadow-sm" style="font-size: 0.8rem;">{{ grupo.list|length }} Torneo(s)</span>
-                    </button>
-                </h2>
-                
-                <div id="collapseAnio{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="headingAnio{{ forloop.counter }}">
-                    <div class="accordion-body pt-4 pb-2 px-1">
-                        <div class="row g-4 justify-content-center">
-                            {% for t in grupo.list %}
-                            <div class="col-md-6 col-lg-4">
-                                <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden" style="background-color: #f8fafc;">
-                                    <div class="card-body p-4 text-center">
+            {% regroup torneos_finalizados by fecha_inicio.year as torneos_por_anio %}
+            <div class="accordion" id="accordionAnios">
+                {% for grupo in torneos_por_anio %}
+                <div class="accordion-item" style="border-color: #CBD5E1 !important;">
+                    <h2 class="accordion-header" id="headingAnio{{ forloop.counter }}">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnio{{ forloop.counter }}" aria-expanded="false" aria-controls="collapseAnio{{ forloop.counter }}" style="background: #F8FAFC !important; color: #475569 !important;">
+                            <i class="bi bi-calendar-check-fill me-3 text-slate-400"></i> AÑO: {{ grupo.grouper }}
+                            <span class="badge bg-white text-slate-700 border border-secondary ms-auto rounded-pill px-3 py-2 shadow-sm" style="font-size: 0.8rem;">{{ grupo.list|length }} Torneos</span>
+                        </button>
+                    </h2>
+                    
+                    <div id="collapseAnio{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="headingAnio{{ forloop.counter }}">
+                        <div class="accordion-body bg-slate-50">
+                            <div class="row g-4 justify-content-center">
+                                {% for t in grupo.list %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="history-card">
                                         <div class="mb-3">
-                                            <i class="bi bi-trophy text-secondary fs-1 opacity-50"></i>
+                                            <div class="bg-slate-100 border border-secondary rounded-circle d-inline-flex justify-content-center align-items-center" style="width: 60px; height: 60px;">
+                                                <i class="bi bi-trophy-fill text-slate-400 fs-3"></i>
+                                            </div>
                                         </div>
                                         {% if t.categoria %}
-                                            <span class="badge bg-secondary text-white rounded-pill px-2 py-1 mb-2" style="font-size: 0.65rem;">{{ t.categoria.nombre|upper }}</span>
+                                            <span class="badge bg-white text-slate-600 border border-secondary rounded-pill px-2 py-1 mb-2 shadow-sm" style="font-size: 0.65rem;">{{ t.categoria.nombre|upper }}</span>
                                         {% endif %}
-                                        <h4 class="fw-black text-secondary mb-1">{{ t.nombre }}</h4>
-                                        <p class="small text-muted fw-bold mb-3">Finalizado en: {{ t.fecha_inicio|date:"Y" }}</p>
+                                        <h5 class="fw-black text-dark mb-1" style="font-family: 'Outfit', sans-serif;">{{ t.nombre }}</h5>
+                                        <p class="small text-slate-500 fw-bold mb-4">Finalizado en: {{ t.fecha_inicio|date:"Y" }}</p>
                                         
-                                        <a href="{% url 'tabla_posiciones' t.id %}" class="btn btn-sm btn-outline-secondary rounded-pill px-4 fw-bold">
-                                            <i class="bi bi-bar-chart-fill me-1"></i> Ver Resultados
+                                        <a href="{% url 'reporte_estadisticas' t.id %}" class="btn-history">
+                                            VER RESULTADOS <i class="bi bi-bar-chart-fill ms-1"></i>
                                         </a>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                         </div>
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     {% endif %}
 

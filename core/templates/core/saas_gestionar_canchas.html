@@ -1,49 +1,254 @@
 {% extends 'core/base.html' %}
-{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Gestión de Clientes | NEXUS SaaS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================================
+       ESTÉTICA FEY - GESTIÓN SAAS (LIGHT MODE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 30%, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
+    }
+
+    /* Panel del Formulario (Flotante) */
+    .fey-form-panel {
+        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0; border-radius: 24px; padding: 24px;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.04); position: sticky; top: 100px; z-index: 10;
+    }
+    .fey-form-panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+        background: linear-gradient(90deg, #8B5CF6, #3B82F6);
+    }
+
+    /* Inputs Fey */
+    .clean-input {
+        background-color: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
+        border-radius: 12px !important; padding: 12px 16px !important; font-size: 0.95rem;
+        font-weight: 600 !important; color: #0F172A !important; transition: all 0.3s ease !important; width: 100%;
+    }
+    .clean-input:focus { border-color: var(--brand-primary) !important; background-color: #FFFFFF !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none !important; }
+    
+    input[type="file"].clean-input { padding: 9px 16px !important; color: #64748B !important; }
+    input[type="file"]::file-selector-button { border: none; background: #0F172A; padding: 6px 12px; border-radius: 8px; color: #FFFFFF; font-weight: 700; cursor: pointer; margin-right: 12px; transition: all 0.2s; }
+    input[type="file"]::file-selector-button:hover { background: var(--brand-primary); }
+
+    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+    
+    .form-switch .form-check-input { width: 2.5rem; height: 1.25rem; cursor: pointer; background-color: #CBD5E1; border-color: #CBD5E1; margin-top: 0.1rem; }
+    .form-switch .form-check-input:checked { background-color: #10B981; border-color: #10B981; }
+
+    /* Fila de Cliente (Smart Strip) */
+    .client-strip {
+        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 20px;
+        padding: 16px 20px; margin-bottom: 16px; display: flex; align-items: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative; overflow: hidden;
+    }
+    .client-strip:hover { transform: translateX(4px); box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06); border-color: #CBD5E1; }
+    
+    .client-strip.suspended { background: #FEF2F2; border-color: #FECACA; opacity: 0.85; }
+    .client-strip.suspended::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #EF4444; }
+
+    .logo-wrapper { position: relative; margin-right: 20px; flex-shrink: 0; }
+    .logo-img { width: 56px; height: 56px; object-fit: cover; border-radius: 14px; border: 1px solid #E2E8F0; background: #F8FAFC; }
+    .logo-placeholder { width: 56px; height: 56px; border-radius: 14px; background: #F1F5F9; border: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: center; color: #94A3B8; font-size: 1.5rem; }
+
+    .btn-circle-action {
+        width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+        border: 1px solid transparent; transition: all 0.2s; text-decoration: none; font-size: 1rem;
+    }
+    .btn-circle-action:hover { transform: translateY(-2px); }
+    .btn-edit { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
+
+    .btn-save-pro {
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: white;
+        font-weight: 800; font-size: 1rem; padding: 14px 24px; border-radius: 14px; border: none;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2); transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .btn-save-pro:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(15, 23, 42, 0.3); color: white; }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 991px) {
+        .fey-form-panel { position: static; margin-bottom: 30px; }
+    }
+    @media (max-width: 576px) {
+        .client-strip { flex-direction: column; align-items: flex-start; padding: 20px; }
+        .logo-wrapper { margin-bottom: 12px; }
+        .action-group { width: 100%; display: flex; justify-content: flex-end; margin-top: 12px; border-top: 1px dashed #E2E8F0; padding-top: 12px; }
+    }
+</style>
+{% endblock %}
 
 {% block contenido %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-black text-dark"><i class="bi bi-buildings-fill text-primary"></i> Gestión de Clientes (Canchas)</h2>
-    <a href="{% url 'dashboard_saas' %}" class="btn btn-outline-secondary rounded-pill">Volver al Panel</a>
-</div>
+<div class="ambient-glow"></div>
 
-<div class="row g-4">
-    <div class="col-lg-4">
-        <div class="card-pro p-4">
-            <h5 class="fw-bold mb-3">Registrar Nueva Cancha</h5>
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                {{ form|crispy }}
-                <button type="submit" class="btn btn-nexus w-100 mt-3">Crear Complejo</button>
-            </form>
+<div class="container-fluid px-0 pb-5">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 pb-3 border-bottom reveal-up">
+        <div>
+            <span class="badge bg-dark bg-opacity-10 text-dark border border-dark border-opacity-25 px-3 py-2 mb-2 rounded-pill fw-bold">
+                <i class="bi bi-cloud-check-fill me-1"></i> Panel SuperAdmin SaaS
+            </span>
+            <h2 class="fey-title m-0">Gestión de Clientes</h2>
+            <p class="text-muted small m-0 fw-medium mt-1">Registra nuevos complejos deportivos y administra sus planes de suscripción.</p>
+        </div>
+        <div class="mt-3 mt-md-0">
+            <a href="{% url 'dashboard_saas' %}" class="btn btn-light border rounded-pill fw-bold px-4 py-2 shadow-sm text-slate-600 transition-all hover-lift d-inline-flex align-items-center">
+                <i class="bi bi-arrow-left me-2"></i> Volver al Panel
+            </a>
         </div>
     </div>
-    <div class="col-lg-8">
-        <div class="card-pro p-4">
-            <h5 class="fw-bold mb-3">Canchas Activas</h5>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Slug (URL)</th>
-                            <th>Plan</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for c in canchas %}
-                        <tr>
-                            <td class="fw-bold">{{ c.nombre }}</td>
-                            <td class="text-muted">{{ c.slug }}</td>
-                            <td><span class="badge bg-primary bg-opacity-10 text-primary">{{ c.plan.nombre }}</span></td>
-                            <td>{% if c.activo %}<span class="badge bg-success">Activo</span>{% else %}<span class="badge bg-danger">Suspendido</span>{% endif %}</td>
-                        </tr>
+
+    <div class="row g-4">
+        
+        <div class="col-lg-4 col-xl-4 reveal-up" style="animation-delay: 0.1s;">
+            <div class="fey-form-panel">
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3 border border-primary border-opacity-25" style="width: 48px; height: 48px;">
+                        <i class="bi bi-building-add fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Registrar Cancha</h5>
+                        <p class="text-muted small m-0 fw-medium">Dar de alta nuevo complejo</p>
+                    </div>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" class="m-0">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-3 mb-3 shadow-sm">
+                            <h6 class="fw-bold text-danger m-0 small mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Errores:</h6>
+                            <ul class="mb-0 small fw-medium text-danger ps-3">
+                                {% for field in form %}
+                                    {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
+                                {% endfor %}
+                                {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex flex-column gap-3">
+                        {% for field in form %}
+                            <div>
+                                <label class="form-label-pro">{{ field.label }} 
+                                    {% if field.name == 'slug' %}<i class="bi bi-info-circle text-muted ms-1" title="La URL pública del complejo"></i>{% endif %}
+                                </label>
+                                
+                                {% if field.field.widget.input_type == 'checkbox' %}
+                                    <div class="form-check form-switch bg-slate-50 border rounded-3 p-2 d-flex align-items-center shadow-sm">
+                                        <div class="ms-3 me-2">{{ field }}</div>
+                                        <label class="form-check-label small fw-bold text-dark m-0" for="{{ field.id_for_label }}">Complejo Activo</label>
+                                    </div>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+                                
+                                {% if field.help_text and field.name != 'activo' %}
+                                    <div class="text-muted mt-1 fw-medium" style="font-size: 0.7rem;"><i class="bi bi-info-circle me-1 opacity-50"></i>{{ field.help_text }}</div>
+                                {% endif %}
+                            </div>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-top">
+                        <button type="submit" class="btn-save-pro w-100">
+                            <i class="bi bi-plus-circle-fill me-1"></i> Crear Complejo
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+
+        <div class="col-lg-8 col-xl-8 reveal-up" style="animation-delay: 0.2s;">
+            
+            <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+                <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-buildings-fill text-primary me-2"></i>Canchas Registradas</h5>
+                <span class="badge bg-dark text-white rounded-pill px-3 shadow-sm">{{ canchas.count }} Totales</span>
+            </div>
+
+            <div class="d-flex flex-column">
+                {% for c in canchas %}
+                <div class="client-strip {% if not c.activo %}suspended{% endif %}">
+                    
+                    <div class="logo-wrapper">
+                        {% if c.logo %}
+                            <img src="{{ c.logo.url }}" class="logo-img shadow-sm" alt="{{ c.nombre }}">
+                        {% else %}
+                            <div class="logo-placeholder shadow-sm"><i class="bi bi-image text-muted opacity-50"></i></div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex-grow-1 min-w-0 pe-3">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h5 class="fw-black text-dark m-0 text-truncate" style="font-family: 'Outfit', sans-serif; font-size: 1.1rem;">{{ c.nombre }}</h5>
+                            {% if c.activo %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-0 rounded-pill" style="font-size: 0.6rem; letter-spacing: 0.5px;">ACTIVO</span>
+                            {% else %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-0 rounded-pill" style="font-size: 0.6rem; letter-spacing: 0.5px;">SUSPENDIDO</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex flex-column flex-md-row gap-md-3 mt-2">
+                            <span class="text-slate-500 fw-medium small text-truncate">
+                                <i class="bi bi-link-45deg me-1 text-primary"></i> 
+                                <a href="{% url 'portal_complejo' c.slug %}" target="_blank" class="text-decoration-none text-slate-500 hover-primary">/cancha/{{ c.slug }}</a>
+                            </span>
+                            <span class="text-slate-500 fw-medium small text-truncate">
+                                <i class="bi bi-hdd-network-fill me-1 text-success"></i> Plan: <strong class="text-dark">{{ c.plan.nombre|default:"Sin plan" }}</strong>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="action-group ps-md-3 border-start-md border-dashed">
+                        <a href="{% url 'editar_cancha_saas' c.id %}" class="btn-circle-action btn-edit shadow-sm" title="Editar y Gestionar Plan">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+                    </div>
+                    
+                </div>
+                {% empty %}
+                <div class="text-center py-5 bg-white border border-dashed rounded-4 shadow-sm mt-2">
+                    <div class="bg-slate-50 rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border shadow-sm" style="width: 80px; height: 80px;">
+                        <i class="bi bi-buildings text-muted opacity-25" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h5 class="fw-black text-dark mt-2" style="font-family: 'Outfit', sans-serif;">Sin clientes registrados</h5>
+                    <p class="text-muted small mb-0">Usa el formulario de la izquierda para dar de alta el primer complejo deportivo.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+        </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Aplicar estilos nativos a los inputs de Django
+        const inputs = document.querySelectorAll('input:not([type="checkbox"]), select, textarea');
+        inputs.forEach(input => {
+            input.classList.add('clean-input');
+        });
+        
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.classList.add('form-check-input', 'shadow-sm');
+        });
+    });
+</script>
 {% endblock %}

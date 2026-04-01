@@ -1,64 +1,119 @@
-<div class="table-responsive">
-    <table class="table table-hover align-middle text-center mb-0" style="white-space: nowrap;">
-        <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+<style>
+    /* =========================================================
+       ESTÉTICA FEY - TABLA DE POSICIONES (ALTO CONTRASTE)
+       ========================================================= */
+    .nexus-table-wrapper {
+        border: 1px solid #94A3B8; border-radius: 16px; overflow: hidden;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04); background: #FFFFFF;
+    }
+    
+    .nexus-table { margin: 0; width: 100%; }
+    
+    .nexus-table th { 
+        background: #F8FAFC; color: #1E293B; font-family: 'Outfit', sans-serif;
+        font-weight: 900; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; 
+        border-bottom: 2px solid #94A3B8; padding: 14px 12px; white-space: nowrap; vertical-align: middle;
+    }
+    
+    .nexus-table td { 
+        vertical-align: middle; white-space: nowrap; padding: 14px 12px; 
+        border-bottom: 1px solid #CBD5E1; background: #FFFFFF; font-weight: 700; 
+        font-size: 0.9rem; color: #0F172A; transition: background-color 0.2s;
+    }
+    
+    .nexus-table tr:hover td { background: #F1F5F9; }
+    .nexus-table tr:last-child td { border-bottom: none; }
+    
+    .team-shield-micro { 
+        width: 32px; height: 32px; border-radius: 50%; object-fit: cover; 
+        border: 2px solid #FFFFFF; background: #F8FAFC; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1); 
+    }
+    
+    .stat-badge { 
+        display: inline-flex; align-items: center; justify-content: center; 
+        padding: 4px 10px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; 
+        font-family: 'Outfit', sans-serif; min-width: 35px;
+    }
+
+    @media (max-width: 768px) {
+        .nexus-table th, .nexus-table td { padding: 12px 8px; font-size: 0.85rem; }
+        .team-name-col { max-width: 110px; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
+    }
+</style>
+
+<div class="table-responsive nexus-table-wrapper">
+    <table class="table nexus-table text-center align-middle">
+        <thead>
             <tr>
-                <th class="ps-3 text-start" style="width: 5%;">#</th>
-                <th class="text-start" style="width: 35%;">Equipo</th>
+                <th class="ps-3 text-center" style="width: 5%;">#</th>
+                <th class="text-start" style="width: 35%;">Club Deportivo</th>
                 <th title="Partidos Jugados">PJ</th>
-                <th title="Partidos Ganados">PG</th>
-                <th title="Partidos Empatados">PE</th>
-                <th title="Partidos Perdidos">PP</th>
+                <th title="Partidos Ganados" class="text-success">G</th>
+                <th title="Partidos Empatados" class="text-warning">E</th>
+                <th title="Partidos Perdidos" class="text-danger">P</th>
                 <th title="Goles a Favor" class="d-none d-md-table-cell">GF</th>
                 <th title="Goles en Contra" class="d-none d-md-table-cell">GC</th>
                 <th title="Gol Diferencia">GD</th>
                 
                 {% if fase == 2 %}
-                <th title="Puntos de Bonificación por posición en Fase 1" class="text-warning">BONO</th>
+                <th title="Puntos de Bonificación por posición en Fase 1" class="text-warning"><i class="bi bi-star-fill"></i> BONO</th>
                 {% endif %}
                 
-                <th class="pe-3 fs-6 text-dark" title="Puntos Totales">PTS</th>
+                <th class="pe-3 text-dark fs-6" title="Puntos Totales">PTS</th>
             </tr>
         </thead>
         <tbody>
             {% for fila in tabla %}
-            <tr class="border-bottom transition-all" style="border-color: rgba(0,0,0,0.03) !important;">
-                
-                <td class="ps-3 text-start fw-bold text-muted">{{ forloop.counter }}</td>
-                
-                <td class="text-start fw-bold text-dark">
-                    {% if fila.equipo.escudo %}
-                        <img src="{{ fila.equipo.escudo.url }}" width="28" height="28" class="rounded-circle me-2 border shadow-sm" style="object-fit: cover;">
-                    {% else %}
-                        <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle me-2 border shadow-sm" style="width: 28px; height: 28px;">
-                            <i class="bi bi-shield-fill text-secondary" style="font-size: 0.7rem;"></i>
-                        </div>
-                    {% endif %}
-                    {{ fila.equipo.nombre }}
+            <tr>
+                <td class="ps-3 text-center">
+                    <div class="badge bg-slate-100 text-dark border border-secondary rounded-circle d-inline-flex justify-content-center align-items-center shadow-sm" style="width: 28px; height: 28px; font-size: 0.8rem;">
+                        {{ forloop.counter }}
+                    </div>
                 </td>
                 
-                <td class="fw-medium text-secondary">{{ fila.pj }}</td>
-                <td class="fw-medium">{{ fila.pg }}</td>
-                <td class="fw-medium">{{ fila.pe }}</td>
-                <td class="fw-medium">{{ fila.pp }}</td>
+                <td class="text-start fw-black text-dark" style="font-family: 'Outfit', sans-serif;">
+                    <div class="d-flex align-items-center">
+                        {% if fila.equipo.escudo %}
+                            <img src="{{ fila.equipo.escudo.url }}" class="team-shield-micro me-2">
+                        {% else %}
+                            <div class="team-shield-micro me-2 d-flex align-items-center justify-content-center text-muted opacity-50">
+                                <i class="bi bi-shield-fill"></i>
+                            </div>
+                        {% endif %}
+                        <span class="team-name-col" title="{{ fila.equipo.nombre }}">{{ fila.equipo.nombre }}</span>
+                    </div>
+                </td>
                 
-                <td class="d-none d-md-table-cell text-secondary">{{ fila.gf }}</td>
-                <td class="d-none d-md-table-cell text-secondary">{{ fila.gc }}</td>
+                <td><span class="stat-badge bg-dark text-white shadow-sm">{{ fila.pj }}</span></td>
+                <td class="text-success fw-black">{{ fila.pg }}</td>
+                <td class="text-warning fw-black" style="color: #D97706 !important;">{{ fila.pe }}</td>
+                <td class="text-danger fw-black">{{ fila.pp }}</td>
                 
-                <td class="fw-bold {% if fila.gd > 0 %}text-success{% elif fila.gd < 0 %}text-danger{% else %}text-muted{% endif %}">
-                    {% if fila.gd > 0 %}+{% endif %}{{ fila.gd }}
+                <td class="d-none d-md-table-cell text-slate-600">{{ fila.gf }}</td>
+                <td class="d-none d-md-table-cell text-slate-600">{{ fila.gc }}</td>
+                
+                <td>
+                    <span class="stat-badge {% if fila.gd > 0 %}bg-success bg-opacity-10 text-success border border-success border-opacity-25{% elif fila.gd < 0 %}bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25{% else %}bg-slate-100 text-slate-600 border border-secondary{% endif %}">
+                        {% if fila.gd > 0 %}+{% endif %}{{ fila.gd }}
+                    </span>
                 </td>
                 
                 {% if fase == 2 %}
-                <td class="text-warning fw-bold">+{{ fila.bono }}</td>
+                <td class="text-warning fw-black" style="color: #D97706 !important;">+{{ fila.bono }}</td>
                 {% endif %}
                 
-                <td class="pe-3 fw-black fs-5" style="color: var(--primary-dark, #0f172a);">{{ fila.pts }}</td>
+                <td class="pe-3 fw-black text-dark" style="font-family: 'Outfit', sans-serif; font-size: 1.25rem;">
+                    {{ fila.pts }}
+                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="{% if fase == 2 %}11{% else %}10{% endif %}" class="text-center py-5 text-muted">
-                    <i class="bi bi-table display-4 d-block mb-3 opacity-25"></i>
-                    Aún no hay datos para mostrar en esta tabla.
+                <td colspan="{% if fase == 2 %}11{% else %}10{% endif %}" class="text-center py-5 bg-slate-50">
+                    <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border border-secondary shadow-sm" style="width: 70px; height: 70px;">
+                        <i class="bi bi-table text-slate-400" style="font-size: 2rem;"></i>
+                    </div>
+                    <h6 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Tabla Vacía</h6>
+                    <p class="text-slate-600 fw-bold small m-0 mt-1">Aún no hay datos para mostrar en esta clasificación.</p>
                 </td>
             </tr>
             {% endfor %}

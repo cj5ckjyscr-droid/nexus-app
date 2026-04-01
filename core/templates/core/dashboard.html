@@ -26,7 +26,7 @@
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         text-decoration: none; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
         border: 1px solid #E2E8F0; border-radius: 24px; padding: 24px 16px;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02); height: 100%; position: relative; overflow: hidden;
     }
     .btn-tool:hover {
@@ -170,63 +170,54 @@
         <h4 class="fw-black text-dark mb-4" style="font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">Oficina Central</h4>
         
         <div class="row g-3 g-md-4">
-            
             <div class="col-6 col-md-4 col-lg-3">
                 <a href="{% url 'gestionar_torneos' %}" class="btn-tool">
                     <i class="bi bi-trophy-fill text-warning"></i>
                     <span>Torneos</span>
                 </a>
             </div>
-            
             <div class="col-6 col-md-4 col-lg-3">
                 <a href="{% url 'gestionar_categorias' %}" class="btn-tool">
                     <i class="bi bi-tags-fill text-secondary"></i>
                     <span>Categorías</span>
                 </a>
             </div>
-
             <div class="col-6 col-md-4 col-lg-3">
                 <a href="{% url 'gestionar_equipos' %}" class="btn-tool">
                     <i class="bi bi-shield-shaded text-primary"></i>
                     <span>Equipos</span>
                 </a>
             </div>
-
             <div class="col-6 col-md-4 col-lg-3">
                 <a href="{% url 'programar_partidos' %}" class="btn-tool">
                     <i class="bi bi-calendar-range-fill text-info"></i>
                     <span>Fixture</span>
                 </a>
             </div>
-
             <div class="col-6 col-md-4 col-lg-3">
                 <a href="{% url 'admin_gestion_jugadores' %}" class="btn-tool">
                     <i class="bi bi-people-fill text-success"></i>
                     <span>Jugadores</span>
                 </a>
             </div>
-
             <div class="col-6 col-md-4 col-lg-3">
                 <a href="{% url 'gestionar_finanzas' %}" class="btn-tool">
                     <i class="bi bi-wallet2 text-danger"></i>
                     <span>Finanzas</span>
                 </a>
             </div>
-
             <div class="col-6 col-md-4 col-lg-3">
-                <a href="{% url 'admin_gestion_usuarios' %}" class="btn-tool">
-                    <i class="bi bi-person-gear fs-2 mb-3 d-block" style="color: #64748B;"></i>
-                    <span>Vocales</span>
+                <a href="{% url 'seleccionar_reporte' %}" class="btn-tool">
+                    <i class="bi bi-bar-chart-line-fill text-primary"></i>
+                    <span>Estadísticas</span>
                 </a>
             </div>
-
             <div class="col-6 col-md-4 col-lg-3">
                 <a href="{% url 'portal_complejo' mi_complejo.slug %}" class="btn-tool" style="background: linear-gradient(145deg, #EEF2FF, #FFFFFF); border-color: #C7D2FE;">
                     <i class="bi bi-globe text-primary"></i>
                     <span class="text-primary">Portal Fans</span>
                 </a>
             </div>
-
         </div>
     </div>
     {% endif %}
@@ -259,6 +250,41 @@
             </div>
         </div>
     </div>
+
+    {% if mi_equipo and mi_equipo.torneo %}
+    <div class="mb-5 reveal-up" style="animation-delay: 0.3s;">
+        <div class="d-flex align-items-center mb-4">
+            <i class="bi bi-bar-chart-fill fs-3 text-primary me-2"></i>
+            <h4 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">Rendimiento: {{ mi_equipo.nombre }}</h4>
+        </div>
+        <div class="row g-3 g-md-4">
+            <div class="col-6 col-md-3">
+                <a href="{% url 'tabla_posiciones' mi_equipo.torneo.id %}" class="btn-tool p-4">
+                    <i class="bi bi-list-ol text-primary mb-3" style="font-size: 2.5rem;"></i>
+                    <span>Posiciones</span>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{% url 'tabla_goleadores' mi_equipo.torneo.id %}" class="btn-tool p-4">
+                    <i class="bi bi-heptagon-fill text-success mb-3" style="font-size: 2.5rem;"></i>
+                    <span>Goleadores</span>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{% url 'tabla_goleadores' mi_equipo.torneo.id %}" class="btn-tool p-4">
+                    <i class="bi bi-star-fill text-warning mb-3" style="font-size: 2.5rem;"></i>
+                    <span>Ranking MVP</span>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <div data-bs-toggle="modal" data-bs-target="#modalFairplayDir" class="btn-tool p-4" style="background: #FEF2F2; border-color: #FECACA; cursor: pointer;">
+                    <i class="bi bi-file-earmark-ruled-fill text-danger mb-3" style="font-size: 2.5rem;"></i>
+                    <span class="text-danger">Mi Fair Play</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     {% endif %}
 
     <div class="reveal-up" style="animation-delay: 0.3s;">
@@ -402,4 +428,94 @@
 </div>
 {% endif %}
 
+{% if user.perfil.rol == 'DIR' and mi_equipo %}
+<div class="modal fade" id="modalFairplayDir" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            
+            <div class="modal-header border-0 py-3 px-4 bg-danger bg-opacity-10 text-danger rounded-top-4">
+                <h5 class="fw-black m-0" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-file-earmark-ruled-fill me-2"></i> Mi Fair Play - {{ mi_equipo.nombre }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <div class="modal-body p-0 bg-white">
+                
+                <div class="row g-0 border-bottom">
+                    <div class="col-6 border-end p-3 text-center bg-slate-50">
+                        <h6 class="fw-bold text-slate-600 m-0" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Amarillas (Acumuladas)</h6>
+                        <h2 class="fw-black text-warning m-0 mt-1" style="font-family: 'Outfit', sans-serif;">{{ mi_equipo.total_amarillas|default:"0" }}</h2>
+                    </div>
+                    <div class="col-6 p-3 text-center bg-slate-50">
+                        <h6 class="fw-bold text-slate-600 m-0" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Rojas (Directas/Dobles)</h6>
+                        <h2 class="fw-black text-danger m-0 mt-1" style="font-family: 'Outfit', sans-serif;">{{ mi_equipo.total_rojas|default:"0" }}</h2>
+                    </div>
+                </div>
+
+                <div class="p-3">
+                    <p class="text-muted small fw-medium mb-3" style="line-height: 1.4;">
+                        <i class="bi bi-info-circle-fill text-primary me-1"></i> 
+                        <strong>Aviso Reglamentario:</strong> Cada 4 tarjetas amarillas acumuladas generan una suspensión automática de un partido. Las tarjetas rojas implican suspensión inmediata que debe ser acatada y registrada. La disciplina interna de cada complejo es completamente autónoma.
+                    </p>
+                    
+                    <div class="table-responsive border rounded-3 shadow-sm">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                            <thead class="bg-light text-slate-600 text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                <tr>
+                                    <th class="ps-3 py-3">Jugador (Plantilla Oficial)</th>
+                                    <th class="text-center" title="Partidos Jugados">PJ</th>
+                                    <th class="text-center" title="Tarjetas Amarillas Acumuladas">TA <span class="text-warning">🟨</span></th>
+                                    <th class="text-center" title="Tarjetas Rojas">TR <span class="text-danger">🟥</span></th>
+                                    <th class="text-end pe-3">Estado Disciplinario</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                {% for jugador in mi_equipo.jugadores.all %}
+                                <tr>
+                                    <td class="ps-3 fw-bold text-dark">
+                                        <span class="badge bg-slate-200 text-slate-700 me-2">{{ jugador.dorsal|default:"-" }}</span>
+                                        {{ jugador.nombres }}
+                                    </td>
+                                    <td class="text-center fw-black text-slate-500">{{ jugador.partidos_jugados|default:"0" }}</td>
+                                    <td class="text-center fw-black text-warning">{{ jugador.total_amarillas|default:"0" }}</td>
+                                    <td class="text-center fw-black text-danger">{{ jugador.total_rojas|default:"0" }}</td>
+                                    <td class="text-end pe-3">
+                                        {% if jugador.esta_suspendido %}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 shadow-sm"><i class="bi bi-slash-circle me-1"></i>SUSPENDIDO</span>
+                                        {% else %}
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1 shadow-sm"><i class="bi bi-check-circle-fill me-1"></i>HABILITADO</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted small fw-medium">No hay jugadores registrados en la plantilla oficial todavía.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer border-0 bg-light rounded-bottom-4 py-3">
+                <button type="button" class="btn btn-dark fw-bold rounded-pill px-5" data-bs-dismiss="modal">Entendido, cerrar reporte</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Mueve todos los modales al final del body para evitar conflictos 
+        // con las animaciones CSS de las tarjetas padre (Backdrop Freeze fix)
+        const modales = document.querySelectorAll('.modal');
+        modales.forEach(modal => {
+            document.body.appendChild(modal);
+        });
+    });
+</script>
 {% endblock %}

@@ -1,118 +1,169 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Lista Negra | NEXT LEVEL{% endblock %}
+{% block title %}Lista Negra | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* ✨ AQUÍ ESTABA EL ERROR: Faltaban las variables de color para que los fondos funcionen */
-    :root {
-        --accent-red-bg: #DC2626;
-        --accent-red-dark: #991B1B;
-        --text-dark-strict: #0F172A;
-        --text-muted-strict: #475569;
+    /* =========================================================
+       ESTÉTICA FEY - TRIBUNAL DE DISCIPLINA (ALTO CONTRASTE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 50% 10%, rgba(220, 38, 38, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(15, 23, 42, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
     }
 
-    /* Blindaje del Input de Fecha */
-    input[type=date] {
-        border-radius: 10px !important;
-        padding: 12px 15px !important;
-        border: 2px solid #FCA5A5 !important;
-        background-color: #FEF2F2 !important;
-        color: #7F1D1D !important; /* Letra roja oscura garantizada */
-        font-weight: 900 !important;
-        font-size: 1rem;
-        transition: all 0.3s ease;
-        width: 100%;
+    .fey-card {
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+        border: 1px solid #94A3B8; border-radius: 24px; padding: 40px;
+        box-shadow: 0 15px 40px rgba(220, 38, 38, 0.08); position: relative; overflow: hidden;
     }
-    input[type=date]:focus {
-        border-color: var(--accent-red-bg) !important;
-        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15) !important;
-        background-color: #FFFFFF !important;
-        outline: none;
+    .fey-card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+        background: linear-gradient(90deg, #DC2626, #991B1B);
+    }
+
+    .fey-title { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: clamp(1.8rem, 4vw, 2.2rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1; }
+
+    /* Bento Box de Impacto Global */
+    .danger-bento {
+        background: #FEF2F2; border: 2px solid #FCA5A5; border-radius: 16px;
+        padding: 20px; margin-bottom: 30px; box-shadow: inset 0 2px 5px rgba(220, 38, 38, 0.02);
+    }
+    .danger-bento h6 { color: #7F1D1D; font-family: 'Outfit', sans-serif; font-size: 0.9rem; letter-spacing: 0.5px; }
+    .danger-bento ul { color: #450A0A; font-weight: 700; font-size: 0.85rem; line-height: 1.6; }
+    .danger-bento strong { color: #7F1D1D; font-weight: 900; }
+
+    /* Input Nativo de Fecha (Ultra Contraste) */
+    .clean-input-danger {
+        background-color: #F8FAFC !important; border: 2px solid #94A3B8 !important;
+        border-radius: 12px !important; padding: 14px 16px !important; font-size: 1rem;
+        font-weight: 800 !important; color: #0F172A !important; transition: all 0.3s ease !important; width: 100%;
+    }
+    .clean-input-danger:focus { 
+        border-color: #DC2626 !important; background-color: #FFFFFF !important; 
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15) !important; outline: none !important; color: #7F1D1D !important;
     }
     
-    @media (max-width: 576px) {
-        .card-body { padding: 1.25rem !important; }
-        .alert { padding: 1rem !important; }
-        .btn-action { font-size: 0.85rem !important; padding: 0.8rem !important; }
+    .form-label-pro { font-size: 0.8rem; font-weight: 900; color: #1E293B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
+
+    /* Info Box (Levantar Sanción) */
+    .info-bento {
+        background: #F1F5F9; border: 1px solid #94A3B8; border-radius: 12px; padding: 16px;
+        margin-top: 12px; display: flex; flex-direction: column; gap: 8px;
     }
+
+    /* Botones de Acción */
+    .btn-danger-pro {
+        background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%); color: #FFFFFF;
+        font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem; padding: 16px; 
+        border-radius: 14px; border: none; box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3); 
+        transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: center; align-items: center;
+    }
+    .btn-danger-pro:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(220, 38, 38, 0.4); color: #FFFFFF; }
+
+    .btn-light-pro {
+        background-color: #F8FAFC; color: #0F172A; border: 2px solid #94A3B8; border-radius: 14px;
+        font-family: 'Outfit', sans-serif; font-weight: 800; padding: 14px 20px; display: flex; 
+        justify-content: center; align-items: center; text-decoration: none; transition: all 0.2s ease;
+    }
+    .btn-light-pro:hover { background-color: #E2E8F0; border-color: #475569; color: #0F172A; transform: translateY(-2px); }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 576px) { .fey-card { padding: 24px; border-radius: 20px; } }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="row justify-content-center animate__animated animate__fadeIn mt-4 px-2">
-    <div class="col-md-8 col-lg-5">
-        <div class="card border-0 shadow-lg rounded-4 overflow-hidden" style="border: 2px solid #FECACA !important; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.1) !important;">
+<div class="ambient-glow"></div>
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 120px); padding: 20px 0;">
+    <div class="w-100 reveal-up" style="max-width: 600px;">
+        
+        <div class="fey-card">
             
-            <div class="card-header text-center py-4 border-bottom-0" style="background: linear-gradient(135deg, var(--accent-red-bg) 0%, var(--accent-red-dark) 100%) !important;">
-                <i class="bi bi-shield-slash-fill mb-2 d-block" style="font-size: 2.5rem; color: #FFFFFF !important;"></i>
-                <h4 class="fw-black mb-0" style="color: #FFFFFF !important; letter-spacing: -0.5px;">Tribunal de Disciplina</h4>
-                <p class="small mb-0 fw-bold mt-1" style="color: #FECACA !important;">Ingreso a la Lista Negra</p>
+            <div class="text-center mb-4 pb-4 border-bottom border-secondary">
+                <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3 border border-danger border-opacity-25" style="width: 70px; height: 70px;">
+                    <i class="bi bi-shield-slash-fill fs-1"></i>
+                </div>
+                <h2 class="fey-title m-0 text-danger">Tribunal de Disciplina</h2>
+                <div class="badge bg-slate-100 text-dark border border-secondary px-3 py-2 rounded-pill fw-bold mt-2 shadow-sm" style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                    INGRESO A LA LISTA NEGRA
+                </div>
             </div>
             
-            <div class="card-body p-4" style="background-color: #FFFFFF !important;">
+            <div class="card-body p-0">
                 
-                <div class="text-center mb-4 pb-3 border-bottom">
-                    <div class="d-inline-flex justify-content-center align-items-center rounded-circle mb-2" style="width: 50px; height: 50px; background-color: #FEE2E2 !important;">
-                        <i class="bi bi-x-octagon-fill fs-3" style="color: var(--accent-red-bg) !important;"></i>
-                    </div>
-                    <h5 class="fw-black mb-1" style="color: var(--text-dark-strict) !important; letter-spacing: -0.5px;">{{ equipo.nombre|upper }}</h5>
-                    <p class="small fw-bold mb-0" style="color: var(--text-muted-strict) !important;">
-                        <i class="bi bi-person-badge me-1"></i>DT: {{ equipo.dirigente.first_name }} {{ equipo.dirigente.last_name }}
+                <div class="text-center mb-4">
+                    <h4 class="fw-black m-0" style="color: #0F172A; font-family: 'Outfit', sans-serif; font-size: 1.5rem;">{{ equipo.nombre|upper }}</h4>
+                    <p class="fw-bold m-0 mt-1" style="color: #475569; font-size: 0.9rem;">
+                        <i class="bi bi-person-vcard-fill me-1"></i> Dirigente: {{ equipo.dirigente.first_name }} {{ equipo.dirigente.last_name }}
                     </p>
                 </div>
 
-                <div class="alert border rounded-3 p-3 mb-4 shadow-sm" style="background-color: #FEF2F2 !important; border-color: #FCA5A5 !important;">
-                    <h6 class="fw-black mb-2" style="color: var(--accent-red-dark) !important; font-size: 0.8rem; letter-spacing: 0.5px;">
-                        <i class="bi bi-exclamation-triangle-fill me-1"></i>IMPACTO GLOBAL:
-                    </h6>
-                    <ul class="small mb-0 ps-3 fw-bold" style="color: var(--text-dark-strict) !important; line-height: 1.5; font-size: 0.75rem;">
-                        <li class="mb-1">Equipo <strong>expulsado</strong> de competiciones.</li>
-                        <li class="mb-1">Dirigente <strong>bloqueado</strong> para nuevos registros.</li>
-                        <li><strong>Ningún jugador</strong> podrá ser fichado por otro club.</li>
+                <div class="danger-bento">
+                    <h6 class="fw-black mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>IMPACTO GLOBAL EN LA PLATAFORMA:</h6>
+                    <ul class="mb-0 ps-3">
+                        <li class="mb-1">El equipo será <strong>expulsado</strong> de todas las competiciones actuales.</li>
+                        <li class="mb-1">El dirigente quedará <strong>bloqueado</strong> para crear o registrar nuevos equipos.</li>
+                        <li><strong>Ningún jugador</strong> de la plantilla podrá ser fichado o traspasado a otro club.</li>
                     </ul>
                 </div>
 
-                <form method="post">
+                <form method="post" class="m-0">
                     {% csrf_token %}
                     
                     <div class="mb-4">
-                        <label class="form-label fw-black text-uppercase mb-2" style="color: var(--accent-red-bg) !important; font-size: 0.75rem; letter-spacing: 0.5px;">
-                            <i class="bi bi-calendar-x me-1"></i>{{ form.sancionado_hasta.label }}
-                        </label>
+                        <label class="form-label-pro"><i class="bi bi-calendar-x-fill text-danger me-1"></i> {{ form.sancionado_hasta.label }}</label>
                         {{ form.sancionado_hasta }}
                         
-                        <div class="mt-2 p-2 rounded-3 border" style="background-color: #F8FAFC !important; border-color: #E2E8F0 !important;">
-                            <div class="fw-bold d-flex align-items-start" style="color: var(--text-muted-strict) !important; font-size: 0.7rem; line-height: 1.4;">
-                                <i class="bi bi-info-circle-fill me-2 mt-1" style="color: var(--accent-red-bg) !important;"></i>
-                                <span>{{ form.sancionado_hasta.help_text }}</span>
+                        <div class="info-bento shadow-sm">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-info-circle-fill text-primary me-2 mt-1"></i>
+                                <span class="fw-bold" style="color: #1E293B; font-size: 0.8rem; line-height: 1.4;">{{ form.sancionado_hasta.help_text }}</span>
                             </div>
-                            <hr class="my-2" style="border-color: #CBD5E1 !important;">
-                            <div class="fw-bold d-flex align-items-center" style="color: var(--text-dark-strict) !important; font-size: 0.7rem;">
-                                <i class="bi bi-eraser-fill me-2" style="color: #2563EB !important;"></i> 
-                                Para LEVANTAR la sanción, borra la fecha.
+                            <hr class="m-0 border-secondary">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-eraser-fill text-dark me-2"></i> 
+                                <span class="fw-black" style="color: #0F172A; font-size: 0.8rem;">Para LEVANTAR la sanción, borra la fecha y guarda.</span>
                             </div>
                         </div>
-                        
+
                         {% if form.sancionado_hasta.errors %}
-                            <div class="small fw-black mt-2 px-2 py-1 rounded" style="background-color: #FEE2E2 !important; color: var(--accent-red-dark) !important;">
-                                <i class="bi bi-exclamation-circle me-1"></i>{{ form.sancionado_hasta.errors.0 }}
+                            <div class="bg-danger bg-opacity-10 border border-danger text-danger fw-black mt-3 p-2 rounded-3 small">
+                                <i class="bi bi-exclamation-circle-fill me-1"></i> {{ form.sancionado_hasta.errors.0 }}
                             </div>
                         {% endif %}
                     </div>
 
-                    <div class="d-grid gap-2 mt-4 pt-2">
-                        <button type="submit" class="btn btn-action fw-black rounded-pill py-3 shadow-sm transition-all" style="background-color: var(--accent-red-bg) !important; color: #FFFFFF !important; font-size: 0.9rem;" onclick="return confirm('⚠️ ATENCIÓN: Esta acción bloqueará al equipo, al dirigente y a todos sus jugadores en el sistema global. ¿Proceder?');">
-                            <i class="bi bi-gavel me-2"></i> Ejecutar Sentencia
+                    <div class="d-grid gap-3 mt-5 pt-3 border-top border-secondary">
+                        <button type="submit" class="btn-danger-pro" onclick="return confirm('⚠️ ATENCIÓN: Esta acción bloqueará al equipo, al dirigente y a todos sus jugadores en el sistema global. ¿Proceder con la sanción?');">
+                            <i class="bi bi-gavel me-2 fs-5"></i> Ejecutar Sentencia
                         </button>
                         
-                        <a href="{% url 'gestionar_equipos' %}" class="btn btn-action fw-bold rounded-pill py-2" style="background-color: #F1F5F9 !important; border: 1px solid #CBD5E1 !important; color: var(--text-dark-strict) !important; font-size: 0.85rem;">
+                        <a href="{% url 'gestionar_equipos' %}" class="btn-light-pro">
                             Cancelar y Volver
                         </a>
                     </div>
                 </form>
+                
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Aplicar la clase de alto contraste al input de fecha
+        const inputs = document.querySelectorAll('input[type="date"], input[type="text"]');
+        inputs.forEach(input => {
+            input.classList.add('clean-input-danger');
+        });
+    });
+</script>
 {% endblock %}

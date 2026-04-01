@@ -121,6 +121,8 @@ urlpatterns = [
     path('nexus-admin/pagos/', views.registrar_pago_saas, name='registrar_pago_saas'),
 
     path('precios/', views.precios_publicos, name='precios_publicos'),
+
+    path('cancha/<slug:slug_complejo>/', views.portal_complejo, name='portal_complejo'),
 ]
 
 # Servir archivos estáticos/media en entorno local de desarrollo

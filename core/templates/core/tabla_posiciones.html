@@ -1,216 +1,281 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Tabla de Posiciones | NEXT LEVEL{% endblock %}
+{% block title %}Tabla de Posiciones | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
-    :root {
-        --text-dark-strict: #0F172A;
-        --text-muted-strict: #475569;
-        --primary-navy: #0F172A;
-        --bg-light-strict: #F8FAFC;
-        --border-strict: #E2E8F0;
+    /* =========================================================
+       ESTÉTICA FEY - TABLA DE POSICIONES (ALTO CONTRASTE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 30%, rgba(14, 165, 233, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(79, 70, 229, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
     }
 
-    /* Blindaje de Switches para que se vean bien siempre */
-    .form-switch .form-check-input {
-        width: 2.5rem !important; height: 1.25rem !important; cursor: pointer;
-        background-color: #CBD5E1 !important; border-color: #CBD5E1 !important;
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1;
     }
-    .form-switch.switch-warning .form-check-input:checked { background-color: #F59E0B !important; border-color: #F59E0B !important; }
-    .form-switch.switch-info .form-check-input:checked { background-color: #0EA5E9 !important; border-color: #0EA5E9 !important; }
-    .form-switch.switch-success .form-check-input:checked { background-color: #10B981 !important; border-color: #10B981 !important; }
 
-    /* Efecto hover suave para las filas de la tabla */
-    tbody tr:hover td { background-color: #F1F5F9 !important; }
-    .cursor-help { cursor: help; }
+    /* Panel del Organizador (Transiciones) */
+    .admin-panel {
+        background: #FFFFFF; border: 1px solid #94A3B8; border-radius: 20px;
+        padding: 24px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); margin-bottom: 30px;
+    }
+    
+    .transition-card {
+        background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 16px;
+        padding: 20px; text-align: center; display: flex; flex-direction: column; justify-content: space-between;
+        transition: all 0.3s ease; height: 100%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.01);
+    }
+    .transition-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06); border-color: #94A3B8; }
+    
+    .t-card-header { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.1rem; margin-bottom: 8px; }
+    
+    /* Switches Nativos Seguros */
+    .form-switch .form-check-input { width: 3rem; height: 1.5rem; cursor: pointer; background-color: #CBD5E1; border-color: #94A3B8; transition: all 0.2s; margin-top: 0; }
+    
+    /* Botones de Transición */
+    .btn-trans-pro {
+        color: white; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.9rem;
+        padding: 12px 20px; border-radius: 12px; border: none; text-transform: uppercase; letter-spacing: 0.5px;
+        transition: all 0.3s ease; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: auto;
+    }
+    
+    /* Variaciones de Tarjetas */
+    .tc-grupos { border-top: 4px solid #D97706; }
+    .tc-grupos .t-card-header { color: #B45309; }
+    .tc-grupos .form-switch .form-check-input:checked { background-color: #D97706; border-color: #D97706; }
+    .tc-grupos .btn-trans-pro { background: linear-gradient(135deg, #F59E0B, #D97706); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25); }
+    .tc-grupos .btn-trans-pro:hover { box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35); transform: translateY(-2px); }
 
-    /* Optimizaciones Mobile */
+    .tc-cuartos { border-top: 4px solid #0EA5E9; }
+    .tc-cuartos .t-card-header { color: #0369A1; }
+    .tc-cuartos .form-switch .form-check-input:checked { background-color: #0EA5E9; border-color: #0EA5E9; }
+    .tc-cuartos .btn-trans-pro { background: linear-gradient(135deg, #38BDF8, #0284C7); box-shadow: 0 4px 15px rgba(14, 165, 233, 0.25); }
+    .tc-cuartos .btn-trans-pro:hover { box-shadow: 0 6px 20px rgba(14, 165, 233, 0.35); transform: translateY(-2px); }
+
+    .tc-semis { border-top: 4px solid #10B981; }
+    .tc-semis .t-card-header { color: #047857; }
+    .tc-semis .form-switch .form-check-input:checked { background-color: #10B981; border-color: #10B981; }
+    .tc-semis .btn-trans-pro { background: linear-gradient(135deg, #34D399, #059669); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25); }
+    .tc-semis .btn-trans-pro:hover { box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35); transform: translateY(-2px); }
+
+    /* TABLA FEY DE ALTO CONTRASTE */
+    .fey-table-card {
+        background: #FFFFFF; border: 1px solid #94A3B8; border-radius: 20px; overflow: hidden;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); margin-bottom: 30px;
+    }
+    
+    .fey-table { margin: 0; width: 100%; border-collapse: collapse; }
+    
+    .fey-table th { 
+        background: #F8FAFC; color: #1E293B; font-family: 'Outfit', sans-serif;
+        font-weight: 900; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; 
+        border-bottom: 2px solid #94A3B8; padding: 16px 12px; white-space: nowrap; vertical-align: middle;
+    }
+    
+    .fey-table td { 
+        vertical-align: middle; white-space: nowrap; padding: 14px 12px; 
+        border-bottom: 1px solid #CBD5E1; background: #FFFFFF; font-weight: 700; 
+        font-size: 0.95rem; color: #0F172A; transition: background-color 0.2s;
+    }
+    
+    .fey-table tr:hover td { background: #F1F5F9; }
+    .fey-table tr:last-child td { border-bottom: none; }
+    
+    .team-shield-mini { 
+        width: 36px; height: 36px; border-radius: 50%; object-fit: cover; 
+        border: 2px solid #FFFFFF; background: #F8FAFC; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08); 
+    }
+
+    /* Pastillas para Estadísticas */
+    .stat-pill {
+        display: inline-flex; align-items: center; justify-content: center;
+        padding: 4px 10px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; font-family: 'Outfit', sans-serif;
+        min-width: 36px;
+    }
+    .stat-pill.dark { background: #1E293B; color: #FFFFFF; }
+    .stat-pill.success { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+    .stat-pill.danger { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+    .stat-pill.neutral { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+
+    /* Medallas Top 3 */
+    .pos-1 { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border: none; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4); }
+    .pos-2 { background: linear-gradient(135deg, #94A3B8, #64748B); color: white; border: none; box-shadow: 0 2px 8px rgba(148, 163, 184, 0.4); }
+    .pos-3 { background: linear-gradient(135deg, #D97706, #92400E); color: white; border: none; box-shadow: 0 2px 8px rgba(180, 83, 9, 0.4); }
+    .pos-other { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
     @media (max-width: 768px) {
-        .transition-card { margin-bottom: 1rem; }
-        .table-responsive { border: 0 !important; }
-        .badge-header { font-size: 0.65rem !important; }
+        .fey-table th, .fey-table td { padding: 12px 8px; font-size: 0.85rem; }
+        .team-name-col { max-width: 120px; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
+        .team-shield-mini { width: 28px; height: 28px; }
     }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="container-fluid px-0 animate__animated animate__fadeInUp">
+<div class="ambient-glow"></div>
+
+<div class="container-fluid px-0 pb-5">
     
-    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 pb-3 border-bottom">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 pb-3 border-bottom border-secondary reveal-up">
         <div>
-            <h3 class="fw-black mb-0" style="color: var(--text-dark-strict) !important; letter-spacing: -0.5px;">
-                <i class="bi bi-table text-primary me-2"></i>Tabla de Posiciones
-            </h3>
-            <p class="small mb-0 mt-1 fw-bold" style="color: var(--text-muted-strict) !important;">Clasificación oficial de la Fase 1. El orden se define por Puntos, luego Gol Diferencia.</p>
+            <a href="javascript:history.back()" class="btn btn-light border border-secondary rounded-pill px-3 py-1 fw-bold text-dark shadow-sm transition-all mb-3 d-inline-flex align-items-center hover-lift" style="font-size: 0.8rem;">
+                <i class="bi bi-arrow-left me-1"></i> Volver atrás
+            </a>
+            <h2 class="fey-title m-0">Tabla de Posiciones</h2>
+            <p class="text-slate-600 fw-bold m-0 mt-1" style="font-size: 0.95rem;">Clasificación oficial de la Fase 1. Ordenada por Puntos y Gol Diferencia.</p>
         </div>
-        
-        <div class="mt-3 mt-md-0 d-flex gap-2">
-            <span class="badge bg-light border px-3 py-2 rounded-pill shadow-sm fs-6" style="color: var(--text-dark-strict) !important; border-color: var(--border-strict) !important;">
+        <div class="mt-3 mt-md-0">
+            <span class="badge bg-white text-dark border border-secondary px-4 py-2 rounded-pill shadow-sm fw-black" style="font-size: 0.85rem; letter-spacing: 0.5px; font-family: 'Outfit', sans-serif;">
                 <i class="bi bi-trophy-fill text-warning me-1"></i> {{ torneo.nombre }}
             </span>
         </div>
     </div>
 
     {% if request.user.perfil.rol == 'ORG' and not fase2_ya_generada %}
-    <div class="card border-0 shadow-sm mb-5 rounded-4 overflow-hidden" style="border: 1px solid var(--border-strict) !important;">
-        <div class="card-header py-3 d-flex align-items-center" style="background-color: var(--primary-navy) !important; color: #FFFFFF !important;">
-            <i class="bi bi-rocket-takeoff-fill me-2 text-warning fs-5"></i>
-            <span class="fw-black text-uppercase" style="letter-spacing: 0.5px; font-size: 0.9rem;">Panel de Transición de Torneo</span>
-        </div>
-        
-        <div class="card-body p-3 p-md-4" style="background-color: var(--bg-light-strict) !important;">
-            <p class="small fw-bold mb-3 text-center text-md-start" style="color: var(--text-muted-strict) !important;">
-                <i class="bi bi-info-circle-fill me-1 text-primary"></i> Selecciona el siguiente paso. Puedes crear grupos o saltar directo a eliminatorias si tienes pocos equipos.
-            </p>
-            
-            <div class="row g-3">
-                
-                <div class="col-md-4 transition-card">
-                    <form action="{% url 'generar_fase2' torneo.id %}" method="post" class="card h-100 border-0 shadow-sm p-3 text-center" style="background-color: #FFFFFF !important; border-top: 4px solid #F59E0B !important;">
-                        {% csrf_token %}
-                        <h6 class="fw-black mb-1" style="color: #D97706 !important;">Opción 1: Grupos</h6>
-                        <p class="small fw-bold mb-3" style="color: var(--text-muted-strict) !important; font-size: 0.7rem;">Divide en A (Impares) y B (Pares). Bonifica 2 y 1 pts.</p>
-                        
-                        <div class="form-check form-switch switch-warning mb-3 d-flex justify-content-center align-items-center">
-                            <input class="form-check-input" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_f2">
-                            <label class="form-check-label fw-bold small ms-2" for="ida_vuelta_f2" style="color: var(--text-dark-strict) !important;">¿Ida y Vuelta?</label>
-                        </div>
-                        
-                        <button type="submit" class="btn fw-black w-100 rounded-pill mt-auto text-white" style="background-color: #F59E0B !important; font-size: 0.8rem;" onclick="return confirm('¿Generar Fase de Grupos y otorgar bonificaciones?');">
-                            <i class="bi bi-diagram-2-fill me-1"></i> Generar Grupos
-                        </button>
-                    </form>
-                </div>
-
-                <div class="col-md-4 transition-card">
-                    <form action="{% url 'generar_cuartos_directos' torneo.id %}" method="post" class="card h-100 border-0 shadow-sm p-3 text-center" style="background-color: #FFFFFF !important; border-top: 4px solid #0EA5E9 !important;">
-                        {% csrf_token %}
-                        <h6 class="fw-black mb-1" style="color: #0284C7 !important;">Opción 2: Cuartos</h6>
-                        <p class="small fw-bold mb-3" style="color: var(--text-muted-strict) !important; font-size: 0.7rem;">Toma los 8 mejores y los cruza (1v8, 2v7, 3v6, 4v5).</p>
-                        
-                        <div class="form-check form-switch switch-info mb-3 d-flex justify-content-center align-items-center">
-                            <input class="form-check-input" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_q">
-                            <label class="form-check-label fw-bold small ms-2" for="ida_vuelta_q" style="color: var(--text-dark-strict) !important;">¿Ida y Vuelta?</label>
-                        </div>
-                        
-                        <button type="submit" class="btn fw-black w-100 rounded-pill mt-auto text-white" style="background-color: #0EA5E9 !important; font-size: 0.8rem;" onclick="return confirm('¿Saltar directo a Cuartos de Final (1v8, 2v7...)?');">
-                            <i class="bi bi-lightning-fill me-1"></i> Directo a Cuartos
-                        </button>
-                    </form>
-                </div>
-
-                <div class="col-md-4 transition-card">
-                    <form action="{% url 'generar_semis_directas' torneo.id %}" method="post" class="card h-100 border-0 shadow-sm p-3 text-center" style="background-color: #FFFFFF !important; border-top: 4px solid #10B981 !important;">
-                        {% csrf_token %}
-                        <h6 class="fw-black mb-1" style="color: #059669 !important;">Opción 3: Semifinales</h6>
-                        <p class="small fw-bold mb-3" style="color: var(--text-muted-strict) !important; font-size: 0.7rem;">Toma los 4 mejores y los cruza (1v4, 2v3).</p>
-                        
-                        <div class="form-check form-switch switch-success mb-3 d-flex justify-content-center align-items-center">
-                            <input class="form-check-input" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_s">
-                            <label class="form-check-label fw-bold small ms-2" for="ida_vuelta_s" style="color: var(--text-dark-strict) !important;">¿Ida y Vuelta?</label>
-                        </div>
-                        
-                        <button type="submit" class="btn fw-black w-100 rounded-pill mt-auto text-white" style="background-color: #10B981 !important; font-size: 0.8rem;" onclick="return confirm('¿Saltar directo a Semifinales (1v4, 2v3)?');">
-                            <i class="bi bi-trophy-fill me-1"></i> Directo a Semis
-                        </button>
-                    </form>
-                </div>
-
+    <div class="admin-panel reveal-up" style="animation-delay: 0.1s;">
+        <div class="d-flex align-items-center mb-3 pb-2 border-bottom border-secondary">
+            <i class="bi bi-rocket-takeoff-fill text-primary fs-3 me-3"></i>
+            <div>
+                <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Transición de Torneo</h5>
+                <p class="text-slate-600 small fw-bold m-0 mt-1">Selecciona el siguiente paso de la competición.</p>
             </div>
         </div>
-    </div>
-    {% elif request.user.perfil.rol == 'ORG' and fase2_ya_generada %}
-    <div class="alert shadow-sm rounded-4 mb-4 fw-black d-flex flex-column flex-md-row align-items-center justify-content-between p-3" style="background-color: #ECFDF5 !important; color: #065F46 !important; border: 1px solid #A7F3D0 !important;">
-        <div class="mb-3 mb-md-0 text-center text-md-start">
-            <i class="bi bi-check-circle-fill me-2 fs-5"></i> La transición de este torneo ya fue generada.
-            <div class="small fw-bold mt-1 opacity-75">Los equipos ya fueron asignados a sus grupos o llaves.</div>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <form action="{% url 'generar_fase2' torneo.id %}" method="post" class="transition-card tc-grupos">
+                    {% csrf_token %}
+                    <div>
+                        <h6 class="t-card-header">Fase de Grupos</h6>
+                        <p class="text-slate-600 small fw-bold mb-3 lh-sm">Divide en Grupo A y B. Bonifica 2 y 1 pts a los líderes.</p>
+                        <div class="form-check form-switch d-flex justify-content-center align-items-center mb-3">
+                            <input class="form-check-input shadow-sm m-0" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_f2">
+                            <label class="form-check-label fw-black text-dark small ms-2" for="ida_vuelta_f2">¿Ida y Vuelta?</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-trans-pro" onclick="return confirm('¿Generar Fase de Grupos y otorgar bonificaciones?');">
+                        <i class="bi bi-diagram-2-fill"></i> Crear Grupos
+                    </button>
+                </form>
+            </div>
+
+            <div class="col-md-4">
+                <form action="{% url 'generar_cuartos_directos' torneo.id %}" method="post" class="transition-card tc-cuartos">
+                    {% csrf_token %}
+                    <div>
+                        <h6 class="t-card-header">Directo a Cuartos</h6>
+                        <p class="text-slate-600 small fw-bold mb-3 lh-sm">Clasifica a los 8 mejores (1v8, 2v7, 3v6, 4v5).</p>
+                        <div class="form-check form-switch d-flex justify-content-center align-items-center mb-3">
+                            <input class="form-check-input shadow-sm m-0" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_q">
+                            <label class="form-check-label fw-black text-dark small ms-2" for="ida_vuelta_q">¿Ida y Vuelta?</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-trans-pro" onclick="return confirm('¿Saltar directo a Cuartos de Final?');">
+                        <i class="bi bi-lightning-fill"></i> Crear Cuartos
+                    </button>
+                </form>
+            </div>
+
+            <div class="col-md-4">
+                <form action="{% url 'generar_semis_directas' torneo.id %}" method="post" class="transition-card tc-semis">
+                    {% csrf_token %}
+                    <div>
+                        <h6 class="t-card-header">Directo a Semifinales</h6>
+                        <p class="text-slate-600 small fw-bold mb-3 lh-sm">Clasifica a los 4 mejores (1v4, 2v3).</p>
+                        <div class="form-check form-switch d-flex justify-content-center align-items-center mb-3">
+                            <input class="form-check-input shadow-sm m-0" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_s">
+                            <label class="form-check-label fw-black text-dark small ms-2" for="ida_vuelta_s">¿Ida y Vuelta?</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-trans-pro" onclick="return confirm('¿Saltar directo a Semifinales?');">
+                        <i class="bi bi-trophy-fill"></i> Crear Semis
+                    </button>
+                </form>
+            </div>
         </div>
-        <form action="{% url 'revertir_transicion' torneo.id %}" method="post" class="m-0">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger fw-bold rounded-pill shadow-sm py-2 px-4" onclick="return confirm('⚠️ ¿ESTÁS SEGURO? Esto borrará los grupos de la Fase 2 y TODOS los partidos de eliminatorias. Los equipos volverán a la Fase 1 intactos.');">
-                <i class="bi bi-arrow-counterclockwise me-1"></i> Deshacer Transición
-            </button>
-        </form>
     </div>
     {% endif %}
-    <div class="card border-0 shadow-sm overflow-hidden mb-5 rounded-4" style="border: 1px solid var(--border-strict) !important;">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 text-center" style="white-space: nowrap; background-color: #FFFFFF !important;">
-                    <thead style="background-color: #F1F5F9 !important;">
-                        <tr style="color: var(--text-muted-strict) !important; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px;">
-                            <th class="ps-4 text-start py-3" style="width: 5%;">#</th>
-                            <th class="text-start" style="width: 30%;">Equipo</th>
-                            <th data-bs-toggle="tooltip" title="Partidos Jugados" class="cursor-help">PJ</th>
-                            <th data-bs-toggle="tooltip" title="Partidos Ganados" class="cursor-help">PG</th>
-                            <th data-bs-toggle="tooltip" title="Partidos Empatados" class="cursor-help">PE</th>
-                            <th data-bs-toggle="tooltip" title="Partidos Perdidos" class="cursor-help">PP</th>
-                            <th data-bs-toggle="tooltip" title="Goles a Favor" class="d-none d-md-table-cell cursor-help">GF</th>
-                            <th data-bs-toggle="tooltip" title="Goles en Contra" class="d-none d-md-table-cell cursor-help">GC</th>
-                            <th data-bs-toggle="tooltip" title="Gol Diferencia" class="cursor-help">GD</th>
-                            <th data-bs-toggle="tooltip" title="Puntos Totales" class="pe-4 fs-6 text-dark cursor-help">PTS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for fila in tabla %}
-                        <tr style="border-bottom: 1px solid #F1F5F9 !important;">
-                            
-                            <td class="ps-4 text-start py-3">
-                                {% if forloop.counter == 1 %}
-                                    <span class="badge bg-warning text-dark rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 25px; height: 25px;">1</span>
-                                {% elif forloop.counter == 2 %}
-                                    <span class="badge bg-secondary text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 25px; height: 25px;">2</span>
-                                {% elif forloop.counter == 3 %}
-                                    <span class="badge rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm text-white" style="width: 25px; height: 25px; background-color: #cd7f32;">3</span>
+
+    <div class="fey-table-card reveal-up" style="animation-delay: 0.2s;">
+        <div class="table-responsive">
+            <table class="fey-table text-center align-middle">
+                <thead>
+                    <tr>
+                        <th class="ps-3 text-center" style="width: 5%;">#</th>
+                        <th class="text-start" style="width: 35%;">Club Deportivo</th>
+                        <th title="Partidos Jugados" class="cursor-help">PJ</th>
+                        <th title="Partidos Ganados" class="cursor-help text-success">G</th>
+                        <th title="Partidos Empatados" class="cursor-help text-warning" style="color: #D97706 !important;">E</th>
+                        <th title="Partidos Perdidos" class="cursor-help text-danger">P</th>
+                        <th title="Goles a Favor" class="d-none d-md-table-cell cursor-help">GF</th>
+                        <th title="Goles en Contra" class="d-none d-md-table-cell cursor-help">GC</th>
+                        <th title="Gol Diferencia" class="cursor-help">GD</th>
+                        <th class="pe-4 text-dark fs-6 cursor-help" title="Puntos Totales">PTS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in tabla %}
+                    <tr>
+                        <td class="ps-3 text-center">
+                            <div class="stat-pill {% if forloop.counter == 1 %}pos-1{% elif forloop.counter == 2 %}pos-2{% elif forloop.counter == 3 %}pos-3{% else %}pos-other{% endif %} m-0 rounded-circle" style="width: 32px; height: 32px; padding: 0;">
+                                {{ forloop.counter }}
+                            </div>
+                        </td>
+                        
+                        <td class="text-start fw-black text-dark" style="font-family: 'Outfit', sans-serif;">
+                            <div class="d-flex align-items-center">
+                                {% if fila.equipo.escudo %}
+                                    <img src="{{ fila.equipo.escudo.url }}" class="team-shield-mini me-3">
                                 {% else %}
-                                    <span class="fw-bold text-muted ms-2">{{ forloop.counter }}</span>
+                                    <div class="team-shield-mini me-3 d-flex justify-content-center align-items-center text-muted opacity-50">
+                                        <i class="bi bi-shield-fill"></i>
+                                    </div>
                                 {% endif %}
-                            </td>
-                            
-                            <td class="text-start fw-black" style="color: var(--text-dark-strict) !important;">
-                                <div class="d-flex align-items-center">
-                                    {% if fila.equipo.escudo %}
-                                        <img src="{{ fila.equipo.escudo.url }}" width="35" height="35" class="rounded-circle me-3 border shadow-sm" style="object-fit: cover; background: #FFF;">
-                                    {% else %}
-                                        <div class="rounded-circle border shadow-sm me-3 d-inline-flex justify-content-center align-items-center" style="width: 35px; height: 35px; background-color: #F8FAFC;">
-                                            <i class="bi bi-shield-fill text-muted opacity-50"></i>
-                                        </div>
-                                    {% endif %}
-                                    <span class="text-truncate" style="max-width: 200px;" title="{{ fila.equipo.nombre }}">{{ fila.equipo.nombre }}</span>
-                                </div>
-                            </td>
-                            
-                            <td class="fw-bold" style="color: var(--text-muted-strict) !important;">{{ fila.pj }}</td>
-                            <td class="fw-bold" style="color: var(--text-dark-strict) !important;">{{ fila.pg }}</td>
-                            <td class="fw-bold" style="color: var(--text-dark-strict) !important;">{{ fila.pe }}</td>
-                            <td class="fw-bold" style="color: var(--text-dark-strict) !important;">{{ fila.pp }}</td>
-                            
-                            <td class="d-none d-md-table-cell fw-bold" style="color: var(--text-muted-strict) !important;">{{ fila.gf }}</td>
-                            <td class="d-none d-md-table-cell fw-bold" style="color: var(--text-muted-strict) !important;">{{ fila.gc }}</td>
-                            
-                            <td class="fw-black {% if fila.gd > 0 %}text-success{% elif fila.gd < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                <span class="team-name-col" title="{{ fila.equipo.nombre }}">{{ fila.equipo.nombre }}</span>
+                            </div>
+                        </td>
+                        
+                        <td><span class="stat-pill dark shadow-sm">{{ fila.pj }}</span></td>
+                        <td class="text-success fw-black">{{ fila.pg }}</td>
+                        <td class="fw-black" style="color: #D97706;">{{ fila.pe }}</td>
+                        <td class="text-danger fw-black">{{ fila.pp }}</td>
+                        
+                        <td class="d-none d-md-table-cell text-slate-500 fw-bold">{{ fila.gf }}</td>
+                        <td class="d-none d-md-table-cell text-slate-500 fw-bold">{{ fila.gc }}</td>
+                        
+                        <td>
+                            <span class="stat-pill {% if fila.gd > 0 %}success{% elif fila.gd < 0 %}danger{% else %}neutral{% endif %}">
                                 {% if fila.gd > 0 %}+{% endif %}{{ fila.gd }}
-                            </td>
-                            
-                            <td class="pe-4 fw-black fs-5" style="color: var(--primary-navy) !important;">
-                                {{ fila.pts }}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="10" class="text-center py-5">
-                                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 border shadow-sm" style="width: 80px; height: 80px; background-color: #F8FAFC;">
-                                    <i class="bi bi-table text-muted opacity-50" style="font-size: 2.5rem;"></i>
-                                </div>
-                                <h5 class="fw-black mb-1" style="color: var(--text-dark-strict) !important;">Tabla Vacía</h5>
-                                <p class="small fw-bold mb-0" style="color: var(--text-muted-strict) !important;">Aún no se han jugado partidos o registrado resultados.</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            </span>
+                        </td>
+                        
+                        <td class="pe-4 fw-black text-dark" style="font-family: 'Outfit', sans-serif; font-size: 1.3rem;">
+                            {{ fila.pts }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center py-5 bg-slate-50">
+                            <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border shadow-sm" style="width: 80px; height: 80px;">
+                                <i class="bi bi-table text-slate-400" style="font-size: 2.5rem;"></i>
+                            </div>
+                            <h5 class="fw-black text-dark mb-1" style="font-family: 'Outfit', sans-serif;">Tabla Vacía</h5>
+                            <p class="small fw-bold text-slate-500 mb-0">Aún no se han jugado partidos o registrado resultados.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -218,8 +283,8 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function(){
-        // Inicializar tooltips (mensaje al pasar el mouse)
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        // Inicializar tooltips nativos de Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('.cursor-help'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });

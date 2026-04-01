@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Calendario Oficial | NEXUS{% endblock %}
+{% block title %}Calendario Oficial | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -9,53 +9,38 @@
        ESTÉTICA FEY - CALENDARIO & MATCH CARDS (LIGHT MODE)
        ========================================================= */
     .ambient-glow {
-        position: fixed;
-        top: -10%; left: -10%;
-        width: 120vw; height: 120vh;
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
         background: 
             radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
             radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
-        z-index: -1;
-        pointer-events: none;
+        z-index: -1; pointer-events: none;
     }
 
     .fey-title {
-        font-family: 'Outfit', sans-serif;
-        font-weight: 900;
-        font-size: clamp(2rem, 5vw, 3rem);
-        letter-spacing: -0.03em;
-        color: #0F172A;
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -0.03em; color: #0F172A;
     }
 
     /* Evitar problemas de contraste en inputs */
     .form-control, .form-select, input, select, textarea {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important;
-        border: 1px solid #CBD5E1 !important;
-        font-weight: 600 !important;
-        border-radius: 12px;
+        background-color: #FFFFFF !important; color: #0F172A !important;
+        border: 1px solid #CBD5E1 !important; font-weight: 600 !important; border-radius: 12px;
     }
     .form-control:focus, .form-select:focus {
-        border-color: var(--brand-primary) !important;
-        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important;
+        border-color: var(--brand-primary) !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none;
     }
 
     .fey-card {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(20px);
-        border: 1px solid #E2E8F0;
-        border-radius: 20px;
-        padding: 24px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0; border-radius: 20px; padding: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02); transition: all 0.3s ease;
     }
 
     /* Píldoras de Navegación */
     .btn-dash {
-        border-radius: 12px; padding: 8px 16px; font-weight: 700; font-size: 0.8rem;
+        border-radius: 12px; padding: 10px 16px; font-weight: 700; font-size: 0.85rem;
         display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        border: 1px solid transparent;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); border: 1px solid transparent; justify-content: center;
     }
     .btn-dash:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
     .btn-fase1 { background: #FFFFFF; color: #0F172A; border-color: #E2E8F0; }
@@ -64,9 +49,9 @@
 
     /* ACORDEONES ESTILO FEY */
     .fase-badge {
-        background: #FFFFFF; color: #0F172A; padding: 8px 20px; border: 1px solid #E2E8F0;
-        border-radius: 12px; font-weight: 900; font-size: 0.85rem; letter-spacing: 1px;
-        display: inline-flex; align-items: center; margin: 2rem 0 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        background: #0F172A; color: #FFFFFF; padding: 8px 20px; border-radius: 12px;
+        font-weight: 900; font-size: 0.85rem; letter-spacing: 1px; display: inline-flex;
+        align-items: center; margin: 2rem 0 1.5rem; box-shadow: 0 4px 15px rgba(15, 23, 42, 0.15);
     }
     .accordion-item { background: transparent; border: none; margin-bottom: 16px; }
     .accordion-button {
@@ -80,9 +65,8 @@
         border-bottom: 2px solid var(--brand-primary) !important; background-color: #F8FAFC !important; 
     }
     .accordion-body {
-        background: rgba(255, 255, 255, 0.6); border: 1px solid #E2E8F0; border-top: none;
-        border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; padding: 16px;
-        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.7); border: 1px solid #E2E8F0; border-top: none;
+        border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; padding: 16px; backdrop-filter: blur(10px);
     }
 
     /* MATCH ROW (FILA DE PARTIDO) */
@@ -94,38 +78,45 @@
     }
     .match-row:hover { border-color: #0EA5E9; transform: translateX(4px); box-shadow: 0 4px 15px rgba(14, 165, 233, 0.08); }
     
-    .status-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+    .status-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
     .st-fin { background: #10B981; } .st-live { background: #EF4444; } .st-prog { background: #0EA5E9; } .st-acta { background: #F59E0B; } .st-wo { background: #94A3B8; }
 
-    .time-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60px; flex-shrink: 0; }
-    .time-val { font-weight: 900; color: #0F172A; font-size: 0.85rem; line-height: 1; }
-    .date-val { font-size: 0.65rem; color: #64748B; font-weight: 700; text-transform: uppercase; margin-top: 4px; }
+    .time-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 70px; flex-shrink: 0; }
+    .time-val { font-weight: 900; color: #0F172A; font-size: 0.95rem; line-height: 1; font-family: 'Outfit', sans-serif; }
+    .date-val { font-size: 0.65rem; color: #64748B; font-weight: 800; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
 
     .match-center { display: flex; align-items: center; justify-content: center; flex-grow: 1; padding: 0 15px; }
-    .team-name { font-weight: 800; font-size: 0.85rem; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-    .club-crest { width: 28px; height: 28px; object-fit: contain; margin: 0 10px; }
+    .team-name { font-weight: 800; font-size: 0.9rem; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+    .club-crest { width: 32px; height: 32px; object-fit: contain; margin: 0 12px; }
 
     /* Marcador Monospace */
     .score-pill {
-        background: #F1F5F9; border: 1px solid #CBD5E1; color: #0F172A; 
-        padding: 6px 12px; border-radius: 8px; font-family: 'Inter', monospace; font-size: 1rem; font-weight: 900;
-        display: flex; align-items: center; justify-content: center; min-width: 65px; margin: 0 10px;
+        background: #F8FAFC; border: 1px solid #CBD5E1; color: #0F172A; 
+        padding: 6px 14px; border-radius: 10px; font-family: 'Inter', monospace; font-size: 1.1rem; font-weight: 900;
+        display: flex; align-items: center; justify-content: center; min-width: 70px; margin: 0 10px;
     }
-    .score-pill.live { background: #FEE2E2; border-color: #FCA5A5; color: #B91C1C; animation: pulseLive 1.5s infinite; }
+    .score-pill.live { background: #FEF2F2; border-color: #FCA5A5; color: #DC2626; animation: pulseLive 1.5s infinite; }
     @keyframes pulseLive { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); } 70% { box-shadow: 0 0 0 6px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
 
     /* Acciones */
     .action-box { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
-    .btn-act { border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; text-decoration: none; border: 1px solid transparent; display: flex; align-items: center; gap: 6px; transition: all 0.2s;}
-    .btn-act:hover { transform: translateY(-1px); filter: brightness(0.95); }
+    .btn-act { 
+        border-radius: 10px; padding: 8px 14px; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; 
+        text-decoration: none; border: 1px solid transparent; display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .btn-act:hover { transform: translateY(-2px); filter: brightness(0.95); }
     .btn-pitar { background: #E0F2FE; color: #0284C7; border-color: #BAE6FD; }
     .btn-pdf { background: #FEE2E2; color: #B91C1C; border-color: #FECACA; }
     .btn-acta { background: #FEF3C7; color: #B45309; border-color: #FDE68A; }
     .btn-view { background: #F1F5F9; color: #475569; border-color: #CBD5E1; }
 
-    .btn-tool { width: 32px; height: 32px; border-radius: 8px; background: #F8FAFC; border: 1px solid #E2E8F0; display: inline-flex; align-items: center; justify-content: center; color: #64748B; font-size: 0.85rem; text-decoration: none; transition: 0.2s;}
-    .btn-tool:hover { background: #E2E8F0; color: #0F172A; }
-    .btn-tool.delete:hover { background: #FEE2E2; color: #EF4444; border-color: #FECACA; }
+    /* Toolbar Pequeña para el Organizador */
+    .btn-tool { 
+        width: 34px; height: 34px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E2E8F0; 
+        display: inline-flex; align-items: center; justify-content: center; color: #64748B; font-size: 0.9rem; text-decoration: none; transition: 0.2s;
+    }
+    .btn-tool:hover { background: #F8FAFC; color: #0F172A; border-color: #CBD5E1; }
+    .btn-tool.delete:hover { background: #FEF2F2; color: #EF4444; border-color: #FECACA; }
 
     /* Animaciones */
     .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -136,25 +127,25 @@
        ========================================================= */
     @media (max-width: 768px) {
         .fey-card { padding: 16px; border-radius: 16px; }
-        .btn-dash { width: 100%; justify-content: center; padding: 12px; font-size: 0.85rem;}
+        .btn-dash { width: 100%; }
         
-        .match-row { flex-direction: column; padding: 16px; gap: 12px; border-radius: 16px;}
+        .match-row { flex-direction: column; padding: 16px; gap: 12px; border-radius: 16px; }
         .match-row:hover { transform: translateY(-2px); }
         
         /* Arriba: Fecha y Estado */
-        .time-box { width: 100%; flex-direction: row; justify-content: space-between; border-bottom: 1px solid #E2E8F0; padding-bottom: 10px; }
-        .time-val { font-size: 0.9rem; }
+        .time-box { width: 100%; flex-direction: row; justify-content: space-between; border-bottom: 1px dashed #E2E8F0; padding-bottom: 10px; }
+        .time-val { font-size: 1rem; }
         .date-val { margin-top: 0; font-size: 0.8rem; }
         
         /* Centro: Equipos */
         .match-center { width: 100%; justify-content: space-between; padding: 10px 0; }
         .team-name { max-width: 100px; font-size: 0.8rem; white-space: normal; line-height: 1.2; }
-        .club-crest { width: 35px; height: 35px; }
+        .club-crest { width: 40px; height: 40px; }
         
         /* Abajo: Botones */
-        .action-box { width: 100%; justify-content: space-between; border-top: 1px solid #E2E8F0; padding-top: 12px; }
-        .btn-act { flex-grow: 1; justify-content: center; padding: 10px; font-size: 0.75rem;}
-        .admin-toolbar-mobile { display: flex; gap: 8px; width: 100%; justify-content: flex-end;}
+        .action-box { width: 100%; justify-content: space-between; border-top: 1px dashed #E2E8F0; padding-top: 12px; }
+        .btn-act { flex-grow: 1; justify-content: center; padding: 10px; font-size: 0.8rem;}
+        .admin-toolbar-mobile { display: flex; gap: 8px; width: 100%; justify-content: flex-end; margin-top: 10px;}
     }
 </style>
 {% endblock %}
@@ -165,14 +156,14 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 reveal-up">
     <div>
         <h2 class="fey-title m-0">Calendario Oficial</h2>
-        <p class="text-muted fs-6 m-0 mt-1">Sigue el desarrollo del torneo partido a partido.</p>
+        <p class="text-muted fs-6 m-0 mt-1 fw-medium">Sigue el desarrollo del torneo partido a partido.</p>
     </div>
 </div>
 
 <div class="fey-card mb-4 reveal-up" style="animation-delay: 0.1s;">
     <form method="GET" class="row align-items-center m-0 g-3">
         <div class="col-md-5">
-            <select name="torneo" class="form-select form-control-lg fw-bold" style="font-size: 0.95rem; cursor: pointer;" onchange="this.form.submit()">
+            <select name="torneo" class="form-select form-select-lg fw-bold" style="font-size: 1rem; cursor: pointer; border-radius: 12px;" onchange="this.form.submit()">
                 <option value="">-- Elige el campeonato --</option>
                 {% for t in torneos %}
                     <option value="{{ t.id }}" {% if torneo_actual == t.id %}selected{% endif %}>{{ t.nombre }}</option>
@@ -182,9 +173,9 @@
         
         {% if torneo %}
         <div class="col-md-7 d-flex flex-column flex-md-row justify-content-md-end gap-2">
-            <a href="{% url 'tabla_posiciones' torneo.id %}" class="btn-dash btn-fase1"><i class="bi bi-list-ol"></i> Posiciones F1</a>
-            <a href="{% url 'tabla_posiciones_f2' torneo.id %}" class="btn-dash btn-fase2"><i class="bi bi-diagram-2-fill"></i> Grupos F2</a>
-            <a href="{% url 'reporte_estadisticas' torneo.id %}" class="btn-dash btn-stats"><i class="bi bi-bar-chart-line-fill"></i> Estadísticas</a>
+            <a href="{% url 'tabla_posiciones' torneo.id %}" class="btn-dash btn-fase1"><i class="bi bi-list-ol fs-6"></i> Posiciones F1</a>
+            <a href="{% url 'tabla_posiciones_f2' torneo.id %}" class="btn-dash btn-fase2"><i class="bi bi-diagram-2-fill fs-6"></i> Grupos F2</a>
+            <a href="{% url 'reporte_estadisticas' torneo.id %}" class="btn-dash btn-stats"><i class="bi bi-bar-chart-line-fill fs-6"></i> Estadísticas</a>
         </div>
         {% endif %}
     </form>
@@ -195,19 +186,19 @@
     {% if request.user.perfil.rol == 'ORG' %}
     <div class="row g-4 mb-4 reveal-up" style="animation-delay: 0.2s;">
         <div class="col-md-6">
-            <div class="fey-card p-3 d-flex justify-content-between align-items-center h-100">
+            <div class="fey-card p-4 d-flex justify-content-between align-items-center h-100">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-                        <i class="bi {% if torneo.fase1_ida_vuelta %}bi-arrow-repeat{% else %}bi-arrow-right{% endif %} fs-5"></i>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center border border-primary border-opacity-25" style="width: 50px; height: 50px;">
+                        <i class="bi {% if torneo.fase1_ida_vuelta %}bi-arrow-repeat{% else %}bi-arrow-right{% endif %} fs-4"></i>
                     </div>
                     <div>
                         <h6 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">{% if torneo.fase1_ida_vuelta %}Modo: IDA Y VUELTA{% else %}Modo: SOLO IDA{% endif %}</h6>
-                        <span class="text-muted small">Configuración de Fase 1</span>
+                        <span class="text-muted small fw-medium">Configuración de Fase 1</span>
                     </div>
                 </div>
                 <form action="{% url 'cambiar_formato_fase1' torneo.id %}" method="post" class="m-0">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm rounded-pill fw-bold {% if torneo.fase1_ida_vuelta %}btn-outline-danger{% else %}btn-primary{% endif %}" onclick="return confirm('¿Seguro que deseas cambiar la modalidad de los enfrentamientos?');">
+                    <button type="submit" class="btn btn-sm rounded-pill fw-bold {% if torneo.fase1_ida_vuelta %}btn-outline-danger bg-white{% else %}btn-primary{% endif %}" onclick="return confirm('¿Seguro que deseas cambiar la modalidad de los enfrentamientos?');">
                         Cambiar
                     </button>
                 </form>
@@ -215,10 +206,10 @@
         </div>
 
         <div class="col-md-6">
-            <div class="fey-card p-3 h-100">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="fey-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                     <h6 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-calendar-plus text-primary me-2"></i>Agendar Partido</h6>
-                    <a href="{% url 'generar_fixture' torneo.id %}" class="badge bg-slate-50 text-dark border text-decoration-none px-3 py-2 rounded-pill"><i class="bi bi-magic text-warning me-1"></i> Auto-Fixture</a>
+                    <a href="{% url 'generar_fixture' torneo.id %}" class="badge bg-warning bg-opacity-10 text-dark border border-warning border-opacity-50 text-decoration-none px-3 py-2 rounded-pill fw-bold shadow-sm"><i class="bi bi-magic text-warning me-1"></i> Auto-Fixture</a>
                 </div>
                 <form method="post" class="m-0">
                     {% csrf_token %}
@@ -227,13 +218,13 @@
                         {% for field in form %}
                             {% if field.name != 'torneo' %}
                             <div class="col-md-3 col-6">
-                                <label class="form-label text-muted fw-bold mb-1" style="font-size: 0.65rem; text-transform: uppercase;">{{ field.label }}</label>
+                                <label class="form-label text-slate-500 fw-bold mb-1" style="font-size: 0.65rem; text-transform: uppercase;">{{ field.label }}</label>
                                 {{ field }}
                             </div>
                             {% endif %}
                         {% endfor %}
-                        <div class="col-md-3 col-12 mt-2 mt-md-0">
-                            <button type="submit" class="btn btn-dark w-100 rounded-3 fw-bold py-2" style="font-size: 0.85rem;">Guardar</button>
+                        <div class="col-md-3 col-12 mt-3 mt-md-0">
+                            <button type="submit" class="btn btn-nexus w-100 rounded-3 fw-bold py-2 shadow-sm" style="font-size: 0.9rem;">Guardar</button>
                         </div>
                     </div>
                 </form>
@@ -246,7 +237,7 @@
         {% regroup partidos by get_etapa_display as fases_agrupadas %}
         
         {% for fase in fases_agrupadas %}
-            <div class="fase-badge"><i class="bi bi-flag-fill text-warning me-2"></i> {{ fase.grouper }}</div>
+            <div class="fase-badge"><i class="bi bi-flag-fill text-warning me-2 fs-5"></i> {{ fase.grouper }}</div>
 
             {% regroup fase.list by numero_fecha as jornadas_agrupadas %}
             <div class="accordion" id="accFase{{ forloop.counter }}">
@@ -255,8 +246,8 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#c-f{{ forloop.parentloop.counter }}-j{{ forloop.counter }}">
-                            <i class="bi bi-calendar4-week text-primary me-2"></i> JORNADA {{ jornada.grouper|default:"SIN FECHA" }}
-                            <span class="ms-auto badge bg-white text-dark border px-3 rounded-pill fw-bold">{{ jornada.list|length }} Partidos</span>
+                            <i class="bi bi-calendar-event text-primary me-3 fs-5"></i> JORNADA {{ jornada.grouper|default:"SIN FECHA" }}
+                            <span class="ms-auto badge bg-white text-dark border px-3 py-2 rounded-pill fw-bold shadow-sm" style="font-size: 0.75rem;">{{ jornada.list|length }} Partidos</span>
                         </button>
                     </h2>
                     
@@ -264,7 +255,7 @@
                         <div class="accordion-body">
                             
                             {% for p in jornada.list %}
-                            <div class="match-row">
+                            <div class="match-row shadow-sm">
                                 <div class="status-bar {% if p.estado == 'JUG' %}st-fin{% elif p.estado == 'VIVO' %}st-live{% elif p.estado == 'ACTA' %}st-acta{% elif p.estado == 'WO' %}st-wo{% else %}st-prog{% endif %}"></div>
                                 
                                 <div class="time-box">
@@ -272,44 +263,44 @@
                                         <span class="time-val">{{ p.fecha_hora|time:"H:i" }}</span>
                                         <span class="date-val">{{ p.fecha_hora|date:"d M" }}</span>
                                     {% else %}
-                                        <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary px-2">Pendiente</span>
+                                        <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary px-2 py-1">TBD</span>
                                     {% endif %}
                                     {% if p.es_vuelta_visual %}
-                                        <span class="badge bg-primary text-white mt-1 px-2 py-1 shadow-sm" style="font-size: 0.55rem;">VUELTA</span>
+                                        <span class="badge bg-primary text-white mt-1 px-2 py-1 shadow-sm fw-bold" style="font-size: 0.55rem; letter-spacing: 0.5px;">VUELTA</span>
                                     {% endif %}
                                 </div>
 
                                 <div class="match-center">
                                     <div class="team-name text-end">{{ p.equipo_local.nombre }}</div>
-                                    <img src="{% if p.equipo_local.escudo %}{{ p.equipo_local.escudo.url }}{% else %}{% static 'img/default-shield.png' %}{% endif %}" class="club-crest">
+                                    <img src="{% if p.equipo_local.escudo %}{{ p.equipo_local.escudo.url }}{% else %}{% static 'img/default-shield.png' %}{% endif %}" class="club-crest shadow-sm rounded-circle border border-white">
                                     
-                                    <div class="score-pill {% if p.estado == 'VIVO' %}live{% endif %}">
+                                    <div class="score-pill shadow-sm {% if p.estado == 'VIVO' %}live{% endif %}">
                                         <span class="{% if p.goles_local > p.goles_visita and p.estado == 'JUG' %}text-primary{% endif %}">{{ p.goles_local }}</span>
                                         <span class="text-muted mx-1 opacity-50">-</span>
                                         <span class="{% if p.goles_visita > p.goles_local and p.estado == 'JUG' %}text-primary{% endif %}">{{ p.goles_visita }}</span>
                                     </div>
                                     
-                                    <img src="{% if p.equipo_visita.escudo %}{{ p.equipo_visita.escudo.url }}{% else %}{% static 'img/default-shield.png' %}{% endif %}" class="club-crest">
+                                    <img src="{% if p.equipo_visita.escudo %}{{ p.equipo_visita.escudo.url }}{% else %}{% static 'img/default-shield.png' %}{% endif %}" class="club-crest shadow-sm rounded-circle border border-white">
                                     <div class="team-name text-start">{{ p.equipo_visita.nombre }}</div>
                                 </div>
 
                                 <div class="action-box">
                                     <div class="d-flex gap-2 w-100 justify-content-center">
                                         {% if p.estado == 'JUG' or p.estado == 'WO' %}
-                                            <a href="{% url 'generar_acta_pdf' p.id %}" target="_blank" class="btn-act btn-pdf"><i class="bi bi-file-pdf"></i> PDF</a>
-                                            <a href="{% url 'gestionar_vocalia' p.id %}" class="btn-act btn-view"><i class="bi bi-eye"></i></a>
+                                            <a href="{% url 'generar_acta_pdf' p.id %}" target="_blank" class="btn-act btn-pdf shadow-sm"><i class="bi bi-file-pdf fs-6"></i> PDF</a>
+                                            <a href="{% url 'gestionar_vocalia' p.id %}" class="btn-act btn-view shadow-sm"><i class="bi bi-eye fs-6"></i></a>
                                         {% elif p.estado == 'ACTA' %}
-                                            <a href="{% url 'gestionar_vocalia' p.id %}" class="btn-act btn-acta"><i class="bi bi-pen-fill"></i> Firma</a>
+                                            <a href="{% url 'gestionar_vocalia' p.id %}" class="btn-act btn-acta shadow-sm"><i class="bi bi-pen-fill"></i> Firma</a>
                                         {% elif p.estado == 'VIVO' or p.estado == 'PROG' %}
-                                            <a href="{% url 'gestionar_vocalia' p.id %}" class="btn-act btn-pitar"><i class="bi bi-whistle"></i> Pitar</a>
+                                            <a href="{% url 'gestionar_vocalia' p.id %}" class="btn-act btn-pitar shadow-sm"><i class="bi bi-whistle fs-6"></i> Pitar</a>
                                         {% endif %}
                                     </div>
 
                                     {% if request.user.perfil.rol == 'ORG' %}
                                     <div class="admin-toolbar-mobile">
-                                        <a href="{% url 'editar_partido' p.id %}" class="btn-tool" title="Editar"><i class="bi bi-pencil"></i></a>
-                                        <a href="{% url 'reiniciar_partido' p.id %}" onclick="return confirm('¿Resetear marcador?');" class="btn-tool" title="Reiniciar"><i class="bi bi-arrow-counterclockwise"></i></a>
-                                        <a href="{% url 'eliminar_partido' p.id %}" onclick="return confirm('¿ELIMINAR partido?');" class="btn-tool delete" title="Borrar"><i class="bi bi-trash3"></i></a>
+                                        <a href="{% url 'editar_partido' p.id %}" class="btn-tool shadow-sm" title="Editar"><i class="bi bi-pencil"></i></a>
+                                        <a href="{% url 'reiniciar_partido' p.id %}" onclick="return confirm('¿Resetear marcador y eventos?');" class="btn-tool shadow-sm" title="Reiniciar"><i class="bi bi-arrow-counterclockwise"></i></a>
+                                        <a href="{% url 'eliminar_partido' p.id %}" onclick="return confirm('¿ELIMINAR partido permanentemente?');" class="btn-tool delete shadow-sm" title="Borrar"><i class="bi bi-trash3"></i></a>
                                     </div>
                                     {% endif %}
                                 </div>
@@ -324,9 +315,11 @@
             </div>
         {% empty %}
             <div class="fey-card text-center py-5 mt-4" style="border-style: dashed; background: transparent; box-shadow: none;">
-                <i class="bi bi-calendar-x fs-1 text-slate-400 d-block mb-3"></i>
-                <h5 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Calendario Vacío</h5>
-                <p class="text-muted m-0">Aún no hay partidos. Dirígete a la pestaña "Fixture" para programarlos.</p>
+                <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm border" style="width: 80px; height: 80px;">
+                    <i class="bi bi-calendar-x fs-1 text-slate-400 opacity-50"></i>
+                </div>
+                <h4 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Calendario Vacío</h4>
+                <p class="text-muted m-0">Aún no hay partidos. Utiliza el "Auto-Fixture" para programarlos.</p>
             </div>
         {% endfor %}
     </div>

@@ -1,80 +1,166 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Traspaso de Jugador | NEXT LEVEL{% endblock %}
+{% block title %}Traspaso de Jugador | NEXUS SPORTOPS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================================
+       ESTÉTICA FEY - TRASPASOS (ALTO CONTRASTE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
+    }
+
+    .fey-card {
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+        border: 1px solid #94A3B8; border-radius: 24px; padding: 40px;
+        box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08); position: relative; overflow: hidden;
+    }
+    .fey-card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+        background: linear-gradient(90deg, var(--brand-primary), #0EA5E9);
+    }
+
+    .fey-title { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: clamp(1.8rem, 4vw, 2.2rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1; }
+
+    /* Bento Box Informativo (Advertencia de Reglas) */
+    .rules-bento {
+        background: #FFFBEB; border: 2px solid #FDE68A; border-radius: 16px;
+        padding: 20px; margin-bottom: 30px; box-shadow: inset 0 2px 5px rgba(217, 119, 6, 0.02);
+    }
+    .rules-bento h6 { color: #B45309; font-family: 'Outfit', sans-serif; font-size: 0.95rem; letter-spacing: 0.5px; }
+    .rules-bento ul { color: #78350F; font-weight: 700; font-size: 0.85rem; line-height: 1.6; }
+    .rules-bento strong { color: #92400E; font-weight: 900; }
+
+    /* Estilos Nativos de Formulario (Ultra Contraste) */
+    .clean-input {
+        background-color: #F8FAFC !important; border: 2px solid #94A3B8 !important;
+        border-radius: 12px !important; padding: 14px 16px !important; font-size: 1rem;
+        font-weight: 800 !important; color: #0F172A !important; transition: all 0.3s ease !important; width: 100%;
+    }
+    .clean-input:focus { border-color: var(--brand-primary) !important; background-color: #FFFFFF !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15) !important; outline: none !important; }
+    
+    .form-label-pro { font-size: 0.8rem; font-weight: 900; color: #1E293B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
+
+    /* Info Player (Caja de Identificación) */
+    .player-info-box {
+        background: #F8FAFC; border: 1px solid #94A3B8; border-radius: 16px; padding: 20px;
+        margin-bottom: 24px; text-align: center;
+    }
+
+    /* Botones Pro */
+    .btn-submit-pro {
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: white;
+        font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem; padding: 16px; 
+        border-radius: 14px; border: none; width: 100%; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25); 
+        transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: center; align-items: center;
+    }
+    .btn-submit-pro:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(15, 23, 42, 0.35); color: white; }
+
+    .btn-light-pro {
+        background-color: #F8FAFC; color: #0F172A; border: 2px solid #94A3B8; border-radius: 14px; width: 100%;
+        font-family: 'Outfit', sans-serif; font-weight: 800; padding: 14px 20px; display: flex; 
+        justify-content: center; align-items: center; text-decoration: none; transition: all 0.2s ease;
+    }
+    .btn-light-pro:hover { background-color: #E2E8F0; border-color: #475569; color: #0F172A; transform: translateY(-2px); }
+
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 576px) { .fey-card { padding: 24px; border-radius: 20px; } }
+</style>
+{% endblock %}
 
 {% block contenido %}
-<div class="row justify-content-center animate__animated animate__fadeInUp mt-4">
-    <div class="col-md-8 col-lg-6">
-        <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="card-header text-white text-center py-4" style="background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-blue) 100%);">
-                <i class="bi bi-arrow-left-right fs-1 mb-2"></i>
-                <h4 class="fw-black mb-0">Mercado de Fichajes</h4>
-                <p class="text-white-50 small mb-0">Transferencia Oficial de Jugador</p>
+<div class="ambient-glow"></div>
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 120px); padding: 20px 0;">
+    <div class="w-100 reveal-up" style="max-width: 600px;">
+        
+        <div class="fey-card">
+            
+            <div class="text-center mb-4 pb-4 border-bottom border-secondary">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 border border-primary border-opacity-25" style="width: 70px; height: 70px;">
+                    <i class="bi bi-arrow-left-right fs-1"></i>
+                </div>
+                <h5 class="fw-black text-slate-500 mb-1 text-uppercase small" style="letter-spacing: 1px;">Mercado de Fichajes</h5>
+                <h2 class="fey-title mb-1">Transferencia de Jugador</h2>
             </div>
             
-            <div class="card-body p-4 p-md-5 bg-white">
-                <div class="d-flex align-items-center justify-content-between bg-light p-3 rounded-4 border border-secondary-subtle mb-4 shadow-sm">
-                    <div class="text-center w-100">
-                        <span class="d-block text-muted small fw-bold mb-1">JUGADOR A TRANSFERIR</span>
-                        <h5 class="fw-black text-dark mb-0">{{ jugador.nombres|upper }}</h5>
-                        <span class="badge bg-secondary mt-2">Dorsal actual: {{ jugador.dorsal }}</span>
+            <div class="card-body p-0">
+                
+                <div class="player-info-box shadow-sm">
+                    <span class="d-block text-slate-600 small fw-black mb-1 text-uppercase" style="letter-spacing: 1px;">Jugador a Transferir</span>
+                    <h4 class="fw-black text-dark mb-0" style="font-family: 'Outfit', sans-serif;">{{ jugador.nombres|upper }}</h4>
+                    <div class="mt-2">
+                        <span class="badge bg-dark text-white border border-secondary px-3 py-2 rounded-pill fw-bold shadow-sm" style="font-size: 0.8rem;">
+                            Dorsal actual: {{ jugador.dorsal|default:"-" }}
+                        </span>
                     </div>
                 </div>
 
-                <div class="alert bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-4 p-3 mb-4 shadow-sm">
-                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-warning me-2"></i>Reglas del Traspaso:</h6>
-                    <ul class="small text-muted mb-0 ps-3 fw-medium">
-                        <li class="mb-1">El jugador <strong>perderá</strong> todas sus tarjetas y suspensiones acumuladas. Entra "limpio" al nuevo equipo.</li>
-                        <li>Los goles que anotó previamente <strong>se quedarán</strong> a favor de <strong>{{ jugador.equipo.nombre }}</strong>.</li>
+                <div class="rules-bento">
+                    <h6 class="fw-black mb-2"><i class="bi bi-info-circle-fill me-2"></i>REGLAMENTO DE TRASPASOS:</h6>
+                    <ul class="mb-0 ps-3">
+                        <li class="mb-1">El jugador <strong>perderá</strong> todas sus tarjetas y suspensiones acumuladas. Entra "limpio" a su nuevo club.</li>
+                        <li>Los goles que anotó previamente <strong>se quedarán</strong> como estadísticas a favor de <strong>{{ jugador.equipo.nombre }}</strong>.</li>
                     </ul>
                 </div>
 
-                <form method="post">
+                <form method="post" class="m-0">
                     {% csrf_token %}
                     
                     <div class="row g-3 mb-4">
                         <div class="col-md-8">
-                            <label class="form-label fw-bold text-uppercase mb-2" style="font-size: 0.75rem; color: var(--primary-navy); letter-spacing: 0.5px;">Equipo de Destino</label>
+                            <label class="form-label-pro"><i class="bi bi-shield-fill text-primary me-1"></i> Equipo de Destino <span class="text-danger">*</span></label>
                             {{ form.nuevo_equipo }}
+                            
                             {% if form.nuevo_equipo.errors %}
-                                <div class="text-danger small fw-bold mt-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ form.nuevo_equipo.errors.0 }}</div>
+                                <div class="bg-danger bg-opacity-10 border border-danger text-danger fw-black mt-2 p-2 rounded-3 small">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>{{ form.nuevo_equipo.errors.0 }}
+                                </div>
                             {% endif %}
                         </div>
+
                         <div class="col-md-4">
-                            <label class="form-label fw-bold text-uppercase mb-2" style="font-size: 0.75rem; color: var(--primary-navy); letter-spacing: 0.5px;">Nuevo Dorsal</label>
+                            <label class="form-label-pro"><i class="bi bi-123 text-primary me-1"></i> Nuevo Dorsal <span class="text-danger">*</span></label>
                             {{ form.nuevo_dorsal }}
+                            
                             {% if form.nuevo_dorsal.errors %}
-                                <div class="text-danger small fw-bold mt-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ form.nuevo_dorsal.errors.0 }}</div>
+                                <div class="bg-danger bg-opacity-10 border border-danger text-danger fw-black mt-2 p-2 rounded-3 small">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i>{{ form.nuevo_dorsal.errors.0 }}
+                                </div>
                             {% endif %}
                         </div>
                     </div>
 
-                    <div class="d-grid gap-3 mt-5">
-                        <button type="submit" class="btn text-white fw-bold rounded-pill py-3 shadow-sm transition-all" style="background-color: var(--primary-blue);" onclick="return confirm('¿Confirmas el traspaso definitivo de {{ jugador.nombres }}?');">
-                            <i class="bi bi-check-circle-fill me-2"></i> Confirmar Traspaso
+                    <div class="d-grid gap-3 mt-5 pt-3 border-top border-secondary">
+                        <button type="submit" class="btn-submit-pro" onclick="return confirm('⚠️ ¿Confirmas el traspaso definitivo de {{ jugador.nombres }}? Sus tarjetas serán reseteadas y cambiará de club inmediatamente.');">
+                            <i class="bi bi-check-circle-fill me-2 fs-5"></i> CONFIRMAR TRASPASO
                         </button>
                         
-                        <a href="{% url 'admin_gestion_jugadores' %}" class="btn btn-light text-muted fw-bold rounded-pill py-2 border-secondary-subtle">
-                            Cancelar
+                        <a href="{% url 'admin_gestion_jugadores' %}" class="btn-light-pro">
+                            Cancelar y Volver
                         </a>
                     </div>
                 </form>
+                
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    select, input[type=number] {
-        border-radius: 10px !important;
-        padding: 12px 15px !important;
-        border: 2px solid #CBD5E1 !important;
-        background-color: #F8FAFC !important;
-    }
-    select:focus, input[type=number]:focus {
-        border-color: var(--primary-blue) !important;
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.1) !important;
-        outline: none;
-    }
-</style>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Aplicar la clase de alto contraste a los inputs y selects
+        const inputs = document.querySelectorAll('select, input[type="number"], input[type="text"]');
+        inputs.forEach(input => {
+            input.classList.add('clean-input');
+        });
+    });
+</script>
 {% endblock %}

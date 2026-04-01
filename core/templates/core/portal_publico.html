@@ -1,118 +1,93 @@
 {% extends 'core/base.html' %}
 
-{% block title %}{{ complejo.nombre }} | Torneos{% endblock %}
+{% block title %}{{ complejo.nombre }} | Torneos NEXUS{% endblock %}
 
 {% block contenido %}
 <style>
     /* =========================================================
-       ESTILOS DEL PORTAL (MINIMALISTA, COMPACTO Y MÓVIL-FIRST)
+       ESTÉTICA FEY - PORTAL PÚBLICO (LIGHT MODE)
        ========================================================= */
     .ambient-glow {
-        position: fixed;
-        top: -10%; left: -10%;
-        width: 120vw; height: 120vh;
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
         background: 
             radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
             radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
-        z-index: -1;
-        pointer-events: none;
+        z-index: -1; pointer-events: none;
     }
 
     .fey-title {
-        font-family: 'Outfit', sans-serif;
-        font-weight: 900;
-        font-size: clamp(2rem, 5vw, 3.5rem);
-        letter-spacing: -0.03em;
-        line-height: 1.1;
-        color: #0F172A;
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.03em; line-height: 1.1; color: #0F172A;
     }
 
     .fey-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(12px);
-        border: 1px solid #E2E8F0;
-        padding: 6px 16px;
-        border-radius: 100px;
-        font-weight: 600;
-        font-size: 0.8rem;
-        color: #475569;
+        display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px); border: 1px solid #E2E8F0; padding: 6px 16px;
+        border-radius: 100px; font-weight: 600; font-size: 0.8rem; color: #475569;
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
 
     .fey-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(20px);
-        border: 1px solid #E2E8F0;
-        border-radius: 20px;
-        padding: 30px;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-        display: flex;
-        flex-direction: column;
-        height: 100%;
+        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0; border-radius: 20px; padding: 30px;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+        display: flex; flex-direction: column; height: 100%;
     }
-    
     .fey-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.06);
-        border-color: #CBD5E1;
-        background: #FFFFFF;
+        transform: translateY(-5px); box-shadow: 0 15px 35px rgba(15, 23, 42, 0.06);
+        border-color: #CBD5E1; background: #FFFFFF;
     }
 
-    /* Tarjeta VIP para Dirigentes */
-    .vip-card {
-        background: linear-gradient(145deg, #FFFFFF, #F8FAFC);
-        border: 2px solid var(--brand-primary);
-        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.1);
+    /* Banner VIP Épico (Llamado a la acción) */
+    .vip-banner {
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+        border-radius: 24px; padding: 30px; position: relative; overflow: hidden;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15); border: 1px solid #334155;
+    }
+    .vip-banner::before {
+        content: ''; position: absolute; top: -50%; right: -10%; width: 250px; height: 250px;
+        background: radial-gradient(circle, rgba(79, 70, 229, 0.3) 0%, transparent 70%); border-radius: 50%;
     }
 
-    /* Botones de acción dentro de la tarjeta (Compactos) */
+    /* Botones de acción dentro de la tarjeta de Torneo */
     .action-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        color: #0F172A;
-        font-weight: 600;
-        font-size: 0.85rem;
-        padding: 10px 16px;
-        border-radius: 12px;
-        text-decoration: none;
-        transition: all 0.2s ease;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        background: #F8FAFC; border: 1px solid #E2E8F0; color: #0F172A;
+        font-weight: 600; font-size: 0.85rem; padding: 10px 16px; border-radius: 12px;
+        text-decoration: none; transition: all 0.2s ease;
     }
     .action-btn:hover {
-        background: #FFFFFF;
-        border-color: var(--brand-primary);
-        color: var(--brand-primary);
-        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.1);
-        transform: translateY(-1px);
+        background: #FFFFFF; border-color: var(--brand-primary); color: var(--brand-primary);
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.1); transform: translateY(-1px);
+    }
+    
+    /* Botón de Inscripción (Premium) */
+    .btn-inscribir {
+        background: linear-gradient(135deg, var(--brand-primary), #0EA5E9);
+        color: white !important; border: none; font-size: 0.95rem; font-weight: 800;
+        letter-spacing: 0.5px; text-transform: uppercase; padding: 14px 20px;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3); transition: all 0.3s ease;
+    }
+    .btn-inscribir:hover {
+        transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
     }
 
     /* Animaciones */
     .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    .delay-1 { animation-delay: 0.1s; }
-    .delay-2 { animation-delay: 0.2s; }
-    @keyframes revealUpAnim {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
+    .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 576px) {
         .fey-card { padding: 20px; border-radius: 16px; }
         .action-btn { padding: 8px 12px; font-size: 0.8rem; }
         .logo-cancha { width: 70px !important; height: 70px !important; }
+        .vip-banner { padding: 20px; text-align: center; }
     }
 </style>
 
 <div class="ambient-glow"></div>
 
 <div class="container text-center pt-5 pb-4 reveal-up">
-    
     <div class="mb-3">
         {% if complejo.logo %}
             <div class="d-inline-block p-1 bg-white rounded-circle shadow-sm border border-light">
@@ -129,7 +104,7 @@
     
     <div class="fey-pill mx-auto mb-4">
         <span class="bg-success rounded-circle animate__animated animate__pulse animate__infinite" style="width: 8px; height: 8px;"></span>
-        Portal Estadístico Oficial
+        Portal Oficial de Torneos
     </div>
     
     {% if url_whatsapp %}
@@ -141,30 +116,30 @@
     {% endif %}
 </div>
 
-<div class="container mb-5 reveal-up delay-1" style="max-width: 800px;">
-    <div class="fey-card vip-card p-3 p-md-4 flex-md-row justify-content-between align-items-center text-center text-md-start">
-        <div class="d-flex flex-column flex-md-row align-items-center gap-3 mb-3 mb-md-0">
-            <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center text-primary shadow-sm" style="width: 50px; height: 50px; min-width: 50px;">
-                <i class="bi bi-shield-shaded fs-4"></i>
+<div class="container mb-5 reveal-up delay-1" style="max-width: 850px;">
+    <div class="vip-banner d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0" style="width: 60px; height: 60px;">
+                <i class="bi bi-shield-shaded fs-3"></i>
             </div>
             <div>
                 {% if not user.is_authenticated %}
-                    <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">¿Eres Dirigente de un Equipo?</h5>
-                    <p class="text-muted small m-0">Inicia sesión para gestionar tus jugadores, carnets y verificar deudas.</p>
+                    <h4 class="fw-black text-white m-0" style="font-family: 'Outfit', sans-serif;">¿Tienes un equipo listo para la gloria?</h4>
+                    <p class="text-white-50 small m-0 mt-1 fw-medium" style="line-height: 1.4;">Crea tu cuenta de Dirigente, inscribe a tu plantilla en los torneos disponibles y gestiona todo desde tu celular.</p>
                 {% else %}
-                    <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Hola, {{ user.first_name|default:user.username }}</h5>
-                    <p class="text-muted small m-0">Accede a tu panel para administrar tu equipo.</p>
+                    <h4 class="fw-black text-white m-0" style="font-family: 'Outfit', sans-serif;">Hola de nuevo, {{ user.first_name|default:user.username }}</h4>
+                    <p class="text-white-50 small m-0 mt-1 fw-medium">Revisa las estadísticas de tus torneos o inscribe a tu equipo en uno nuevo abajo.</p>
                 {% endif %}
             </div>
         </div>
         
-        <div class="mt-2 mt-md-0">
+        <div class="w-100 flex-shrink-0" style="max-width: 250px;">
             {% if not user.is_authenticated %}
-                <a href="{% url 'login' %}" class="btn btn-nexus rounded-pill px-4 fw-bold shadow-sm w-100">
-                    Iniciar Sesión <i class="bi bi-box-arrow-in-right ms-1"></i>
+                <a href="{% url 'login' %}" class="btn btn-light w-100 rounded-pill py-2 fw-black text-dark shadow-sm">
+                    <i class="bi bi-person-circle me-1"></i> Únete como Dirigente
                 </a>
             {% else %}
-                <a href="{% url 'dashboard' %}" class="btn btn-nexus rounded-pill px-4 fw-bold shadow-sm w-100">
+                <a href="{% url 'dashboard' %}" class="btn btn-primary w-100 rounded-pill py-2 fw-black border-0 shadow-sm" style="background: var(--brand-primary);">
                     Ir a mi Panel <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             {% endif %}
@@ -176,7 +151,7 @@
     
     <div class="d-flex align-items-center mb-4 px-2">
         <h4 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">
-            <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Torneos Activos
+            <i class="bi bi-lightning-charge-fill text-warning me-2"></i> Competiciones Activas
         </h4>
     </div>
     
@@ -186,26 +161,39 @@
             <div class="fey-card">
                 
                 <div class="d-flex justify-content-between align-items-start mb-3">
-                    <span class="badge bg-slate-50 text-slate-600 border border-secondary border-opacity-25 px-2 py-1 rounded-2">
-                        {{ torneo.categoria.nombre|default:"Libre" }}
+                    <span class="badge bg-slate-50 text-slate-600 border border-secondary border-opacity-25 px-2 py-1 rounded-2 fw-bold">
+                        {{ torneo.categoria.nombre|default:"Categoría Única" }}
                     </span>
                     
                     {% if torneo.inscripcion_abierta %}
-                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-2">
-                            Abiertas
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-2 fw-bold">
+                            <i class="bi bi-door-open-fill me-1"></i> Cupos Abiertos
                         </span>
                     {% else %}
-                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-2">
-                            En Juego
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-2 fw-bold">
+                            <i class="bi bi-play-circle-fill me-1"></i> En Juego
                         </span>
                     {% endif %}
                 </div>
                 
-                <h5 class="fw-black text-dark mb-4" style="font-family: 'Outfit', sans-serif; line-height: 1.3;">
+                <h4 class="fw-black text-dark mb-4" style="font-family: 'Outfit', sans-serif; line-height: 1.2;">
                     {{ torneo.nombre }}
-                </h5>
+                </h4>
                 
                 <div class="mt-auto d-flex flex-column gap-2">
+                    
+                    {% if torneo.inscripcion_abierta %}
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'solicitar_inscripcion' torneo.id %}" class="action-btn btn-inscribir mb-2 rounded-pill">
+                                <i class="bi bi-shield-plus fs-5"></i> ¡Inscribir mi Equipo!
+                            </a>
+                        {% else %}
+                            <a href="{% url 'login' %}?next={% url 'solicitar_inscripcion' torneo.id %}" class="action-btn btn-inscribir mb-2 rounded-pill">
+                                <i class="bi bi-shield-plus fs-5"></i> ¡Inscribir mi Equipo!
+                            </a>
+                        {% endif %}
+                    {% endif %}
+
                     <a href="{% url 'tabla_posiciones' torneo.id %}" class="action-btn">
                         <i class="bi bi-list-ol text-primary fs-6"></i> Posiciones y Resultados
                     </a>
@@ -228,10 +216,12 @@
         </div>
         {% empty %}
         <div class="col-12 text-center py-5">
-            <div class="fey-card mx-auto" style="max-width: 400px; background: transparent; box-shadow: none; border-style: dashed;">
-                <i class="bi bi-hourglass-split fs-1 text-slate-600 opacity-25 d-block mb-3"></i>
-                <h5 class="fw-bold text-dark">Sin torneos activos</h5>
-                <p class="text-muted small m-0">Este complejo aún no ha publicado sus torneos.</p>
+            <div class="fey-card mx-auto" style="max-width: 450px; background: transparent; box-shadow: none; border-style: dashed;">
+                <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow-sm border mx-auto" style="width: 80px; height: 80px;">
+                    <i class="bi bi-hourglass-split fs-1 text-slate-400 opacity-50"></i>
+                </div>
+                <h5 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Sin torneos activos</h5>
+                <p class="text-muted small m-0">El organizador de este complejo aún no ha publicado los campeonatos. ¡Vuelve pronto!</p>
             </div>
         </div>
         {% endfor %}

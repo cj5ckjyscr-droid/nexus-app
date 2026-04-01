@@ -1,38 +1,158 @@
 {% extends 'core/base.html' %}
 
+{% block title %}Top Goleadores | NEXUS SPORTOPS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================================
+       ESTÉTICA FEY - TOP GOLEADORES (ALTO CONTRASTE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 80%, rgba(245, 158, 11, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1;
+    }
+
+    .fey-card {
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+        border: 1px solid #94A3B8; border-radius: 24px; padding: 0;
+        box-shadow: 0 15px 40px rgba(15, 23, 42, 0.06); position: relative; overflow: hidden;
+    }
+    .fey-card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+        background: linear-gradient(90deg, #10B981, #F59E0B);
+        z-index: 10;
+    }
+
+    /* Filas de Jugadores (Smart Strips) */
+    .scorer-strip {
+        display: flex; align-items: center; padding: 16px 24px;
+        border-bottom: 1px solid #CBD5E1; transition: background-color 0.2s;
+        background: #FFFFFF; position: relative;
+    }
+    .scorer-strip:last-child { border-bottom: none; }
+    .scorer-strip:hover { background-color: #F8FAFC; }
+
+    /* Medallas de Ranking */
+    .rank-badge {
+        width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+        font-weight: 900; font-size: 1.1rem; font-family: 'Outfit', sans-serif; flex-shrink: 0; margin-right: 20px;
+        border: 2px solid #FFFFFF;
+    }
+    /* Top 3 destancan mucho más */
+    .rank-1 { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); transform: scale(1.15); }
+    .rank-2 { background: linear-gradient(135deg, #94A3B8, #64748B); color: white; box-shadow: 0 4px 12px rgba(148, 163, 184, 0.4); transform: scale(1.05); }
+    .rank-3 { background: linear-gradient(135deg, #D97706, #92400E); color: white; box-shadow: 0 4px 10px rgba(180, 83, 9, 0.4); transform: scale(1.05); }
+    .rank-other { background: #F1F5F9; color: #475569; border: 2px solid #CBD5E1; }
+
+    .team-shield-mini {
+        width: 24px; height: 24px; border-radius: 50%; object-fit: cover;
+        border: 1px solid #CBD5E1; margin-right: 8px; background: #FFFFFF;
+    }
+
+    .player-name {
+        font-family: 'Outfit', sans-serif; font-weight: 900; color: #0F172A;
+        font-size: 1.1rem; margin-bottom: 2px; line-height: 1.2;
+    }
+
+    /* Pastilla de Goles */
+    .goals-pill {
+        background: #ECFDF5; border: 2px solid #34D399; color: #064E3B;
+        padding: 8px 16px; border-radius: 12px; font-family: 'Outfit', sans-serif;
+        font-weight: 900; font-size: 1.25rem; min-width: 60px; text-align: center;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+    }
+    
+    /* Goles para los mortales (fuera del top 3) */
+    .rank-other-strip .goals-pill {
+        background: #F8FAFC; border-color: #CBD5E1; color: #0F172A; box-shadow: none; font-size: 1.1rem;
+    }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 576px) {
+        .scorer-strip { padding: 16px; }
+        .rank-badge { margin-right: 12px; width: 34px; height: 34px; font-size: 1rem; }
+        .player-name { font-size: 1rem; }
+        .goals-pill { padding: 6px 12px; font-size: 1.1rem; min-width: 50px; }
+    }
+</style>
+{% endblock %}
+
 {% block contenido %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <h3 class="text-white mb-4 text-center"><i class="bi bi-award text-warning"></i> Top Goleadores</h3>
-        
-        <div class="card border-0 shadow" style="background: #1e293b;">
-            <table class="table table-dark table-hover align-middle mb-0">
-                <thead class="bg-secondary text-uppercase small">
-                    <tr>
-                        <th class="text-center" style="width: 50px;">#</th>
-                        <th>Jugador</th>
-                        <th>Equipo</th>
-                        <th class="text-center fw-bold text-success">Goles</th>
-                    </tr>
-                </thead>
-                <tbody>
+<div class="ambient-glow"></div>
+
+<div class="container py-4 pb-5">
+    
+    <div class="text-center mb-5 reveal-up">
+        <a href="javascript:history.back()" class="btn btn-light border border-secondary rounded-pill px-4 py-2 fw-bold text-dark shadow-sm transition-all mb-4 d-inline-flex align-items-center hover-lift">
+            <i class="bi bi-arrow-left me-2"></i> Volver atrás
+        </a>
+        <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
+            <i class="bi bi-heptagon-fill text-success fs-1"></i>
+            <h2 class="fey-title m-0">Top Goleadores</h2>
+        </div>
+        <p class="text-slate-600 fw-bold m-0" style="font-size: 1.05rem;">Ranking oficial de los máximos artilleros del torneo.</p>
+    </div>
+
+    <div class="row justify-content-center reveal-up" style="animation-delay: 0.1s;">
+        <div class="col-md-10 col-lg-8">
+            
+            <div class="fey-card">
+                
+                <div class="bg-slate-50 border-bottom border-secondary px-4 py-3 d-flex justify-content-between text-slate-600 fw-bold small text-uppercase" style="letter-spacing: 1px;">
+                    <span>Posición & Jugador</span>
+                    <span>Total Goles</span>
+                </div>
+
+                <div class="card-body p-0">
                     {% for g in goleadores %}
-                    <tr>
-                        <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
-                        <td class="fw-bold">{{ g.jugador__nombres }}</td>
-                        <td>
-                            {% if g.jugador__equipo__escudo %}
-                                <img src="/media/{{ g.jugador__equipo__escudo }}" width="20" class="rounded-circle me-1">
-                            {% endif %}
-                            {{ g.jugador__equipo__nombre }}
-                        </td>
-                        <td class="text-center h5 fw-bold text-neon-green mb-0">{{ g.total_goles }}</td>
-                    </tr>
+                    <div class="scorer-strip {% if forloop.counter > 3 %}rank-other-strip{% endif %}">
+                        
+                        <div class="rank-badge {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-other{% endif %}">
+                            {{ forloop.counter }}
+                        </div>
+                        
+                        <div class="flex-grow-1 min-w-0 pe-3">
+                            <div class="player-name text-truncate" title="{{ g.jugador__nombres }}">{{ g.jugador__nombres }}</div>
+                            <div class="d-flex align-items-center text-slate-600 fw-bold mt-1" style="font-size: 0.8rem;">
+                                {% if g.jugador__equipo__escudo %}
+                                    <img src="/media/{{ g.jugador__equipo__escudo }}" class="team-shield-mini">
+                                {% else %}
+                                    <i class="bi bi-shield-fill text-muted opacity-50 me-2 fs-6"></i>
+                                {% endif %}
+                                <span class="text-truncate">{{ g.jugador__equipo__nombre }}</span>
+                            </div>
+                        </div>
+
+                        <div class="ms-auto">
+                            <div class="goals-pill">
+                                {{ g.total_goles }}
+                            </div>
+                        </div>
+
+                    </div>
                     {% empty %}
-                    <tr><td colspan="4" class="text-center py-4">Aún no hay goles registrados.</td></tr>
+                    <div class="text-center py-5 bg-white">
+                        <div class="bg-slate-100 rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border shadow-sm" style="width: 80px; height: 80px;">
+                            <i class="bi bi-slash-circle text-slate-400" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="fw-black text-dark mt-2" style="font-family: 'Outfit', sans-serif;">Sin anotaciones</h5>
+                        <p class="text-slate-600 fw-bold mb-0">Aún no hay goles registrados en este torneo.</p>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>

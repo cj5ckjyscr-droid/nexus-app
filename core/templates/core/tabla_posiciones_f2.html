@@ -1,67 +1,149 @@
 {% extends 'core/base.html' %}
 
-{% block contenido %}
+{% block title %}Grupos Fase 2 | NEXUS SPORTOPS{% endblock %}
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-    <h2 class="text-neon m-0">Tabla de Posiciones - Fase 2 (Grupos)</h2>
-    
-    {% if es_organizador and not cuartos_generados %}
-        <form action="{% url 'generar_cuartos_final' torneo.id %}" method="post" class="m-0 bg-dark border border-secondary rounded-4 p-2 px-3 d-flex flex-wrap align-items-center justify-content-center gap-3 shadow-sm">
-            {% csrf_token %}
-            
-            <div class="form-check form-switch m-0 text-white">
-                <input class="form-check-input bg-secondary border-secondary" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_f3" style="cursor: pointer;">
-                <label class="form-check-label fw-bold small ms-1" for="ida_vuelta_f3" style="cursor: pointer;">¿Ida y Vuelta?</label>
-            </div>
-            
-            <button type="submit" class="btn btn-warning btn-sm fw-bold px-3 rounded-pill shadow-sm" onclick="return confirm('¿Seguro que deseas generar los Cuartos de Final cruzando los grupos (1A vs 4B, etc)?')">
-                <i class="bi bi-magic me-1"></i> Generar Cuartos
-            </button>
-        </form>
-    {% elif es_organizador and cuartos_generados %}
-        <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill">
-            <i class="bi bi-check-circle-fill me-1"></i> Cuartos Generados
-        </span>
-    {% endif %}
-</div>
-
-<div class="alert alert-info border-info bg-dark text-info mb-4 shadow-sm">
-    <i class="bi bi-info-circle text-info me-2"></i> 
-    <strong>Los 4 primeros de cada grupo clasifican a Cuartos de Final.</strong>
-    <br>
-    <small class="opacity-75 ms-4">* Incluye puntos de bonificación arrastrados desde la Fase 1.</small>
-</div>
-
-<div class="row g-4">
-    <div class="col-md-6">
-        <div class="card bg-dark border-secondary shadow-sm h-100 rounded-4 overflow-hidden">
-            <div class="card-header bg-primary text-white text-center fw-black py-3" style="letter-spacing: 1px;">
-                GRUPO A <span class="fw-normal small opacity-75">(Impares)</span>
-            </div>
-            <div class="card-body p-0">
-                {% include 'core/tabla_partial.html' with tabla=tabla_a %}
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card bg-dark border-secondary shadow-sm h-100 rounded-4 overflow-hidden">
-            <div class="card-header bg-warning text-dark text-center fw-black py-3" style="letter-spacing: 1px;">
-                GRUPO B <span class="fw-normal small opacity-75">(Pares)</span>
-            </div>
-            <div class="card-body p-0">
-                {% include 'core/tabla_partial.html' with tabla=tabla_b %}
-            </div>
-        </div>
-    </div>
-</div>
-
+{% block extra_css %}
 <style>
-    /* Efecto hover en el switch para que resalte cuando se activa */
-    .form-switch .form-check-input:checked {
-        background-color: #f59e0b; /* Naranja/Warning */
-        border-color: #f59e0b;
+    /* =========================================================
+       ESTÉTICA FEY - FASE 2 GRUPOS (ALTO CONTRASTE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 0%, rgba(14, 165, 233, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 80%, rgba(245, 158, 11, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1;
+    }
+
+    /* Tarjetas Glassmorphism de Alto Contraste */
+    .fey-card {
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+        border: 1px solid #94A3B8; border-radius: 20px; padding: 0;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); position: relative; overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .fey-card:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08); border-color: #475569; }
+    
+    .fey-card.group-a { border-top: 5px solid #0EA5E9; }
+    .fey-card.group-b { border-top: 5px solid #F59E0B; }
+
+    /* Controles SuperAdmin (Generar Cuartos) */
+    .admin-toolbar {
+        background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 16px;
+        padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02); gap: 15px; margin-bottom: 24px;
+    }
+
+    /* Switch Elegante */
+    .form-switch .form-check-input {
+        width: 3rem; height: 1.5rem; cursor: pointer; background-color: #CBD5E1; border-color: #94A3B8; transition: all 0.2s;
+    }
+    .form-switch .form-check-input:checked { background-color: #D97706; border-color: #D97706; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2); }
+
+    .btn-generate-pro {
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: white;
+        font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.95rem; padding: 10px 24px; 
+        border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(15, 23, 42, 0.2); 
+        transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .btn-generate-pro:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.3); color: white; }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 576px) {
+        .admin-toolbar { flex-direction: column; align-items: flex-start; padding: 20px; }
+        .admin-toolbar form { width: 100%; display: flex; flex-direction: column; gap: 15px; }
+        .btn-generate-pro { width: 100%; }
     }
 </style>
+{% endblock %}
 
+{% block contenido %}
+<div class="ambient-glow"></div>
+
+<div class="container py-4 pb-5">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 pb-3 border-bottom border-secondary reveal-up">
+        <div>
+            <a href="javascript:history.back()" class="btn btn-light border border-secondary rounded-pill px-3 py-1 fw-bold text-dark shadow-sm transition-all mb-3 d-inline-flex align-items-center hover-lift" style="font-size: 0.8rem;">
+                <i class="bi bi-arrow-left me-1"></i> Volver atrás
+            </a>
+            <h2 class="fey-title m-0">Fase 2 (Grupos)</h2>
+            <p class="text-slate-600 fw-bold m-0 mt-1" style="font-size: 1.05rem;">
+                <i class="bi bi-trophy-fill text-warning me-1"></i> {{ torneo.nombre }}
+            </p>
+        </div>
+
+        {% if es_organizador and cuartos_generados %}
+            <div class="mt-3 mt-md-0">
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-50 px-4 py-2 rounded-pill shadow-sm" style="font-size: 0.9rem; font-family: 'Outfit', sans-serif;">
+                    <i class="bi bi-check-circle-fill me-1"></i> CUARTOS GENERADOS
+                </span>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="alert bg-white border border-secondary border-opacity-50 shadow-sm d-flex align-items-center rounded-4 p-3 mb-4 reveal-up" style="border-left: 6px solid #0EA5E9 !important; animation-delay: 0.1s;">
+        <i class="bi bi-info-circle-fill text-info fs-2 me-3"></i> 
+        <div>
+            <strong class="d-block text-dark" style="font-family: 'Outfit', sans-serif; font-size: 1.1rem; letter-spacing: -0.5px;">Sistema de Clasificación</strong>
+            <span class="text-slate-600 fw-bold small">Los 4 primeros de cada grupo clasifican a Cuartos de Final. Esta tabla incluye los <strong class="text-warning">puntos de bonificación</strong> arrastrados desde la Fase 1.</span>
+        </div>
+    </div>
+
+    {% if es_organizador and not cuartos_generados %}
+        <div class="admin-toolbar reveal-up" style="animation-delay: 0.15s;">
+            <div>
+                <h6 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-gear-fill text-primary me-2"></i>Controles de Competición</h6>
+                <p class="text-slate-500 small fw-bold m-0 mt-1">Cuando finalice la Fase de Grupos, cruza los equipos (1A vs 4B, etc.).</p>
+            </div>
+            
+            <form action="{% url 'generar_cuartos_final' torneo.id %}" method="post" class="m-0 d-flex flex-wrap align-items-center gap-4">
+                {% csrf_token %}
+                
+                <div class="form-check form-switch m-0 d-flex align-items-center p-0">
+                    <input class="form-check-input ms-0 shadow-sm" type="checkbox" name="ida_y_vuelta" id="ida_vuelta_f3">
+                    <label class="form-check-label fw-black text-dark ms-2 mt-1" for="ida_vuelta_f3" style="cursor: pointer; font-size: 0.9rem;">¿Ida y Vuelta?</label>
+                </div>
+                
+                <button type="submit" class="btn-generate-pro" onclick="return confirm('¿Seguro que deseas generar los Cuartos de Final cruzando los grupos (1A vs 4B, 2A vs 3B, etc)?')">
+                    <i class="bi bi-magic me-2 text-warning"></i> Generar Cuartos
+                </button>
+            </form>
+        </div>
+    {% endif %}
+
+    <div class="row g-4 reveal-up" style="animation-delay: 0.2s;">
+        
+        <div class="col-xl-6">
+            <div class="fey-card group-a h-100">
+                <div class="bg-info bg-opacity-10 border-bottom border-info border-opacity-25 text-center fw-black py-3 text-info text-uppercase d-flex justify-content-center align-items-center gap-2" style="letter-spacing: 1px; font-size: 1.1rem; font-family: 'Outfit', sans-serif;">
+                    GRUPO A <span class="badge bg-white text-info border border-info border-opacity-25 rounded-pill px-2 py-1 shadow-sm" style="font-size: 0.7rem; font-family: 'Inter', sans-serif;">Impares</span>
+                </div>
+                <div class="card-body p-0">
+                    {% include 'core/tabla_partial.html' with tabla=tabla_a %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6">
+            <div class="fey-card group-b h-100">
+                <div class="bg-warning bg-opacity-10 border-bottom border-warning border-opacity-50 text-center fw-black py-3 text-warning text-uppercase d-flex justify-content-center align-items-center gap-2" style="letter-spacing: 1px; font-size: 1.1rem; font-family: 'Outfit', sans-serif;">
+                    <span style="color: #D97706;">GRUPO B</span> <span class="badge bg-white text-warning border border-warning border-opacity-50 rounded-pill px-2 py-1 shadow-sm" style="font-size: 0.7rem; font-family: 'Inter', sans-serif; color: #D97706 !important;">Pares</span>
+                </div>
+                <div class="card-body p-0">
+                    {% include 'core/tabla_partial.html' with tabla=tabla_b %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
 {% endblock %}

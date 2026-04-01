@@ -1,27 +1,33 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Acceso Oficial | NEXT LEVEL{% endblock %}
+{% block title %}Acceso | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+
 <style>
-    /* Ocultamos elementos de navegación para dar inmersión total */
-    .navbar { display: none !important; }
-    .main-content { margin-top: 0 !important; padding-bottom: 0 !important; padding-top: 0 !important; }
-    
-    body {
-        background-color: #f8fafc;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        font-family: 'Inter', -apple-system, sans-serif;
+    :root {
+        --brand-primary: #6366f1;
+        --brand-dark: #0f172a;
+        --brand-accent: #38bdf8;
+        --glass-bg: rgba(255, 255, 255, 0.95);
     }
 
-    /* ==========================================
-       COLUMNA IZQUIERDA: DISEÑO NEXT LEVEL
-       ========================================== */
+    /* Reset estructural */
+    .navbar { display: none !important; }
+    .main-content { margin: 0 !important; padding: 0 !important; }
+    
+    body { 
+        background-color: #f8fafc; 
+        min-height: 100vh; 
+        font-family: 'Inter', sans-serif; 
+        overflow-x: hidden;
+    }
+
+    /* ================= SECCIÓN IZQUIERDA (ARTÍSTICA) ================= */
     .login-cover {
-        background: linear-gradient(135deg, var(--primary-navy) 0%, #1e293b 100%);
+        background: radial-gradient(circle at top right, #1e293b, #0f172a);
         position: relative;
         height: 100vh;
         display: flex;
@@ -33,239 +39,227 @@
         overflow: hidden;
     }
 
-    .login-cover::before {
+    /* Patrón de red deportiva moderna */
+    .login-cover::after {
         content: '';
         position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-        background-size: 32px 32px;
-        opacity: 0.8;
+        width: 200%;
+        height: 200%;
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 30 L60 60 M0 60 L30 30 M30 0 L60 30 M0 30 L30 0' stroke='rgba(255,255,255,0.03)' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+        animation: meshMove 100s linear infinite;
+        opacity: 0.5;
+    }
+
+    @keyframes meshMove {
+        from { transform: translate(-20%, -20%); }
+        to { transform: translate(0%, 0%); }
     }
 
     .logo-glow {
         position: absolute;
-        width: 450px;
-        height: 450px;
-        background: var(--primary-blue);
-        filter: blur(130px);
-        opacity: 0.12;
+        width: 400px;
+        height: 400px;
+        background: var(--brand-primary);
+        filter: blur(120px);
+        opacity: 0.2;
         border-radius: 50%;
-        z-index: 0;
-        animation: pulseGlow 5s ease-in-out infinite alternate;
-    }
-
-    @keyframes pulseGlow {
-        0% { transform: scale(0.9); opacity: 0.1; }
-        100% { transform: scale(1.1); opacity: 0.22; }
-    }
-
-    .hero-logo {
-        position: relative;
         z-index: 1;
-        max-width: 280px;
-        filter: drop-shadow(0 20px 35px rgba(0,0,0,0.5));
-        transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .hero-logo:hover { transform: scale(1.03) rotate(-1deg); }
 
-    /* ==========================================
-       COLUMNA DERECHA: FORMULARIO PREMIUM
-       ========================================== */
-    .login-form-container {
+    .hero-content { position: relative; z-index: 5; text-align: center; }
+
+    .hero-logo { 
+        max-width: 180px; 
+        margin-bottom: 2rem;
+        filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+    }
+
+    /* ================= SECCIÓN DERECHA (FORMULARIO) ================= */
+    .login-form-side {
         height: 100vh;
-        overflow-y: auto;
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #ffffff;
+        padding: 20px;
     }
 
-    .form-wrapper {
+    .form-card {
         width: 100%;
-        max-width: 440px;
-        padding: 2rem 2.5rem;
+        max-width: 420px;
+        background: var(--glass-bg);
+        padding: 2.5rem;
+        border-radius: 28px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.8);
     }
 
-    /* Inputs Flotantes */
+    .form-header h2 {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+        color: var(--brand-dark);
+        font-size: 1.85rem;
+    }
+
+    /* Inputs Modernizados */
     .form-floating > .form-control {
-        border: 1px solid #cbd5e1;
-        border-radius: 12px;
-        background-color: #f8fafc;
-        color: var(--primary-navy);
-        font-weight: 600;
-        transition: all 0.25s ease;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 16px;
+        height: 60px;
+        font-weight: 500;
+        transition: all 0.2s ease;
     }
-    
+
     .form-floating > .form-control:focus {
-        border-color: var(--primary-blue);
-        background-color: #ffffff;
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.1);
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
     }
-    
-    .form-floating > label {
-        color: #64748b;
-        font-weight: 600;
+
+    .form-floating > label { font-weight: 500; color: #64748b; padding-left: 1.2rem; }
+
+    /* Botón Pro */
+    .btn-submit {
+        background: var(--brand-dark);
+        color: white;
+        border: none;
+        padding: 14px;
+        border-radius: 16px;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .btn-submit:hover {
+        background: #1e293b;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+    }
+
+    /* Registro Box */
+    .register-link-container {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #f1f5f9;
+        text-align: center;
+    }
+
+    .btn-outline-custom {
+        border: 2px solid #e2e8f0;
+        color: var(--brand-dark);
+        border-radius: 14px;
+        padding: 10px 20px;
+        display: block;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .btn-outline-custom:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+        background: rgba(99, 102, 241, 0.05);
     }
 
     .toggle-password-btn {
         position: absolute;
-        top: 50%;
         right: 15px;
+        top: 50%;
         transform: translateY(-50%);
-        background: transparent;
         border: none;
+        background: none;
         color: #94a3b8;
-        cursor: pointer;
-        z-index: 10;
-        padding: 5px;
+        z-index: 5;
     }
 
-    .btn-login-pro {
-        background: linear-gradient(135deg, var(--primary-blue) 0%, #1e40af 100%);
-        color: white;
-        font-weight: 800;
-        font-size: 1.05rem;
-        letter-spacing: 0.5px;
-        padding: 14px;
-        border-radius: 12px;
-        border: none;
-        width: 100%;
-        box-shadow: 0 4px 15px rgba(29, 78, 216, 0.3);
-        transition: all 0.3s ease;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    
-    .btn-login-pro:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(29, 78, 216, 0.4);
-        filter: brightness(1.1);
-    }
-
-    .form-check-input:checked { background-color: var(--primary-blue); border-color: var(--primary-blue); }
-
-    /* Caja de Registro */
-    .register-box {
-        background: #f8fafc;
-        border: 1px dashed #cbd5e1;
-        border-radius: 20px;
-        padding: 1.5rem;
-        text-align: center;
-        margin-top: 2rem;
-    }
-
-    .btn-register-pro {
-        background-color: #ffffff;
-        color: var(--primary-navy);
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        font-weight: 800;
-        padding: 10px 20px;
-        width: 100%;
-        display: inline-block;
-        text-decoration: none;
-        transition: all 0.2s;
-    }
-    .btn-register-pro:hover {
-        background-color: var(--primary-navy);
-        color: #ffffff;
-        transform: translateY(-2px);
-    }
-
-    @media (max-width: 991px) {
-        .form-wrapper { padding: 2rem 1.5rem; }
+    /* Responsividad Móvil */
+    @media (max-width: 991.98px) {
+        body { background-color: #ffffff; }
+        .login-form-side { height: auto; padding: 40px 15px; }
+        .form-card { 
+            box-shadow: none; 
+            padding: 1.5rem; 
+            border: none;
+        }
+        .hero-logo-mobile { max-height: 60px; margin-bottom: 1.5rem; }
     }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="row g-0 h-100 w-100">
-    
-    <div class="col-lg-6 col-xl-7 d-none d-lg-flex login-cover">
-        <div class="logo-glow"></div>
-        <img src="{{ config_global.logo_sistema.url }}" alt="Logo NEXT LEVEL" class="img-fluid hero-logo mb-4 animate__animated animate__zoomIn">
-        
-        <div class="text-center position-relative z-1 animate__animated animate__fadeInUp">
-            <h1 class="fw-black text-white mb-2" style="letter-spacing: -1.5px; font-size: 3.8rem;">
-                NEXT LEVEL
-            </h1>
-            <p class="text-white-50 fs-5 mb-0 fw-medium" style="letter-spacing: 1px;">
-                GESTIÓN DEPORTIVA DE ALTO RENDIMIENTO
-            </p>
-            <div class="mt-4">
-                <span class="badge bg-white bg-opacity-10 text-white border border-white border-opacity-25 rounded-pill px-4 py-2 shadow-sm" style="backdrop-filter: blur(10px);">
-                    <i class="bi bi-geo-alt-fill text-primary me-2"></i> Pintag, Ecuador
-                </span>
+<div class="container-fluid p-0 overflow-hidden">
+    <div class="row g-0">
+        <div class="col-lg-6 d-none d-lg-flex login-cover">
+            <div class="logo-glow"></div>
+            <div class="hero-content animate__animated animate__fadeIn">
+                <img src="{{ config_global.logo_sistema.url }}" alt="Logo" class="hero-logo animate__animated animate__backInDown">
+                <h1 class="display-4 fw-black mb-2" style="font-family: 'Outfit';">NEXUS SPORTOPS</h1>
+                <p class="opacity-75 fs-5 fw-light" style="letter-spacing: 3px;">EL FUTURO DE LA GESTIÓN DEPORTIVA</p>
             </div>
         </div>
-    </div>
 
-    <div class="col-12 col-lg-6 col-xl-5">
-        <div class="login-form-container">
-            <div class="form-wrapper animate__animated animate__fadeIn">
+        <div class="col-12 col-lg-6 login-form-side">
+            <div class="form-card animate__animated animate__fadeInRight">
                 
                 <div class="text-center d-lg-none mb-4">
-                    <img src="{{ config_global.sistema.url }}" style="height: 60px;" alt="Logo">
+                    <img src="{{ config_global.logo_sistema.url }}" class="hero-logo-mobile" alt="Logo">
                 </div>
 
-                <div class="mb-4 pb-2 text-center text-lg-start">
-                    <h2 class="fw-black text-dark mb-1" style="letter-spacing: -1px;">¡Hola de nuevo! <span class="fs-3">⚽</span></h2>
-                    <p class="text-muted fw-medium">Ingresa a tu panel de control NEXT LEVEL.</p>
+                <div class="form-header text-center text-lg-start mb-4">
+                    <h2>Bienvenido <span class="text-primary">.</span></h2>
+                    <p class="text-muted fw-medium">Ingresa tus credenciales para continuar.</p>
                 </div>
 
                 {% if form.errors %}
-                    <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-4 d-flex align-items-center mb-4 shadow-sm animate__animated animate__shakeX p-3">
-                        <i class="bi bi-exclamation-circle-fill me-3 fs-3"></i>
-                        <div class="fw-bold" style="font-size: 0.85rem;">
-                            Datos incorrectos.<br><span class="fw-medium opacity-75">Verifica tu usuario y contraseña.</span>
-                        </div>
+                <div class="alert alert-danger border-0 rounded-4 shadow-sm mb-4 animate__animated animate__headShake" style="background-color: #fef2f2; color: #991b1b;">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>
+                        <span class="small fw-bold">Credenciales incorrectas. Inténtalo de nuevo.</span>
                     </div>
+                </div>
                 {% endif %}
 
-                <form method="post">
+                <form method="post" action="{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}">
                     {% csrf_token %}
                     
-                    <div class="form-floating mb-3 position-relative">
+                    <div class="form-floating mb-3">
                         <input type="text" name="username" class="form-control" id="floatingUser" placeholder="Usuario" required>
-                        <label for="floatingUser"><i class="bi bi-person-fill me-2"></i>Usuario o Cédula</label>
+                        <label for="floatingUser">Usuario o Cédula</label>
                     </div>
 
                     <div class="form-floating mb-3 position-relative">
-                        <input type="password" name="password" class="form-control pe-5" id="floatingPass" placeholder="Contraseña" required>
-                        <label for="floatingPass"><i class="bi bi-lock-fill me-2"></i>Contraseña</label>
+                        <input type="password" name="password" class="form-control" id="floatingPass" placeholder="Contraseña" required>
+                        <label for="floatingPass">Contraseña</label>
                         <button type="button" class="toggle-password-btn" id="btnTogglePassword">
-                            <i class="bi bi-eye-fill fs-5" id="eyeIcon"></i>
+                            <i class="bi bi-eye-fill" id="eyeIcon"></i>
                         </button>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mb-4 px-1">
-                        <div class="form-check m-0 d-flex align-items-center">
-                            <input class="form-check-input shadow-sm me-2" type="checkbox" id="remember">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="remember" style="cursor: pointer;">
                             <label class="form-check-label small text-muted fw-bold" for="remember" style="cursor: pointer;">Recordarme</label>
                         </div>
-                        <a href="{% url 'password_reset' %}" class="text-decoration-none small fw-bold" style="color: var(--primary-blue);">¿Olvidaste tu clave?</a>
+                        <a href="{% url 'password_reset' %}" class="small text-decoration-none fw-bold text-primary">¿Olvidaste tu clave?</a>
                     </div>
 
-                    <button type="submit" class="btn-login-pro">
-                        INICIAR SESIÓN <i class="bi bi-arrow-right-short ms-2 fs-4"></i>
+                    <button type="submit" class="btn-submit">
+                        INGRESAR <i class="bi bi-chevron-right ms-2"></i>
                     </button>
                 </form>
 
-                <div class="register-box">
-                    <div class="mb-3">
-                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 mb-2">NUEVA ERA</span>
-                        <h6 class="fw-black text-dark mb-1">¿Eres nuevo por aquí?</h6>
-                        <p class="text-muted small m-0">Registra tu equipo y gestiona tus jugadores hoy mismo.</p>
-                    </div>
-                    <a href="{% url 'registro_publico' %}" class="btn-register-pro">
-                        CREAR CUENTA GRATUITA
+                <div class="register-link-container">
+                    <p class="small text-muted mb-3 fw-medium">¿Eres nuevo dirigente?</p>
+                    <a href="{% url 'registro_publico' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" class="btn-outline-custom">
+                        SOLICITAR ACCESO GRATUITO
                     </a>
                 </div>
 
                 <div class="mt-4 text-center">
-                     <a href="{% url 'dashboard' %}" class="text-muted small text-decoration-none fw-bold hover-lift d-inline-block">
-                        <i class="bi bi-house-door me-1"></i> Ir a la página principal
+                     <a href="{% url 'landing_principal' %}" class="text-muted small text-decoration-none fw-semibold">
+                        <i class="bi bi-arrow-left me-1"></i> Regresar al inicio
                     </a>
                 </div>
 
@@ -281,11 +275,11 @@
         const eyeIcon = document.getElementById('eyeIcon');
 
         togglePassword.addEventListener('click', function () {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
             eyeIcon.classList.toggle('bi-eye-fill');
             eyeIcon.classList.toggle('bi-eye-slash-fill');
-            eyeIcon.classList.toggle('text-primary');
+            eyeIcon.style.color = isPassword ? 'var(--brand-primary)' : '#94a3b8';
         });
     });
 </script>

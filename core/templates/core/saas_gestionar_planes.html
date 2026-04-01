@@ -1,55 +1,234 @@
 {% extends 'core/base.html' %}
-{% load crispy_forms_tags %}
+{% load static %}
 
-{% block title %}Gestionar Planes | NEXUS{% endblock %}
+{% block title %}Gestionar Planes | NEXUS SaaS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================================
+       ESTÉTICA FEY - SAAS GESTIÓN DE PLANES (ALTO CONTRASTE)
+       ========================================================= */
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
+        background: 
+            radial-gradient(circle at 15% 30%, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+        z-index: -1; pointer-events: none;
+    }
+
+    .fey-title {
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
+    }
+
+    /* Panel del Formulario (Alta Legibilidad) */
+    .fey-form-panel {
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+        border: 1px solid #94A3B8; border-radius: 24px; padding: 30px;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08); position: sticky; top: 100px; z-index: 10;
+    }
+    .fey-form-panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+        background: linear-gradient(90deg, #8B5CF6, #3B82F6);
+    }
+
+    /* Inputs Nativos de Alto Contraste */
+    .clean-input {
+        background-color: #F8FAFC !important; border: 1px solid #94A3B8 !important;
+        border-radius: 12px !important; padding: 12px 16px !important; font-size: 1rem;
+        font-weight: 700 !important; color: #0F172A !important; transition: all 0.3s ease !important; width: 100%;
+    }
+    .clean-input::placeholder { color: #64748B !important; font-weight: 500; }
+    .clean-input:focus { border-color: var(--brand-primary) !important; background-color: #FFFFFF !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15) !important; outline: none !important; }
+    
+    .form-label-pro { font-size: 0.8rem; font-weight: 900; color: #1E293B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
+    
+    .form-check .form-check-input { width: 1.4rem; height: 1.4rem; cursor: pointer; border: 2px solid #64748B; margin-top: 0.1rem; }
+    .form-check .form-check-input:checked { background-color: var(--brand-primary); border-color: var(--brand-primary); }
+
+    /* Fila de Plan (Smart Strip de Alto Contraste) */
+    .plan-strip {
+        background: #FFFFFF; border: 1px solid #94A3B8; border-radius: 20px;
+        padding: 24px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative; overflow: hidden;
+    }
+    .plan-strip:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1); border-color: #475569; }
+    .plan-strip::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--brand-primary); }
+
+    .icon-box {
+        width: 54px; height: 54px; border-radius: 16px; background: #F1F5F9; border: 1px solid #94A3B8;
+        display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;
+    }
+
+    /* Botón Primario Fuerte */
+    .btn-save-pro {
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: white;
+        font-weight: 900; font-size: 1.05rem; padding: 14px 24px; border-radius: 14px; border: none;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.3); transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .btn-save-pro:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(15, 23, 42, 0.4); color: white; }
+
+    /* Badges más oscuros */
+    .badge-contrast {
+        background: #F1F5F9; color: #1E293B; border: 1px solid #94A3B8; font-weight: 800; font-size: 0.8rem;
+    }
+
+    /* Animación */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 991px) {
+        .fey-form-panel { position: static; margin-bottom: 30px; }
+    }
+    @media (max-width: 576px) {
+        .plan-strip { flex-direction: column; align-items: flex-start; gap: 20px; padding: 20px; }
+        .plan-pricing { width: 100%; display: flex; justify-content: space-between; align-items: flex-end; border-top: 2px dashed #94A3B8; padding-top: 16px; }
+        .plan-pricing .text-end { text-align: left !important; align-items: flex-start !important; }
+    }
+</style>
+{% endblock %}
 
 {% block contenido %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">
-        <i class="bi bi-tags-fill text-primary me-2"></i> Planes de Suscripción
-    </h3>
-    <a href="{% url 'dashboard_saas' %}" class="btn btn-outline-secondary rounded-pill fw-medium px-4">Volver al Panel</a>
-</div>
+<div class="ambient-glow"></div>
 
-<div class="row g-4">
-    <div class="col-lg-4">
-        <div class="bg-white p-4 rounded-4 border shadow-sm">
-            <h5 class="fw-bold mb-3 border-bottom pb-2">Crear Nuevo Plan</h5>
-            <form method="post">
-                {% csrf_token %}
-                {{ form|crispy }}
-                <button type="submit" class="btn btn-nexus w-100 mt-3">Guardar Plan</button>
-            </form>
+<div class="container-fluid px-0 pb-5">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 pb-3 border-bottom reveal-up">
+        <div class="mb-3 mb-md-0">
+            <span class="badge bg-dark text-white px-3 py-2 mb-2 rounded-pill fw-bold" style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                <i class="bi bi-cloud-check-fill me-1"></i> Panel SuperAdmin SaaS
+            </span>
+            <h2 class="fey-title m-0">Planes de Suscripción</h2>
+            <p class="text-slate-700 small m-0 fw-bold mt-1">Configura los paquetes y precios que ofrecerás a los complejos deportivos.</p>
+        </div>
+        <div class="mt-3 mt-md-0">
+            <a href="{% url 'dashboard_saas' %}" class="btn btn-light border border-secondary rounded-pill fw-bold px-4 py-2 shadow-sm text-dark transition-all hover-lift d-inline-flex align-items-center">
+                <i class="bi bi-arrow-left me-2"></i> Volver al panel
+            </a>
         </div>
     </div>
-    
-    <div class="col-lg-8">
-        <div class="bg-white rounded-4 border shadow-sm overflow-hidden">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-muted small text-uppercase">
-                        <tr>
-                            <th class="ps-4 py-3">Nombre del Plan</th>
-                            <th>Inscripción (1er mes)</th>
-                            <th>Mensualidad</th>
-                            <th>Torneos</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for plan in planes %}
-                        <tr class="border-bottom">
-                            <td class="ps-4 py-3 fw-bold text-dark">{{ plan.nombre }}</td>
-                            <td class="fw-medium text-muted">${{ plan.costo_inscripcion }}</td>
-                            <td class="fw-black text-success fs-6">${{ plan.precio_mensual }}</td>
-                            <td class="fw-medium text-muted">{{ plan.max_torneos }} ({{ plan.max_categorias_por_torneo }} cat)</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="4" class="text-center py-4 text-muted">Aún no has creado ningún plan.</td></tr>
+
+    <div class="row g-4">
+        
+        <div class="col-lg-4 col-xl-4 reveal-up" style="animation-delay: 0.1s;">
+            <div class="fey-form-panel">
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom border-secondary">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 50px; height: 50px;">
+                        <i class="bi bi-tags-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Crear Plan</h5>
+                        <p class="text-slate-700 small m-0 fw-bold">Configurar nuevo paquete</p>
+                    </div>
+                </div>
+
+                <form method="post" class="m-0">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                        <div class="bg-danger bg-opacity-10 border border-danger rounded-3 p-3 mb-3 shadow-sm">
+                            <h6 class="fw-black text-danger m-0 small mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Errores detectados:</h6>
+                            <ul class="mb-0 small fw-bold text-danger ps-3">
+                                {% for field in form %}
+                                    {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
+                                {% endfor %}
+                                {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex flex-column gap-3">
+                        {% for field in form %}
+                            <div>
+                                <label class="form-label-pro">{{ field.label }}</label>
+                                
+                                {% if field.field.widget.input_type == 'checkbox' %}
+                                    <div class="form-check bg-slate-50 border border-secondary rounded-3 p-2 d-flex align-items-center shadow-sm ps-3">
+                                        {{ field }}
+                                        <label class="form-check-label small fw-black text-dark m-0 ms-2" for="{{ field.id_for_label }}">Activar esta opción</label>
+                                    </div>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+                                
+                                {% if field.help_text %}
+                                    <div class="text-slate-600 mt-1 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-info-circle-fill me-1 text-primary"></i>{{ field.help_text }}</div>
+                                {% endif %}
+                            </div>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-top border-secondary">
+                        <button type="submit" class="btn-save-pro w-100">
+                            <i class="bi bi-plus-circle-fill me-1"></i> GUARDAR PLAN
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+
+        <div class="col-lg-8 col-xl-8 reveal-up" style="animation-delay: 0.2s;">
+            
+            <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+                <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-card-checklist text-primary me-2"></i>Planes Vigentes</h5>
+                <span class="badge bg-dark text-white rounded-pill px-3 py-2 shadow-sm fw-bold">{{ planes.count }} Registrados</span>
+            </div>
+
+            <div class="d-flex flex-column">
+                {% for plan in planes %}
+                <div class="plan-strip">
+                    
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="icon-box shadow-sm">
+                            <i class="bi bi-star-fill text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <h4 class="fw-black text-dark m-0 mb-2" style="font-family: 'Outfit', sans-serif; font-size: 1.4rem;">{{ plan.nombre }}</h4>
+                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                <span class="badge badge-contrast px-3 py-2 rounded-pill"><i class="bi bi-trophy-fill me-1 text-warning"></i>{{ plan.max_torneos }} Torneos</span>
+                                <span class="badge badge-contrast px-3 py-2 rounded-pill"><i class="bi bi-tags-fill me-1 text-primary"></i>{{ plan.max_categorias_por_torneo }} Cat. x Torneo</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="plan-pricing d-flex flex-column align-items-end">
+                        <div class="text-success" style="font-family: 'Outfit', sans-serif;">
+                            <span class="fw-black" style="font-size: 2.2rem; line-height: 1; letter-spacing: -1px;">${{ plan.precio_mensual }}</span>
+                            <span class="text-slate-700 fw-black ms-1" style="font-size: 0.9rem;">/mes</span>
+                        </div>
+                        <div class="text-slate-700 fw-black mt-1" style="font-size: 0.85rem;">
+                            <i class="bi bi-plus-circle-fill text-primary me-1"></i> Setup inicial: <span class="text-dark">${{ plan.costo_inscripcion }}</span>
+                        </div>
+                    </div>
+                    
+                </div>
+                {% empty %}
+                <div class="text-center py-5 bg-white border border-secondary rounded-4 shadow-sm mt-2">
+                    <div class="bg-slate-100 rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border shadow-sm" style="width: 80px; height: 80px;">
+                        <i class="bi bi-tag-fill text-slate-400" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h5 class="fw-black text-dark mt-2" style="font-family: 'Outfit', sans-serif;">Sin planes registrados</h5>
+                    <p class="text-slate-600 fw-bold mb-0">Utiliza el formulario de la izquierda para crear tu primer plan de suscripción.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+        </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('input:not([type="checkbox"]):not([type="hidden"]), select, textarea');
+        inputs.forEach(input => {
+            input.classList.add('clean-input');
+        });
+        
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.classList.add('form-check-input', 'shadow-sm');
+        });
+    });
+</script>
 {% endblock %}

@@ -1,216 +1,309 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Crear Cuenta | NEXT LEVEL{% endblock %}
+{% block title %}Registro Oficial | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-    /* Inmersión total NEXT LEVEL */
+    :root { 
+        --brand-primary: #4f46e5; /* Azul índigo con alto contraste */
+        --brand-dark: #0f172a;    /* Azul casi negro */
+        --success: #059669;       /* Verde oscuro para legibilidad */
+        --error: #dc2626;         /* Rojo intenso para errores */
+        --text-main: #68707d;     /* Texto principal oscuro */
+        --text-muted: #475569;    /* Texto secundario gris oscuro */
+    }
+    
     .navbar { display: none !important; }
-    .main-content { margin-top: 0 !important; padding-bottom: 0 !important; padding-top: 0 !important; }
+    .main-content { margin: 0 !important; padding: 0 !important; }
     
-    body {
-        background-color: #ffffff;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        font-family: 'Inter', -apple-system, sans-serif;
+    body { 
+        background-color: #e2e8f0 !important; /* Fondo general gris claro para resaltar la tarjeta */
+        min-height: 100vh; 
+        font-family: 'Inter', sans-serif; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        padding: 20px; 
     }
 
-    /* ==========================================
-       COLUMNA IZQUIERDA: VISUAL IDENTITY
-       ========================================== */
-    .register-cover {
-        background: linear-gradient(135deg, var(--primary-navy) 0%, #1e293b 100%);
-        position: relative;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 4rem;
-        color: white;
-        overflow: hidden;
-    }
-    .register-cover::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-        background-size: 32px 32px; opacity: 0.8;
-    }
-
-    /* ==========================================
-       COLUMNA DERECHA: FORMULARIO PREMIUM
-       ========================================== */
-    .register-form-container {
-        height: 100vh; overflow-y: auto; display: flex; align-items: center; justify-content: center; background-color: #ffffff;
-    }
-    .form-wrapper { width: 100%; max-width: 460px; padding: 2.5rem; }
-
-    /* Floating Labels Modernizados */
-    .form-floating { margin-bottom: 1rem; }
-    
-    .form-floating > .form-control {
-        border: 1.5px solid #cbd5e1;
-        border-radius: 12px;
-        background-color: #f8fafc;
-        color: var(--primary-navy);
-        font-weight: 600;
-        font-size: 0.95rem;
-        height: 58px;
-        padding-top: 1.6rem;
-        padding-bottom: 0.4rem;
-        transition: all 0.3s ease;
+    /* Tarjeta Minimalista */
+    .reg-card { 
+        width: 100%; 
+        max-width: 900px; 
+        background-color: #ffffff !important; 
+        display: flex; 
+        border-radius: 24px; 
+        overflow: hidden; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
     }
     
-    .form-floating > .form-control:focus {
-        border-color: var(--primary-blue);
-        background-color: #ffffff;
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.1);
-        outline: none;
+    .reg-visual { 
+        flex: 1; 
+        background-color: var(--brand-dark) !important; 
+        padding: 40px; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: center; 
+        color: #ffffff !important; 
+        text-align: center; 
+    }
+    
+    .reg-form-area { 
+        flex: 1.2; 
+        padding: 40px; 
+        background-color: #ffffff !important; 
+        color: var(--text-main) !important; /* Forzar color de texto base */
+    }
+
+    /* =======================================================
+       ALTO CONTRASTE PARA INPUTS (Soluciona el texto invisible)
+       ======================================================= */
+    .form-floating { margin-bottom: 0.8rem; position: relative; }
+    
+    .form-floating > .form-control { 
+        border: 2px solid #cbd5e1 !important; /* Borde gris visible */
+        border-radius: 12px; 
+        height: 58px; 
+        background-color: #f8fafc !important; /* Fondo gris súper claro */
+        color: var(--text-main) !important;   /* Letras OSCURAS obligatorias */
+        font-weight: 600 !important; 
+        font-size: 1rem !important;
+    }
+    
+    .form-floating > .form-control:focus { 
+        border-color: var(--brand-primary) !important; 
+        background-color: #ffffff !important; 
+        box-shadow: 0 0 0 4px rgba(7, 5, 41, 0.15) !important; 
+        color: var(--brand-dark) !important;
+        outline: none; 
     }
 
     .form-floating > label {
-        color: #64748b;
+        color: var(--text-muted) !important; /* Color de la etiqueta oscura */
         font-weight: 600;
-        padding: 1rem 0.75rem;
+        z-index: 5; /* Asegura que la etiqueta esté sobre el fondo */
     }
 
     .form-floating > .form-control:focus ~ label,
     .form-floating > .form-control:not(:placeholder-shown) ~ label {
-        color: var(--primary-blue);
-        font-weight: 700;
-        transform: scale(0.85) translateY(-0.85rem) translateX(0.15rem);
+        color: var(--brand-primary) !important;
+        font-weight: 800 !important;
+        background-color: transparent !important;
     }
 
-    .btn-register-pro {
-        background: var(--primary-blue); 
-        color: white; 
-        font-weight: 800; 
-        font-size: 1.05rem; 
-        letter-spacing: 0.5px;
-        height: 52px; 
-        border-radius: 14px; 
+    /* Textos informativos y Títulos */
+    h2.title-dark { color: var(--brand-dark) !important; }
+    p.text-info-dark { color: var(--text-muted) !important; }
+
+    /* Iconos y Errores */
+    .val-icon { 
+        position: absolute; right: 15px; top: 18px; 
+        font-size: 1.2rem; display: none; z-index: 10; 
+    }
+    .error-hint { 
+        font-size: 0.8rem; color: var(--error) !important; 
+        font-weight: 800; margin-top: 4px; display: none; 
+        align-items: center; gap: 4px; 
+    }
+
+    /* Caja de Términos */
+    .terms-box {
+        background-color: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: var(--text-main) !important;
+    }
+
+    /* Botón */
+    .btn-nexus { 
+        background-color: var(--brand-dark) !important; 
+        color: #ffffff !important; 
         border: none; 
-        width: 100%;
-        box-shadow: 0 8px 20px rgba(29, 78, 216, 0.25); 
-        transition: all 0.3s ease;
-        margin-top: 1.2rem;
+        padding: 15px; 
+        border-radius: 14px; 
+        font-family: 'Outfit', sans-serif; 
+        font-weight: 800; 
+        width: 100%; 
+        margin-top: 1rem; 
+        transition: 0.3s; 
+        text-transform: uppercase; 
+        font-size: 1.05rem;
     }
-    .btn-register-pro:hover { 
-        transform: translateY(-2px); 
-        filter: brightness(1.1);
-        box-shadow: 0 12px 25px rgba(29, 78, 216, 0.35); 
-    }
+    .btn-nexus:hover:not(:disabled) { background-color: #1e293b !important; }
+    .btn-nexus:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .form-check-input:checked { background-color: var(--primary-blue); border-color: var(--primary-blue); }
-
-    @media (max-width: 991px) {
-        .form-wrapper { padding: 2rem 1.5rem; }
-        .btn-register-pro { height: 56px; }
+    /* Responsivo */
+    @media (max-width: 850px) { 
+        .reg-visual { display: none; } 
+        .reg-card { max-width: 450px; } 
+        .reg-form-area { padding: 30px 20px; }
     }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="row g-0 h-100 w-100">
-    
-    <div class="col-lg-6 col-xl-7 d-none d-lg-flex register-cover">
-        <div class="text-center position-relative z-1 animate__animated animate__fadeInUp">
-            <img src="{{ config_global.logo_sistema.url }}" alt="NEXT LEVEL" style="width: 220px; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.6)); margin-bottom: 2rem;">
-            
-            <h1 class="fw-black text-white mb-3" style="letter-spacing: -1.5px; font-size: 3.8rem;">NEXT LEVEL</h1>
-            <p class="text-white-50 fs-5 fw-medium" style="max-width: 80%; margin: 0 auto; letter-spacing: 0.5px;">
-                Únete a la plataforma líder en gestión deportiva. Registra tu equipo y lleva el control total de tu plantilla.
-            </p>
-        </div>
+<div class="reg-card animate__animated animate__fadeInUp">
+    <div class="reg-visual">
+        <img src="{{ config_global.logo_sistema.url }}" alt="Logo" style="width: 100px; margin: 0 auto 1.5rem auto;">
+        <h1 style="font-family: 'Outfit'; font-weight: 800;">NEXUS SPORTOPS</h1>
+        <p class="small opacity-75 px-3">Plataforma de gestión deportiva. Valida tu identidad para continuar.</p>
     </div>
 
-    <div class="col-12 col-lg-6 col-xl-5">
-        <div class="register-form-container">
-            <div class="form-wrapper animate__animated animate__fadeIn">
-                
-                <div class="d-flex justify-content-between align-items-start mb-5 pb-2">
-                    <div>
-                        <img src="{{ config_global.logo_sistema.url }}" alt="Logo" class="d-lg-none mb-3" style="width: 60px;">
-                        <h3 class="fw-black text-dark mb-1" style="letter-spacing: -0.5px;">Crear una cuenta</h3>
-                        <p class="text-muted fw-medium m-0" style="font-size: 0.85rem;">Regístrate como dirigente en pocos pasos.</p>
-                    </div>
-                    <a href="{% url 'login' %}" class="fw-bold text-decoration-none px-3 py-2 rounded-pill transition-all" style="font-size: 0.75rem; background-color: var(--bg-body); color: var(--primary-blue);">
-                        Ya tengo cuenta
-                    </a>
-                </div>
-
-                <form method="post" class="needs-validation">
-                    {% csrf_token %}
-                    
-                    {% for field in form %}
-                    <div class="position-relative">
-                        <div class="form-floating">
-                            {{ field }}
-                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                        </div>
-
-                        {% if field.errors %}
-                            <div class="text-danger fw-bold mb-3 ps-2" style="font-size: 0.75rem; margin-top: -8px;">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ field.errors.0 }}
-                            </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-
-                    <div class="d-flex align-items-center gap-3 mt-4 mb-4 ps-1">
-                        <input class="form-check-input flex-shrink-0 m-0 shadow-sm" type="checkbox" id="terms" required>
-                        <label class="form-check-label text-muted fw-medium lh-sm m-0" for="terms" style="cursor: pointer; font-size: 0.8rem;">
-                            Acepto los <a href="#" class="text-dark fw-black text-decoration-none border-bottom border-dark">Términos y condiciones</a> de NEXT LEVEL.
-                        </label>
-                    </div>
-
-                    <button type="submit" class="btn-register-pro shadow-lg">
-                        FINALIZAR REGISTRO <i class="bi bi-check-lg ms-2"></i>
-                    </button>
-                </form>
-
-                <div class="mt-5 text-center">
-                     <a href="{% url 'dashboard' %}" class="text-muted small text-decoration-none fw-bold hover-lift d-inline-block">
-                        <i class="bi bi-arrow-left-short fs-5 align-middle"></i> Regresar al Inicio
-                    </a>
-                </div>
-
+    <div class="reg-form-area">
+        <div class="mb-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="title-dark" style="font-family: 'Outfit'; font-weight: 800; font-size: 1.6rem; margin:0;">Registro Oficial</h2>
+                <p class="text-info-dark small fw-bold mb-0">Ingresa tus datos reales</p>
             </div>
+            <a href="{% url 'login' %}" class="btn btn-sm fw-bold border" style="background-color: #f1f5f9; color: var(--brand-primary);">LOGIN</a>
         </div>
+
+        <form method="post" id="formRegistro" action="{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}">
+            {% csrf_token %}
+            <div class="row g-2">
+                {% for field in form %}
+                <div class="col-12 {% if field.name == 'first_name' or field.name == 'last_name' %}col-md-6{% endif %}">
+                    <div class="form-floating">
+                        {{ field }}
+                        <label for="{{ field.id_for_label }}">
+                            {% if field.name == 'username' or 'cedula' in field.name|lower %}
+                                Cédula (10 dígitos)
+                            {% elif 'telefono' in field.name|lower or 'celular' in field.name|lower %}
+                                Celular (09...)
+                            {% else %}
+                                {{ field.label }}
+                            {% endif %}
+                        </label>
+                        <i class="bi bi-check-circle-fill val-icon" style="color: var(--success);" id="icon-ok-{{ field.name }}"></i>
+                    </div>
+                    <div id="err-{{ field.name }}" class="error-hint"></div>
+                    
+                    {% if field.errors %}
+                        <div class="error-hint" style="display: flex;"><i class="bi bi-x-circle-fill"></i> {{ field.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="terms-box mt-3 p-3 rounded-3">
+                <div class="form-check m-0 d-flex align-items-center gap-2">
+                    <input class="form-check-input mt-0" type="checkbox" id="terms" required style="border-color: #94a3b8;">
+                    <label class="form-check-label small fw-bold" for="terms" style="cursor:pointer; color: var(--text-main);">
+                        Certifico que la cédula y datos ingresados me pertenecen.
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" id="btnSubmit" class="btn-nexus" disabled>Completar Registro</button>
+        </form>
     </div>
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const inputs = document.querySelectorAll('.form-floating input, .form-floating select');
-        
+document.addEventListener("DOMContentLoaded", function() {
+    const inputs = document.querySelectorAll('.form-floating input');
+    const btn = document.getElementById('btnSubmit');
+
+    function checkFormValidity() {
+        let cedulaValida = true; 
+        let telefonoValido = true;
+
         inputs.forEach(input => {
-            input.classList.add('form-control');
-            if(!input.getAttribute('placeholder')) {
-                input.setAttribute('placeholder', ' '); 
-            }
-
             const name = input.name.toLowerCase();
+            const val = input.value;
 
-            // Solo números en campos de identificación y contacto
-            if(name.includes('telefono') || name.includes('celular') || name.includes('cedula') || name.includes('dni')) {
-                input.setAttribute('inputmode', 'numeric');
-                input.setAttribute('pattern', '[0-9]*');
-                input.addEventListener('input', function() {
-                    this.value = this.value.replace(/[^0-9]/g, '');
-                });
-            } 
-            // Solo letras en nombres y apellidos
-            else if(name.includes('first_name') || name.includes('last_name') || name.includes('nombre') || name.includes('apellido')) {
-                input.addEventListener('input', function() {
-                    this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
-                });
+            if (name === 'username' || name.includes('cedula')) {
+                cedulaValida = validarCedulaEcuatoriana(val);
+                mostrarFeedback(input, cedulaValida, "Cédula inválida");
             }
-            else if(name.includes('email') || name.includes('correo')) {
-                input.setAttribute('inputmode', 'email');
+
+            if (name.includes('telefono') || name.includes('celular')) {
+                telefonoValido = (val.startsWith('09') && val.length === 10);
+                mostrarFeedback(input, telefonoValido, "Debe empezar con 09 y tener 10 números");
             }
         });
+
+        btn.disabled = !(cedulaValida && telefonoValido);
+    }
+
+    function mostrarFeedback(input, esValido, mensajeError) {
+        const divError = document.getElementById(`err-${input.name}`);
+        const iconoOk = document.getElementById(`icon-ok-${input.name}`);
+        
+        if (!divError || !iconoOk) return;
+
+        if (input.value.length === 0) {
+            divError.style.display = 'none';
+            iconoOk.style.display = 'none';
+            input.style.borderColor = '#cbd5e1'; // Borde neutral visible
+            return;
+        }
+
+        if (esValido) {
+            divError.style.display = 'none';
+            iconoOk.style.display = 'block';
+            input.style.borderColor = 'var(--success)';
+        } else {
+            divError.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> ${mensajeError}`;
+            divError.style.display = 'flex';
+            iconoOk.style.display = 'none';
+            input.style.borderColor = 'var(--error)';
+        }
+    }
+
+    function validarCedulaEcuatoriana(cedula) {
+        if (cedula.length !== 10) return false;
+        const provincia = parseInt(cedula.substring(0, 2));
+        if (provincia < 1 || provincia > 24) return false;
+        
+        const digitos = cedula.split('').map(Number);
+        const verificador = digitos.pop();
+        let suma = 0;
+        
+        digitos.forEach((val, index) => {
+            let res = (index % 2 === 0) ? val * 2 : val;
+            if (res > 9) res -= 9;
+            suma += res;
+        });
+        
+        const calculado = (suma % 10 === 0) ? 0 : 10 - (suma % 10);
+        return calculado === verificador;
+    }
+
+    inputs.forEach(input => {
+        // Asegurar que Django no asigne clases que dañen el color
+        input.className = 'form-control'; 
+        input.setAttribute('placeholder', ' '); 
+
+        const name = input.name.toLowerCase();
+
+        if (name === 'username' || name.includes('cedula') || name.includes('telefono') || name.includes('celular')) {
+            input.setAttribute('maxlength', '10');
+            input.setAttribute('inputmode', 'numeric');
+        }
+
+        input.addEventListener('input', (e) => {
+            let valorActual = e.target.value;
+
+            if (name === 'username' || name.includes('cedula') || name.includes('telefono') || name.includes('celular')) {
+                let soloNumeros = valorActual.replace(/[^0-9]/g, '');
+                if (valorActual !== soloNumeros) {
+                    e.target.value = soloNumeros;
+                }
+            } 
+            else if (name.includes('name') || name.includes('nombre') || name.includes('apellido')) {
+                let soloLetras = valorActual.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+                if (valorActual !== soloLetras) {
+                    e.target.value = soloLetras;
+                }
+            }
+            
+            checkFormValidity();
+        });
     });
+
+    checkFormValidity();
+});
 </script>
 {% endblock %}

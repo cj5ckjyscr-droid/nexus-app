@@ -2,7 +2,7 @@
 
 {% block title %}Planes y Precios | NEXUS SPORTOPS{% endblock %}
 
-{% block contenido %}
+{% block extra_css %}
 <style>
     /* =========================================================
        NEXUS SPORTOPS - ESTÉTICA "FEY" (LIGHT MODE & BENTO GRID)
@@ -10,197 +10,177 @@
     
     /* Auras de Fondo (Luces difuminadas estilo Fey) */
     .ambient-glow {
-        position: fixed;
-        top: -10%; left: -10%;
-        width: 120vw; height: 120vh;
+        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
         background: 
-            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.08) 0%, transparent 40%),
-            radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.08) 0%, transparent 40%),
-            radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
-        z-index: -1;
-        pointer-events: none;
+            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.06) 0%, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.06) 0%, transparent 40%),
+            radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
+        z-index: -1; pointer-events: none;
     }
 
     /* Tipografía y Espaciados Premium */
     .fey-title {
-        font-family: 'Outfit', sans-serif;
-        font-weight: 900;
-        font-size: clamp(3rem, 6vw, 4.5rem);
-        letter-spacing: -0.04em;
-        line-height: 1.1;
-        color: #0F172A;
+        font-family: 'Outfit', sans-serif; font-weight: 900;
+        font-size: clamp(3.5rem, 7vw, 5.5rem); letter-spacing: -0.04em;
+        line-height: 1.05; color: #0F172A; text-shadow: 0 10px 30px rgba(0,0,0,0.05);
     }
     
     .fey-gradient-text {
         background: linear-gradient(135deg, var(--brand-primary) 0%, #0EA5E9 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
     .fey-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.6);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(15, 23, 42, 0.1);
-        padding: 6px 16px;
-        border-radius: 100px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        color: #475569;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px); border: 1px solid rgba(15, 23, 42, 0.1); padding: 8px 20px;
+        border-radius: 100px; font-weight: 700; font-size: 0.9rem; color: #0F172A;
+        margin-bottom: 2.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.03);
     }
 
-    /* Tarjetas estilo Bento (Transiciones elásticas) */
-    .fey-card {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(20px);
-        border: 1px solid #E2E8F0;
-        border-radius: 24px;
-        padding: 40px;
-        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-        height: 100%;
-        position: relative;
-        overflow: hidden;
+    /* Tarjetas de Precios */
+    .pricing-card {
+        background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px);
+        border: 1px solid #E2E8F0; border-radius: 32px; padding: 48px 40px;
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        height: 100%; position: relative; overflow: hidden; display: flex; flex-direction: column;
     }
-    
-    .fey-card:hover {
-        transform: translateY(-8px) scale(1.01);
-        box-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
-        border-color: #CBD5E1;
-        background: rgba(255, 255, 255, 0.95);
+    .pricing-card:hover {
+        transform: translateY(-10px) scale(1.02); box-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
+        border-color: #CBD5E1; background: rgba(255, 255, 255, 0.95);
     }
 
-    .fey-card-popular {
-        background: #FFFFFF;
-        border: 2px solid var(--brand-primary);
-        box-shadow: 0 20px 40px rgba(79, 70, 229, 0.15);
+    /* Tarjeta Popular (Destacada) */
+    .pricing-card.popular {
+        background: #FFFFFF; border: 2px solid var(--brand-primary);
+        box-shadow: 0 20px 50px rgba(79, 70, 229, 0.15); transform: scale(1.03); z-index: 5;
     }
-    
-    .fey-card-popular::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 6px;
+    .pricing-card.popular:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 30px 60px rgba(79, 70, 229, 0.25); }
+    .pricing-card.popular::before {
+        content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
         background: linear-gradient(90deg, var(--brand-primary), #0EA5E9);
     }
 
-    /* Animaciones de Entrada (Reveal Up) */
-    .reveal-up {
-        opacity: 0;
-        animation: revealUpAnim 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    /* Botones de Planes */
+    .btn-plan {
+        background: #0F172A; color: #FFFFFF; font-weight: 800; font-size: 1.1rem;
+        padding: 16px 24px; border-radius: 16px; display: inline-block; width: 100%;
+        text-align: center; text-decoration: none; transition: all 0.3s ease; border: none;
     }
-    .delay-1 { animation-delay: 0.1s; }
-    .delay-2 { animation-delay: 0.2s; }
-    .delay-3 { animation-delay: 0.3s; }
+    .btn-plan:hover { background: #1E293B; transform: translateY(-3px); box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2); color: #FFFFFF; }
+    
+    .btn-plan.popular-btn { background: linear-gradient(135deg, var(--brand-primary), #0EA5E9); }
+    .btn-plan.popular-btn:hover { box-shadow: 0 15px 30px rgba(79, 70, 229, 0.3); }
 
-    @keyframes revealUpAnim {
-        0% { opacity: 0; transform: translateY(40px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
+    /* Lista de Características */
+    .feature-list { list-style: none; padding: 0; margin: 0 0 2rem 0; }
+    .feature-list li { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; color: #475569; font-weight: 600; font-size: 1rem; line-height: 1.4; }
+    .feature-list i { color: var(--brand-primary); font-size: 1.4rem; margin-top: -2px; }
+    .pricing-card.popular .feature-list i { color: #10B981; }
 
-    /* Botones y Listas */
-    .fey-btn {
-        background: #0F172A;
-        color: #FFF;
-        font-weight: 700;
-        padding: 14px 24px;
-        border-radius: 14px;
-        display: inline-block;
-        width: 100%;
-        text-align: center;
-        text-decoration: none;
-        transition: all 0.3s ease;
+    /* =========================================================
+       BENTO GRID (FEATURES)
+       ========================================================= */
+    .bento-card {
+        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 32px;
+        padding: 40px; height: 100%; transition: all 0.4s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+        display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; position: relative;
     }
-    .fey-btn:hover {
-        background: #1E293B;
-        transform: translateY(-2px);
-        color: #FFF;
-        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
-    }
+    .bento-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06); border-color: #CBD5E1; }
+    
+    .bento-icon { width: 70px; height: 70px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 24px; }
+    
+    .bento-card.blue { background: linear-gradient(145deg, #FFFFFF, #F8FAFC); }
+    .bento-card.blue .bento-icon { background: #EFF6FF; color: var(--brand-primary); }
+    
+    .bento-card.green { background: linear-gradient(145deg, #FFFFFF, #F0FDF4); }
+    .bento-card.green .bento-icon { background: #D1FAE5; color: #10B981; }
+    
+    .bento-card.dark { background: linear-gradient(145deg, #0F172A, #1E293B); color: white; border: none; box-shadow: 0 15px 35px rgba(15, 23, 42, 0.2); }
+    .bento-card.dark .bento-icon { background: rgba(255,255,255,0.1); color: #FFFFFF; }
+    .bento-card.dark p { color: #94A3B8 !important; }
 
-    .fey-btn-primary {
-        background: linear-gradient(135deg, var(--brand-primary), #0EA5E9);
-    }
-    .fey-btn-primary:hover {
-        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
-    }
+    /* Animaciones de Entrada */
+    .reveal-up { opacity: 0; animation: revealUpAnim 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; }
+    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(40px); } 100% { opacity: 1; transform: translateY(0); } }
 
-    .feature-list li {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 16px;
-        color: #475569;
-        font-weight: 500;
+    @media (max-width: 991px) {
+        .pricing-card.popular { transform: none; z-index: 1; }
+        .pricing-card.popular:hover { transform: translateY(-5px); }
+        .fey-title { font-size: 3rem; }
     }
-    .feature-list i {
-        color: var(--brand-primary);
-        font-size: 1.2rem;
+    @media (max-width: 576px) {
+        .pricing-card, .bento-card { padding: 30px 24px; border-radius: 24px; }
+        .fey-title { font-size: 2.5rem; }
     }
 </style>
+{% endblock %}
 
+{% block contenido %}
 <div class="ambient-glow"></div>
 
-<div class="container" style="padding-top: 60px; padding-bottom: 80px;">
+<div class="container" style="padding-top: 80px; padding-bottom: 80px;">
     
     <div class="text-center mb-5 reveal-up">
         <div class="fey-pill">
-            <span class="bg-primary rounded-circle" style="width: 8px; height: 8px;"></span>
+            <span class="bg-success rounded-circle animate__animated animate__pulse animate__infinite" style="width: 10px; height: 10px;"></span>
             El nuevo estándar en gestión deportiva
         </div>
         <h1 class="fey-title mb-4">
             Organiza torneos de <br>
             clase mundial. <span class="fey-gradient-text">Sin estrés.</span>
         </h1>
-        <p class="text-muted fs-5 mx-auto" style="max-width: 650px; line-height: 1.6;">
-            Automatiza la creación de fixtures, elimina la morosidad y ofrécele a tus jugadores estadísticas en vivo con una plataforma de última generación.
+        <p class="text-muted fs-5 mx-auto fw-medium" style="max-width: 700px; line-height: 1.6;">
+            Automatiza la creación de fixtures, elimina la morosidad y ofrécele a tus jugadores un portal de estadísticas en vivo con la plataforma más avanzada del mercado.
         </p>
     </div>
 
-    <div class="row g-4 justify-content-center align-items-stretch mb-5">
+    <div class="row g-4 g-xl-5 justify-content-center align-items-stretch mb-5 pb-5">
         {% for plan in planes %}
-        <div class="col-md-6 col-lg-4 reveal-up delay-{{ forloop.counter }}">
-            <div class="fey-card {% if forloop.counter == 2 %}fey-card-popular{% endif %} d-flex flex-column">
+        <div class="col-md-6 col-lg-5 reveal-up delay-{{ forloop.counter }}">
+            <div class="pricing-card {% if forloop.counter == 2 %}popular{% endif %}">
                 
-                <div class="mb-4">
-                    {% if forloop.counter == 2 %}
-                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill mb-3 fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Más Elegido</span>
-                    {% endif %}
-                    <h3 class="fw-black text-dark mb-2" style="font-family: 'Outfit', sans-serif;">{{ plan.nombre }}</h3>
-                    <p class="text-muted small">Ideal para llevar el control total.</p>
+                <div class="mb-4 pb-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h3 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif; font-size: 2rem;">{{ plan.nombre }}</h3>
+                        {% if forloop.counter == 2 %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill fw-black text-uppercase shadow-sm" style="letter-spacing: 1px; font-size: 0.7rem;">Más Elegido</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-slate-500 fw-medium m-0">Para complejos de alto rendimiento.</p>
                 </div>
 
                 <div class="mb-4">
-                    <div class="d-flex align-items-end mb-2">
-                        <span class="fw-black text-dark" style="font-size: 3rem; line-height: 1; letter-spacing: -2px;">${{ plan.precio_mensual }}</span>
-                        <span class="text-muted fw-medium ms-1 mb-1">/mes</span>
+                    <div class="d-flex align-items-baseline mb-2">
+                        <span class="fw-black text-dark" style="font-family: 'Outfit', sans-serif; font-size: 4rem; line-height: 0.9; letter-spacing: -2px;">${{ plan.precio_mensual }}</span>
+                        <span class="text-slate-500 fw-bold ms-2 mb-2">/ mensual</span>
                     </div>
                     
                     {% if plan.costo_inscripcion > 0 %}
-                        <div class="d-inline-block bg-slate-50 border rounded-pill px-3 py-1 mt-2">
-                            <span class="text-dark small fw-bold">+ ${{ plan.costo_inscripcion }} matrícula</span>
-                            <span class="text-muted small"> (Único pago)</span>
+                        <div class="d-inline-flex align-items-center bg-slate-50 border rounded-pill px-3 py-2 mt-2 shadow-sm">
+                            <span class="text-dark fw-bold" style="font-size: 0.85rem;">+ ${{ plan.costo_inscripcion }} setup inicial</span>
+                            <span class="text-muted ms-1" style="font-size: 0.85rem;"> (Pago único)</span>
                         </div>
                     {% else %}
-                        <div class="d-inline-block bg-success bg-opacity-10 border border-success border-opacity-25 rounded-pill px-3 py-1 mt-2">
-                            <span class="text-success small fw-bold"><i class="bi bi-stars"></i> Configuración inicial GRATIS</span>
+                        <div class="d-inline-flex align-items-center bg-success bg-opacity-10 border border-success border-opacity-25 rounded-pill px-3 py-2 mt-2 shadow-sm">
+                            <i class="bi bi-stars text-success me-2"></i>
+                            <span class="text-success fw-bold" style="font-size: 0.85rem;">Setup Inicial GRATIS</span>
                         </div>
                     {% endif %}
                 </div>
 
-                <div class="mt-auto pt-4 border-top">
-                    <ul class="list-unstyled feature-list mb-4">
-                        <li><i class="bi bi-check2-circle"></i> <span>Hasta <strong>{{ plan.max_torneos }} torneos</strong> activos</span></li>
-                        <li><i class="bi bi-check2-circle"></i> <span><strong>{{ plan.max_categorias_por_torneo }} categorías</strong> por torneo</span></li>
-                        <li><i class="bi bi-check2-circle"></i> <span>Equipos y jugadores ilimitados</span></li>
-                        <li><i class="bi bi-check2-circle"></i> <span>Módulo financiero (Caja y Multas)</span></li>
-                        <li><i class="bi bi-check2-circle"></i> <span>Portal público de estadísticas</span></li>
+                <div class="flex-grow-1">
+                    <ul class="feature-list">
+                        <li><i class="bi bi-check-circle-fill"></i> <span>Hasta <strong class="text-dark">{{ plan.max_torneos }} torneos</strong> activos simultáneos</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i> <span><strong class="text-dark">{{ plan.max_categorias_por_torneo }} categorías</strong> por cada torneo</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i> <span>Equipos, Dirigentes y Jugadores ilimitados</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i> <span>Módulo Financiero Avanzado (Caja y Multas)</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i> <span>Portal Web Público de Estadísticas y Fixture</span></li>
                     </ul>
+                </div>
 
-                    <a href="https://wa.me/593987408528?text=Hola,%20quiero%20el%20{{ plan.nombre }}%20para%20mi%20cancha." target="_blank" class="fey-btn {% if forloop.counter == 2 %}fey-btn-primary{% endif %}">
+                <div class="mt-4 pt-4 border-top">
+                    <a href="https://wa.me/593987408528?text=Hola,%20quiero%20el%20{{ plan.nombre }}%20para%20mi%20cancha." target="_blank" class="btn-plan {% if forloop.counter == 2 %}popular-btn{% endif %}">
                         Comenzar Ahora
                     </a>
                 </div>
@@ -208,56 +188,57 @@
             </div>
         </div>
         {% empty %}
-        <div class="col-12 text-center text-muted">
-            <h4 class="fw-bold">Aún no hay planes publicados.</h4>
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-tag-fill fs-1 text-muted opacity-25 d-block mb-3"></i>
+            <h4 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Aún no hay planes publicados.</h4>
         </div>
         {% endfor %}
     </div>
 
-    <div class="mt-5 pt-5 border-top reveal-up delay-3">
+    <div class="mt-5 pt-5 reveal-up delay-3">
         <div class="text-center mb-5">
-            <h2 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif; letter-spacing: -1px;">Software diseñado para ganar tiempo.</h2>
-            <p class="text-muted">Descubre por qué las mejores canchas usan NEXUS.</p>
+            <h2 class="fw-black text-dark mb-2" style="font-family: 'Outfit', sans-serif; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -1px;">Software diseñado para ganar tiempo.</h2>
+            <p class="text-muted fs-5 fw-medium">Descubre por qué los mejores complejos deportivos confían en NEXUS.</p>
         </div>
 
         <div class="row g-4">
             <div class="col-lg-8">
-                <div class="fey-card p-4 p-md-5" style="background: linear-gradient(145deg, #FFFFFF, #F1F5F9);">
-                    <div class="mb-4">
-                        <i class="bi bi-magic fs-1 text-primary"></i>
+                <div class="bento-card blue">
+                    <div>
+                        <div class="bento-icon shadow-sm"><i class="bi bi-magic"></i></div>
+                        <h3 class="fw-black text-dark mb-3" style="font-family: 'Outfit', sans-serif; font-size: 2rem;">Generación de Fixture Automática</h3>
+                        <p class="text-slate-600 fs-6 fw-medium m-0" style="max-width: 550px; line-height: 1.6;">Olvídate de cruzar equipos a mano en Excel. Nuestro motor algorítmico procesa llaves y grupos, generando el calendario completo de tu torneo en exactamente 1.2 segundos.</p>
                     </div>
-                    <h3 class="fw-black text-dark mb-3">Generación de Fixture Automática</h3>
-                    <p class="text-muted fs-6 mb-0" style="max-width: 500px;">Olvídate de cruzar equipos a mano en Excel. Nuestro motor algorítmico genera el calendario completo de tu torneo (todos contra todos o grupos) en exactamente 1.2 segundos.</p>
                 </div>
             </div>
 
             <div class="col-lg-4">
-                <div class="fey-card p-4 p-md-5" style="background: #FFFFFF;">
-                    <div class="mb-4">
-                        <i class="bi bi-wallet2 fs-1 text-success"></i>
+                <div class="bento-card dark">
+                    <div>
+                        <div class="bento-icon shadow-sm"><i class="bi bi-phone"></i></div>
+                        <h3 class="fw-black text-white mb-3" style="font-family: 'Outfit', sans-serif;">Mesa de Control Móvil</h3>
+                        <p class="fs-6 fw-medium m-0" style="line-height: 1.6;">Tus vocales registran goles, tarjetas y resultados en vivo desde su celular. Cero papel.</p>
                     </div>
-                    <h3 class="fw-black text-dark mb-3">Anti-Morosos</h3>
-                    <p class="text-muted fs-6 mb-0">Controla quién pagó la inscripción, bloquea a jugadores con tarjetas amarillas impagas y lleva la contabilidad perfecta de tu caja.</p>
                 </div>
             </div>
 
             <div class="col-lg-4">
-                <div class="fey-card p-4 p-md-5" style="background: #FFFFFF;">
-                    <div class="mb-4">
-                        <i class="bi bi-phone fs-1 text-dark"></i>
+                <div class="bento-card green">
+                    <div>
+                        <div class="bento-icon shadow-sm"><i class="bi bi-shield-check"></i></div>
+                        <h3 class="fw-black text-dark mb-3" style="font-family: 'Outfit', sans-serif;">Sistema Anti-Morosos</h3>
+                        <p class="text-slate-600 fs-6 fw-medium m-0" style="line-height: 1.6;">Lleva la contabilidad exacta de la caja. Bloquea automáticamente a equipos con deudas y multas impagas.</p>
                     </div>
-                    <h3 class="fw-black text-dark mb-3">App de Vocales</h3>
-                    <p class="text-muted fs-6 mb-0">Tus árbitros/vocales registran goles, tarjetas y resultados directamente desde su celular en la mesa de control.</p>
                 </div>
             </div>
 
             <div class="col-lg-8">
-                <div class="fey-card p-4 p-md-5" style="background: linear-gradient(145deg, #FFFFFF, #F0FDF4);">
-                    <div class="mb-4">
-                        <i class="bi bi-globe fs-1 text-success"></i>
+                <div class="bento-card" style="background: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%234f46e5\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');">
+                    <div>
+                        <div class="bento-icon bg-white border text-dark shadow-sm"><i class="bi bi-globe"></i></div>
+                        <h3 class="fw-black text-dark mb-3" style="font-family: 'Outfit', sans-serif; font-size: 2rem;">El ESPN de tu Cancha</h3>
+                        <p class="text-slate-600 fs-6 fw-medium m-0" style="max-width: 550px; line-height: 1.6;">Cada plan incluye un portal web público y dedicado para tu complejo. Tus jugadores podrán entrar 24/7 a ver la tabla de posiciones, los goleadores, sus amonestaciones y sus estadísticas en tiempo real.</p>
                     </div>
-                    <h3 class="fw-black text-dark mb-3">El ESPN de tu Cancha</h3>
-                    <p class="text-muted fs-6 mb-0" style="max-width: 500px;">Cada plan incluye un portal web público y personalizado para tu cancha. Tus jugadores podrán entrar a ver la tabla de posiciones, los goleadores y sus estadísticas en tiempo real.</p>
                 </div>
             </div>
         </div>
