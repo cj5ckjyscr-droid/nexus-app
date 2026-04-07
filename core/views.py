@@ -14,6 +14,8 @@ from urllib.parse import quote
 import urllib.parse
 from decimal import Decimal
 from django.contrib.auth import login
+from django.core.mail import send_mail
+from django.conf import settings
 
 # Formularios
 from .forms import (
@@ -2704,7 +2706,10 @@ def dashboard_saas(request):
     canchas_activas = canchas.filter(activo=True).count()
     canchas_suspendidas = canchas.filter(activo=False).count()
 
-    # 2. LÓGICA DE RECORDATORIOS (Se ejecuta al entrar al dashboard)
+    # ✨ NUEVO: Traemos los últimos 20 pagos para mostrarlos en la tabla
+    ultimos_pagos = PagoSuscripcionSaaS.objects.select_related('complejo').order_by('-fecha_pago', '-id')[:20]
+
+    # 2. LÓGICA DE RECORDATORIOS
     hoy = timezone.now().date()
     limite_aviso = hoy + timedelta(days=3)
     
@@ -2748,7 +2753,8 @@ def dashboard_saas(request):
         'total_ingresos': total_ingresos_saas,
         'canchas_activas': canchas_activas,
         'canchas_suspendidas': canchas_suspendidas,
-        'canchas_por_vencer': canchas_por_vencer
+        'canchas_por_vencer': canchas_por_vencer,
+        'ultimos_pagos': ultimos_pagos  # <-- Añade esta línea
     })
 
 @login_required
@@ -2812,23 +2818,62 @@ def registrar_pago_saas(request):
         form = PagoSaaSForm(request.POST)
         if form.is_valid():
             pago = form.save()
-            
             cancha = pago.complejo
-            from datetime import timedelta
-            from django.utils import timezone
             
-            fecha_base = cancha.fecha_vencimiento if cancha.fecha_vencimiento and cancha.fecha_vencimiento >= timezone.now().date() else timezone.now().date()
+            # LÓGICA INTELIGENTE DE FECHAS:
+            # Si la cancha ya estaba vencida, el nuevo mes empieza a contar desde la fecha del pago.
+            # Si la cancha NO estaba vencida, se le suman los meses a su fecha de vencimiento actual.
+            if cancha.fecha_vencimiento and cancha.fecha_vencimiento >= pago.fecha_pago:
+                fecha_base = cancha.fecha_vencimiento
+            else:
+                fecha_base = pago.fecha_pago
+            
             dias_extra = 30 * pago.meses_pagados
             cancha.fecha_vencimiento = fecha_base + timedelta(days=dias_extra)
-            cancha.activo = True # Reactivamos por si estaba suspendida
+            
+            # Reactivamos automáticamente la cancha al registrar el pago
+            cancha.activo = True 
             cancha.save()
             
-            messages.success(request, f"💰 Pago de ${pago.monto} registrado. {cancha.nombre} renovado hasta {cancha.fecha_vencimiento}.")
+            messages.success(request, f"💰 Pago registrado exitosamente. {cancha.nombre} ha sido reactivado/renovado hasta el {cancha.fecha_vencimiento}.")
             return redirect('dashboard_saas')
     else:
         form = PagoSaaSForm()
         
     return render(request, 'core/saas_registrar_pago.html', {'form': form})
+
+@login_required
+def revertir_pago_saas(request, pago_id):
+    """ VISTA PARA REVERSAR UN PAGO SAAS """
+    if not request.user.is_superuser:
+        return redirect('dashboard')
+        
+    pago = get_object_or_404(PagoSuscripcionSaaS, id=pago_id)
+    cancha = pago.complejo
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # 1. Restamos los días que este pago le había otorgado a la cancha
+                dias_a_restar = 30 * pago.meses_pagados
+                cancha.fecha_vencimiento = cancha.fecha_vencimiento - timedelta(days=dias_a_restar)
+                
+                # 2. Verificamos si con esta resta la cancha debería estar suspendida
+                hoy = timezone.now().date()
+                if cancha.fecha_vencimiento < hoy:
+                    cancha.activo = False
+                    
+                cancha.save()
+                pago.delete() # Eliminamos el pago
+                
+                estado = "SUSPENDIDA" if not cancha.activo else "ACTIVA"
+                messages.success(request, f"🔄 Reverso exitoso: Se anularon {pago.meses_pagados} meses. La cancha ahora vence el {cancha.fecha_vencimiento} y su estado es {estado}.")
+        except Exception as e:
+            messages.error(request, f"Error al reversar: {str(e)}")
+            
+    return redirect('dashboard_saas')
+
+
 
 # =========================================================
 # PLANES Y PRECIOS (SAAS)
@@ -2859,3 +2904,44 @@ def gestionar_planes_saas(request):
         form = PlanSuscripcionForm()
         
     return render(request, 'core/saas_gestionar_planes.html', {'form': form, 'planes': planes})
+
+
+def automatizacion_diaria_saas(request):
+    """
+    URL para ejecutar la automatización. En localhost la visitarás tú, en producción la visitará un bot.
+    """
+    token_enviado = request.GET.get('token')
+    token_real = "NEXUS_SECRETO_2026"
+    
+    if token_enviado != token_real:
+        return HttpResponse("Acceso denegado. Token inválido.", status=403)
+
+    hoy = timezone.now().date()
+    log_acciones = []
+    
+    # 1. ENVIAR RECORDATORIOS (A los que les faltan exactamente 3 días)
+    limite_aviso = hoy + timedelta(days=3)
+    canchas_por_vencer = ComplejoDeportivo.objects.filter(fecha_vencimiento=limite_aviso, activo=True)
+    
+    for c in canchas_por_vencer:
+        asunto = f"Aviso de Vencimiento: Tu suscripción a NEXUS SPORTOPS vence en 3 días"
+        texto = f"Hola {c.organizador.first_name},\nTe recordamos que la suscripción de {c.nombre} vence el {c.fecha_vencimiento}."
+        send_mail(asunto, texto, settings.EMAIL_HOST_USER, [c.organizador.email], fail_silently=True)
+        log_acciones.append(f"Aviso enviado a: {c.nombre}")
+
+    # 2. SUSPENDER MOROSOS AUTOMÁTICAMENTE
+    canchas_vencidas = ComplejoDeportivo.objects.filter(fecha_vencimiento__lt=hoy, activo=True)
+    
+    for c in canchas_vencidas:
+        c.activo = False
+        c.save()
+        asunto_susp = f"🚫 SUSPENSIÓN DE CUENTA: {c.nombre}"
+        text_susp = f"Hola {c.organizador.first_name}, tu acceso a NEXUS SPORTOPS ha sido suspendido por falta de pago."
+        send_mail(asunto_susp, text_susp, settings.EMAIL_HOST_USER, [c.organizador.email], fail_silently=True)
+        log_acciones.append(f"Cancha SUSPENDIDA: {c.nombre}")
+
+    if not log_acciones:
+        log_acciones.append("Todo al día. Ninguna cancha suspendida ni por vencer en 3 días.")
+
+    resultado = "\n".join(log_acciones)
+    return HttpResponse(f"REVISIÓN COMPLETADA EXITOSAMENTE:\n{resultado}", content_type="text/plain")

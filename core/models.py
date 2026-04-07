@@ -73,6 +73,7 @@ class ComplejoDeportivo(models.Model):
 # 1. USUARIOS Y PERFILES (CON SANCIONES)
 # =====================================================
 # 1. PERFIL GLOBAL (Solo datos personales)
+# 1. PERFIL GLOBAL (Solo datos personales)
 class Perfil(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
     telefono = models.CharField(max_length=15, blank=True, null=True)
@@ -85,6 +86,17 @@ class Perfil(models.Model):
     @property
     def esta_sancionado(self):
         return self.sancionado_hasta and self.sancionado_hasta >= date.today()
+
+    # 👇 ESTO ES LO NUEVO QUE DEBES AGREGAR 👇
+    @property
+    def rol_principal(self):
+        """ Propiedad mágica para mostrar menús en base.html """
+        if self.usuario.is_superuser: return 'ORG'
+        if hasattr(self.usuario, 'complejo'): return 'ORG' # Si es dueño absoluto
+        rc = self.usuario.roles_cancha.first() # Si le dieron rol en alguna cancha
+        if rc: return rc.rol
+        if self.usuario.equipo_dirigido.exists(): return 'DIR' # Si es dirigente
+        return 'FAN'
 
 # 2. NUEVA TABLA: ROLES POR CANCHA (Multi-tenancy real)
 class RolComplejo(models.Model):
@@ -459,7 +471,8 @@ class AbonoSancion(models.Model):
 class PagoSuscripcionSaaS(models.Model):
     complejo = models.ForeignKey(ComplejoDeportivo, on_delete=models.CASCADE, related_name='pagos_saas')
     monto = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="Monto Pagado a NEXUS")
-    fecha_pago = models.DateTimeField(auto_now_add=True)
+    # CAMBIO AQUÍ: default=timezone.now en lugar de auto_now_add=True
+    fecha_pago = models.DateField(default=timezone.now, verbose_name="Fecha en que se realizó el pago")
     meses_pagados = models.PositiveIntegerField(default=1, help_text="¿Cuántos meses pagó?")
     observacion = models.CharField(max_length=200, blank=True)
 

@@ -21,7 +21,6 @@
         font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
     }
 
-    /* Bento App Icons (Oficina de Control) */
     .btn-tool {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         text-decoration: none; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
@@ -37,7 +36,6 @@
     .btn-tool:hover i { transform: scale(1.1); }
     .btn-tool span { color: #0F172A; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.95rem; text-align: center; line-height: 1.2; }
 
-    /* Cartelera de Partidos Horizontal */
     .fey-panel {
         background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
         border: 1px solid #E2E8F0; border-radius: 24px; padding: 30px;
@@ -60,10 +58,8 @@
     .scroll-x { display: flex; overflow-x: auto; padding-bottom: 20px; padding-top: 5px; scrollbar-width: none; }
     .scroll-x::-webkit-scrollbar { display: none; }
 
-    /* Alertas Premium */
     .alert-premium { border-radius: 20px; border-left-width: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
 
-    /* Animación */
     .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
 
@@ -84,12 +80,12 @@
     
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom reveal-up">
         <div class="mb-3 mb-md-0">
-            {% if user.perfil.rol == 'ORG' %}
+            {% if mi_rol_principal == 'ORG' %}
                 <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 mb-2 px-3 py-2 rounded-pill fw-bold">
                     <i class="bi bi-shield-lock-fill me-1"></i> Súper Organizador
                 </span>
                 <h2 class="fey-title m-0">{{ mi_complejo.nombre }}</h2>
-            {% elif user.perfil.rol == 'DIR' %}
+            {% elif mi_rol_principal == 'DIR' %}
                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 mb-2 px-3 py-2 rounded-pill fw-bold">
                     <i class="bi bi-person-badge-fill me-1"></i> Dirigente Deportivo
                 </span>
@@ -111,7 +107,7 @@
 
     <div class="row g-3 mb-4 reveal-up" style="animation-delay: 0.1s;">
         
-        {% if user.perfil.rol == 'DIR' and tengo_deudas %}
+        {% if mi_rol_principal == 'DIR' and tengo_deudas %}
         <div class="col-12">
             <div class="alert alert-danger bg-white alert-premium border-danger d-flex flex-column flex-md-row align-items-md-center justify-content-between m-0">
                 <div class="d-flex align-items-center mb-3 mb-md-0">
@@ -128,7 +124,7 @@
         </div>
         {% endif %}
 
-        {% if user.perfil.rol == 'ORG' %}
+        {% if mi_rol_principal == 'ORG' %}
             {% if deudas %}
             <div class="col-md-6">
                 <div class="alert alert-info bg-white alert-premium border-info d-flex flex-column flex-xl-row align-items-xl-center justify-content-between m-0 h-100">
@@ -165,7 +161,7 @@
         {% endif %}
     </div>
 
-    {% if user.perfil.rol == 'ORG' %}
+    {% if mi_rol_principal == 'ORG' %}
     <div class="mb-5 reveal-up" style="animation-delay: 0.2s;">
         <h4 class="fw-black text-dark mb-4" style="font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">Oficina Central</h4>
         
@@ -222,7 +218,7 @@
     </div>
     {% endif %}
 
-    {% if user.perfil.rol == 'DIR' %}
+    {% if mi_rol_principal == 'DIR' %}
     <div class="mb-5 reveal-up" style="animation-delay: 0.2s;">
         <h4 class="fw-black text-dark mb-4" style="font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">Gestión de Club</h4>
         <div class="row g-3 g-md-4">
@@ -354,7 +350,7 @@
     </div>
 </div>
 
-{% if user.perfil.rol == 'ORG' and deudas %}
+{% if mi_rol_principal == 'ORG' and deudas %}
 <div class="modal fade" id="modalDeudasOrg" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 shadow-lg">
@@ -399,7 +395,7 @@
 </div>
 {% endif %}
 
-{% if user.perfil.rol == 'DIR' and tengo_deudas %}
+{% if mi_rol_principal == 'DIR' and tengo_deudas %}
 <div class="modal fade" id="modalDeudasDir" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 shadow-lg">
@@ -428,7 +424,7 @@
 </div>
 {% endif %}
 
-{% if user.perfil.rol == 'DIR' and mi_equipo %}
+{% if mi_rol_principal == 'DIR' and mi_equipo %}
 <div class="modal fade" id="modalFairplayDir" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 shadow-lg">

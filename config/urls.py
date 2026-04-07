@@ -123,7 +123,11 @@ urlpatterns = [
     path('precios/', views.precios_publicos, name='precios_publicos'),
 
     path('cancha/<slug:slug_complejo>/', views.portal_complejo, name='portal_complejo'),
+    path('saas/pago/reversar/<int:pago_id>/', views.revertir_pago_saas, name='revertir_pago_saas'),
+    # URL Secreta de Automatización
+    path('api/cron/revision-diaria/', views.automatizacion_diaria_saas, name='cron_revision_diaria'),
 ]
+
 
 # Servir archivos estáticos/media en entorno local de desarrollo
 if settings.DEBUG:

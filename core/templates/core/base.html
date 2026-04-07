@@ -14,14 +14,14 @@
     <style>
         :root {
             /* --- PALETA MINIMALISTA SAAS --- */
-            --bg-app: #F3F6F8;             /* Fondo gris técnico muy sutil */
-            --bg-surface: #FFFFFF;         /* Blanco puro para contenedores */
-            --text-main: #0F172A;          /* Slate 900: Casi negro, elegante y muy legible */
-            --text-soft: #64748B;          /* Slate 500: Gris medio para subtítulos */
-            --border-light: #E2E8F0;       /* Bordes muy delicados */
+            --bg-app: #F3F6F8;             
+            --bg-surface: #FFFFFF;         
+            --text-main: #0F172A;          
+            --text-soft: #64748B;          
+            --border-light: #E2E8F0;       
             
             /* Acentos */
-            --brand-primary: #4F46E5;      /* Índigo profundo y profesional */
+            --brand-primary: #4F46E5;      
             --brand-hover: #4338CA;
             
             /* Sombras Minimalistas */
@@ -71,10 +71,19 @@
         .brand-text {
             font-weight: 800;
             font-size: 1.3rem;
-            /* Degradado sutil para la marca */
             background: linear-gradient(90deg, #0F172A 0%, #4F46E5 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+
+        /* Botón Atrás Personalizado */
+        .btn-back-nav {
+            transition: all 0.2s ease;
+            color: var(--text-soft);
+        }
+        .btn-back-nav:hover {
+            color: var(--brand-primary);
+            transform: translateX(-3px);
         }
 
         /* Enlaces del menú */
@@ -213,23 +222,42 @@
     <nav class="navbar navbar-expand-lg fixed-top navbar-custom">
         <div class="container">
             
-            <a class="navbar-brand d-flex align-items-center" href="{% if complejo %}{% url 'portal_complejo' complejo.slug %}{% else %}{% url 'landing_principal' %}{% endif %}">
-                {% if complejo %}
-                    {% if complejo.logo %}
-                        <img src="{{ complejo.logo.url }}" alt="{{ complejo.nombre }}" class="brand-logo-img">
-                    {% else %}
-                        <i class="bi bi-geo-alt-fill text-primary me-2 fs-4"></i>
-                    {% endif %}
-                    <span class="brand-text" style="background: none; -webkit-text-fill-color: var(--text-main);">{{ complejo.nombre }}</span>
-                {% else %}
-                    {% if config.logo_sistema %}
-                        <img src="{{ config.logo_sistema.url }}" alt="Logo Nexus" class="brand-logo-img">
-                    {% else %}
-                        <i class="bi bi-layers-fill me-2 fs-4" style="color: var(--brand-primary);"></i>
-                    {% endif %}
-                    <span class="brand-text">NEXUS SPORTOPS</span>
+            <div class="d-flex align-items-center">
+                
+                {% if user.is_authenticated and request.resolver_match.url_name != 'dashboard' and request.resolver_match.url_name != 'dashboard_saas' and request.resolver_match.url_name != 'landing_principal' %}
+                    <a href="javascript:history.back()" class="btn-back-nav text-decoration-none d-flex align-items-center me-2 pe-3 border-end border-light" title="Volver a la pantalla anterior">
+                        <i class="bi bi-arrow-left-short fs-3"></i>
+                    </a>
                 {% endif %}
-            </a>
+
+                <a class="navbar-brand d-flex align-items-center m-0" href="
+                    {% if user.is_superuser %}
+                        {% url 'dashboard_saas' %}
+                    {% elif user.is_authenticated and user.perfil.rol_principal != 'FAN' %}
+                        {% url 'dashboard' %}
+                    {% elif complejo %}
+                        {% url 'portal_complejo' complejo.slug %}
+                    {% else %}
+                        {% url 'landing_principal' %}
+                    {% endif %}
+                ">
+                    {% if complejo %}
+                        {% if complejo.logo %}
+                            <img src="{{ complejo.logo.url }}" alt="{{ complejo.nombre }}" class="brand-logo-img">
+                        {% else %}
+                            <i class="bi bi-geo-alt-fill text-primary me-2 fs-4"></i>
+                        {% endif %}
+                        <span class="brand-text" style="background: none; -webkit-text-fill-color: var(--text-main);">{{ complejo.nombre }}</span>
+                    {% else %}
+                        {% if config.logo_sistema %}
+                            <img src="{{ config.logo_sistema.url }}" alt="Logo Nexus" class="brand-logo-img">
+                        {% else %}
+                            <i class="bi bi-layers-fill me-2 fs-4" style="color: var(--brand-primary);"></i>
+                        {% endif %}
+                        <span class="brand-text">NEXUS SPORTOPS</span>
+                    {% endif %}
+                </a>
+            </div>
             
             <button class="navbar-toggler border-0 p-1 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <i class="bi bi-list fs-2 text-dark"></i>
@@ -238,6 +266,12 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
                     
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold {% if request.resolver_match.url_name == 'landing_principal' %}text-primary{% endif %}" href="{% url 'landing_principal' %}">
+                            <i class="bi bi-grid-fill me-1"></i> Explorar Canchas
+                        </a>
+                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link fw-bold {% if request.resolver_match.url_name == 'precios_publicos' %}text-primary{% endif %}" href="{% url 'precios_publicos' %}">
                             Planes y Precios
@@ -259,11 +293,12 @@
                             <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_canchas_saas' %}">Canchas</a></li>
                             <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_planes_saas' %}">Planes</a></li>
                             
-                        {% elif user.perfil.rol == 'ORG' %}
+                        {% elif user.perfil.rol_principal == 'ORG' %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Panel</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_equipos' %}">Equipos</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_finanzas' %}">Finanzas</a></li>
-                        {% elif user.perfil.rol == 'DIR' %}
+                            
+                        {% elif user.perfil.rol_principal == 'DIR' %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Mi Equipo</a></li>
                         {% endif %}
 
@@ -273,6 +308,12 @@
                                 {{ user.username|capfirst }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center" href="{% url 'landing_principal' %}">
+                                        <i class="bi bi-house-door me-2"></i> Inicio Global
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form action="{% url 'logout' %}" method="post" class="m-0">
                                         {% csrf_token %}

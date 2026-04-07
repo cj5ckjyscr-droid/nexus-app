@@ -1,21 +1,16 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Registrar Pago | NEXUS SPORTOPS{% endblock %}
+{% block title %}Registrar Mensualidad SaaS | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* =========================================================
-       ESTÉTICA FEY - REGISTRAR PAGO (LIGHT MODE)
-       ========================================================= */
     .ambient-glow {
         position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
         background: 
-            radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+            radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.05) 0%, transparent 40%);
         z-index: -1; pointer-events: none;
     }
-
-    /* Tarjeta Principal Glassmorphism */
     .fey-card {
         background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
         border: 1px solid #E2E8F0; border-radius: 24px; padding: 40px;
@@ -23,49 +18,24 @@
     }
     .fey-card::before {
         content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
-        background: linear-gradient(90deg, #10B981, #0EA5E9);
+        background: linear-gradient(90deg, #8B5CF6, #EC4899);
     }
-
     .fey-title { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: clamp(1.8rem, 4vw, 2.2rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1; }
-
-    /* Bento Box de Deuda */
-    .debt-bento {
-        background: #F0FDF4; border: 1px solid #86EFAC; border-radius: 20px;
-        padding: 24px; margin-bottom: 30px; display: flex; justify-content: space-between;
-        align-items: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.05);
-    }
-    .debt-amount { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 2.5rem; color: #065F46; line-height: 1; letter-spacing: -1px; }
-
-    /* Estilos Nativos de Formulario */
     .clean-input {
         background-color: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
         border-radius: 14px !important; padding: 14px 16px !important; font-size: 0.95rem;
         font-weight: 600 !important; color: #0F172A !important; transition: all 0.3s ease !important; width: 100%;
     }
-    .clean-input:focus { border-color: var(--brand-primary) !important; background-color: #FFFFFF !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none !important; }
-    
-    input[type="file"].clean-input { padding: 10px 16px !important; color: #64748B !important; }
-    input[type="file"]::file-selector-button { border: none; background: #0F172A; padding: 8px 16px; border-radius: 10px; color: #FFFFFF; font-weight: 700; cursor: pointer; margin-right: 16px; transition: all 0.2s; }
-    input[type="file"]::file-selector-button:hover { background: var(--brand-primary); }
-
+    .clean-input:focus { border-color: #8B5CF6 !important; background-color: #FFFFFF !important; box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1) !important; outline: none !important; }
     .form-label-pro { font-size: 0.75rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
-
-    /* Botones */
     .btn-save-pro {
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white;
+        background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); color: white;
         font-weight: 800; font-size: 1rem; padding: 14px 24px; border-radius: 14px; border: none;
-        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25); transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px;
+        box-shadow: 0 8px 20px rgba(139, 92, 246, 0.25); transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .btn-save-pro:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(16, 185, 129, 0.35); color: white; }
-
-    /* Animación */
+    .btn-save-pro:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(139, 92, 246, 0.35); color: white; }
     .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-
-    @media (max-width: 768px) {
-        .fey-card { padding: 24px; border-radius: 20px; }
-        .debt-bento { flex-direction: column; align-items: flex-start; gap: 15px; }
-    }
 </style>
 {% endblock %}
 
@@ -76,82 +46,63 @@
     <div class="w-100 reveal-up" style="max-width: 650px;">
         
         <div class="fey-card">
-            
             <div class="d-flex align-items-start justify-content-between mb-4 pb-3 border-bottom">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center border border-success border-opacity-25" style="width: 56px; height: 56px;">
-                        <i class="bi bi-wallet2 fs-3"></i>
+                    <div class="bg-purple bg-opacity-10 text-purple rounded-circle d-flex align-items-center justify-content-center border" style="width: 56px; height: 56px; color: #8B5CF6; border-color: #8B5CF6;">
+                        <i class="bi bi-buildings-fill fs-3"></i>
                     </div>
                     <div>
-                        <h2 class="fey-title mb-0" style="font-size: 1.8rem;">Registrar Pago</h2>
-                        <p class="text-muted fw-medium m-0 mt-1">Abona dinero a las cuentas del equipo.</p>
+                        <h2 class="fey-title mb-0" style="font-size: 1.8rem;">Cobro de Mensualidad</h2>
+                        <p class="text-muted fw-medium m-0 mt-1">Registra el pago de una cancha (SaaS).</p>
                     </div>
                 </div>
-                
-                {% if equipo %}
-                    <span class="badge bg-slate-50 text-dark border px-3 py-2 rounded-pill fw-bold shadow-sm d-none d-sm-inline-block">{{ equipo.nombre|truncatechars:15 }}</span>
-                {% endif %}
             </div>
             
             <div class="card-body p-0">
-                
-                {% if equipo %}
-                <div class="debt-bento">
-                    <div>
-                        <span class="d-block text-success fw-bold small text-uppercase mb-1" style="letter-spacing: 0.5px;"><i class="bi bi-info-circle-fill me-1"></i> SALDO TOTAL PENDIENTE</span>
-                        <span class="text-slate-600 fw-medium small">Monto máximo sugerido a cobrar.</span>
-                    </div>
-                    <div class="debt-amount">${{ equipo.deuda_pendiente }}</div>
-                </div>
-                {% endif %}
-
                 {% if form.errors %}
                     <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-4 p-3 mb-4 shadow-sm">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-exclamation-triangle-fill fs-5 text-danger me-2"></i>
-                            <h6 class="fw-black text-danger m-0">No se pudo guardar:</h6>
-                        </div>
                         <ul class="mb-0 ps-4 small fw-bold text-danger">
                             {% for field in form %}
                                 {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
                             {% endfor %}
-                            {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
                         </ul>
                     </div>
                 {% endif %}
 
-                <form method="post" enctype="multipart/form-data" class="m-0">
+                <form method="post" class="m-0">
                     {% csrf_token %}
                     
                     <div class="mb-4">
-                        <label class="form-label-pro">Equipo a Pagar <span class="text-danger">*</span></label>
-                        {{ form.equipo }}
+                        <label class="form-label-pro">Cancha / Complejo <span class="text-danger">*</span></label>
+                        {{ form.complejo }}
                     </div>
 
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label-pro">Monto a Pagar ($) <span class="text-danger">*</span></label>
+                        <div class="col-md-4">
+                            <label class="form-label-pro">Monto ($) <span class="text-danger">*</span></label>
                             {{ form.monto }}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label-pro">Fecha del Pago <span class="text-danger">*</span></label>
-                            {{ form.fecha }}
+                        <div class="col-md-4">
+                            <label class="form-label-pro">Meses Pagados <span class="text-danger">*</span></label>
+                            {{ form.meses_pagados }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-pro">Fecha Exacta <span class="text-danger">*</span></label>
+                            {{ form.fecha_pago }}
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label-pro"><i class="bi bi-camera-fill me-1"></i> Foto del Comprobante <span class="text-muted fw-normal text-lowercase">(Opcional)</span></label>
-                        <div class="bg-slate-50 border rounded-3 p-1">
-                            {{ form.comprobante }}
-                        </div>
+                        <label class="form-label-pro">Observación <span class="text-muted fw-normal text-lowercase">(Opcional)</span></label>
+                        {{ form.observacion }}
                     </div>
 
                     <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-5 pt-4 border-top">
-                        <a href="{% url 'gestionar_finanzas' %}" class="btn btn-light fw-bold text-slate-600 border rounded-pill py-2 px-4 d-flex align-items-center justify-content-center">
+                        <a href="{% url 'dashboard_saas' %}" class="btn btn-light fw-bold text-slate-600 border rounded-pill py-2 px-4 d-flex align-items-center justify-content-center">
                             Cancelar
                         </a>
                         <button type="submit" class="btn-save-pro">
-                            <i class="bi bi-check-circle-fill me-1"></i> GUARDAR PAGO
+                            <i class="bi bi-shield-check me-1"></i> APLICAR PAGO
                         </button>
                     </div>
                 </form>
@@ -161,7 +112,6 @@
 </div>
 
 <script>
-    // Aplicar estilos nativos a los inputs de Django
     document.addEventListener("DOMContentLoaded", function() {
         const inputs = document.querySelectorAll('input, select');
         inputs.forEach(input => {

@@ -289,5 +289,61 @@
         </div>
 
     </div>
-</div>
+
+    <div class="row mt-4 reveal-up" style="animation-delay: 0.4s;">
+        <div class="col-12">
+            <div class="fey-panel p-0 overflow-hidden">
+                <div class="p-4 border-bottom bg-slate-50">
+                    <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">
+                        <i class="bi bi-clock-history text-primary me-2"></i>Historial de Pagos y Reversos
+                    </h5>
+                    <p class="text-muted small m-0 mt-1">Últimos cobros registrados. Usa el botón rojo para anular un pago en caso de equivocación.</p>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 text-center align-middle">
+                        <thead class="bg-light text-slate-500 small text-uppercase" style="letter-spacing: 0.5px;">
+                            <tr>
+                                <th class="py-3">Fecha de Pago</th>
+                                <th class="py-3">Cancha</th>
+                                <th class="py-3">Monto Cobrado</th>
+                                <th class="py-3">Tiempo Pagado</th>
+                                <th class="py-3">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pago in ultimos_pagos %}
+                            <tr>
+                                <td class="fw-medium text-slate-600">{{ pago.fecha_pago|date:"d/m/Y" }}</td>
+                                <td class="fw-bold text-dark">{{ pago.complejo.nombre }}</td>
+                                <td class="text-success fw-black">${{ pago.monto }}</td>
+                                <td>
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-3 py-1">
+                                        +{{ pago.meses_pagados }} mes(es)
+                                    </span>
+                                </td>
+                                <td>
+                                    <form action="{% url 'revertir_pago_saas' pago.id %}" method="POST" class="m-0" onsubmit="return confirm('⚠️ ¿Estás 100% seguro de anular este pago?\n\nAl confirmar, se descontarán los meses que este pago le otorgó a la cancha y si la fecha queda vencida, la cancha se suspenderá automáticamente.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3" style="font-size: 0.75rem;">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Reversar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-muted py-5 text-center">
+                                    <i class="bi bi-receipt fs-2 d-block mb-2 opacity-50"></i>
+                                    Aún no hay pagos registrados en el sistema.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
 {% endblock %}

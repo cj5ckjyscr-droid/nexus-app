@@ -372,10 +372,12 @@ class ComplejoDeportivoForm(forms.ModelForm):
 class PagoSaaSForm(forms.ModelForm):
     class Meta:
         model = PagoSuscripcionSaaS
-        fields = ['complejo', 'monto', 'meses_pagados', 'observacion']
+        fields = ['complejo', 'monto', 'meses_pagados', 'fecha_pago', 'observacion']
         widgets = {
             'complejo': forms.Select(attrs={'class': 'form-select'}),
             'monto': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'meses_pagados': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
-            'observacion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Pago en efectivo'}),
+            # AÑADIMOS EL WIDGET PARA LA FECHA
+            'fecha_pago': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'observacion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Transferencia Banco Pichincha'}),
         }
