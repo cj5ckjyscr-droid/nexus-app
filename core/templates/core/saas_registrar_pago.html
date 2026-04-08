@@ -34,11 +34,11 @@
         border-radius: 14px !important; padding: 14px 16px !important; font-size: 0.95rem;
         font-weight: 600 !important; color: #0F172A !important; transition: all 0.3s ease !important; width: 100%;
     }
-    .clean-input:focus { border-color: var(--brand-primary) !important; background-color: #FFFFFF !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none !important; }
+    .clean-input:focus { border-color: #10B981 !important; background-color: #FFFFFF !important; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1) !important; outline: none !important; }
     
     input[type="file"].clean-input { padding: 10px 16px !important; color: #64748B !important; }
     input[type="file"]::file-selector-button { border: none; background: #0F172A; padding: 8px 16px; border-radius: 10px; color: #FFFFFF; font-weight: 700; cursor: pointer; margin-right: 16px; transition: all 0.2s; }
-    input[type="file"]::file-selector-button:hover { background: var(--brand-primary); }
+    input[type="file"]::file-selector-button:hover { background: #10B981; }
 
     .form-label-pro { font-size: 0.75rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
 
@@ -97,35 +97,31 @@
                     </div>
                 {% endif %}
 
-                <form method="post" enctype="multipart/form-data" class="m-0">
+                <form method="post" class="m-0">
                     {% csrf_token %}
                     
                     <div class="mb-4">
                         <label class="form-label-pro">Complejo (Cancha) a Pagar <span class="text-danger">*</span></label>
-                        {{ form.cancha }}
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label-pro">Mes / Período Cubierto <span class="text-danger">*</span></label>
-                        {{ form.mes_cubierto }}
-                    </div>
+                        {{ form.complejo }} </div>
 
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label-pro">Monto Recibido ($) <span class="text-danger">*</span></label>
                             {{ form.monto }}
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label-pro">Meses a Renovar <span class="text-danger">*</span></label>
+                            {{ form.meses_pagados }} </div>
+                        <div class="col-md-4">
                             <label class="form-label-pro">Fecha del Pago <span class="text-danger">*</span></label>
                             {{ form.fecha_pago }}
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label-pro"><i class="bi bi-camera-fill me-1"></i> Comprobante de Pago <span class="text-muted fw-normal text-lowercase">(Opcional)</span></label>
+                        <label class="form-label-pro"><i class="bi bi-card-text me-1"></i> Observación / Notas <span class="text-muted fw-normal text-lowercase">(Opcional)</span></label>
                         <div class="bg-slate-50 border rounded-3 p-1">
-                            {{ form.comprobante }}
-                        </div>
+                            {{ form.observacion }} </div>
                     </div>
 
                     <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-5 pt-4 border-top">

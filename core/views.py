@@ -210,6 +210,10 @@ def gestionar_torneos(request):
             messages.error(request, "Error al crear el torneo.")
     else:
         form = TorneoForm()
+    
+    # 🔥 AISLAMIENTO: Restringe la lista desplegable de categorías en el HTML
+    form.fields['categoria'].queryset = Categoria.objects.filter(complejo=mi_complejo).order_by('nombre')
+    
     return render(request, 'core/gestionar_torneos.html', {'form': form, 'torneos': torneos})
 
 @login_required
@@ -229,6 +233,10 @@ def editar_torneo(request, torneo_id):
                     messages.error(request, f"❌ Error en {campo}: {error}")
     else:
         form = TorneoForm(instance=torneo)
+    
+    # 🔥 AISLAMIENTO: Restringe la lista en modo edición
+    form.fields['categoria'].queryset = Categoria.objects.filter(complejo=mi_complejo).order_by('nombre')
+        
     return render(request, 'core/gestionar_torneos.html', {
         'form': form, 'torneos': Torneo.objects.filter(complejo=mi_complejo).order_by('-id'), 'editando': True, 'torneo_edit': torneo
     })
@@ -333,6 +341,8 @@ def gestionar_jugadores(request):
         equipo_id = request.GET.get('equipo')
         mi_equipo = mis_equipos.filter(id=equipo_id).first() if equipo_id else (equipos_activos.first() or mis_equipos.first())
         
+        mi_complejo = mi_equipo.torneo.complejo # 🔥 AISLAMIENTO AÑADIDO
+
         jugadores = Jugador.objects.filter(equipo=mi_equipo).order_by('dorsal')
         equipo_seleccionado = mi_equipo.id
         
@@ -352,7 +362,13 @@ def gestionar_jugadores(request):
             
             if form.is_valid():
                 cedula_ingresada = form.cleaned_data.get('cedula')
-                jugadores_activos_bd = Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__activo=True)
+                
+                # 🔥 AISLAMIENTO: Solo busca si el jugador está en otro equipo de ESTA cancha
+                jugadores_activos_bd = Jugador.objects.filter(
+                    cedula=cedula_ingresada, 
+                    equipo__torneo__activo=True,
+                    equipo__torneo__complejo=mi_complejo 
+                )
                 
                 misma_categoria = None
                 if mi_equipo.torneo.categoria:
@@ -372,7 +388,8 @@ def gestionar_jugadores(request):
                         misma_categoria.save()
                         messages.success(request, f'¡Datos de {misma_categoria.nombres} actualizados!')
                 else:
-                    jugador_historial = Jugador.objects.filter(cedula=cedula_ingresada).last()
+                    # 🔥 AISLAMIENTO: Solo copia la foto si ya jugó en ESTA cancha antes
+                    jugador_historial = Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__complejo=mi_complejo).last()
                     nuevo_jugador = form.save(commit=False)
                     nuevo_jugador.equipo = mi_equipo
                     
@@ -418,7 +435,13 @@ def gestionar_jugadores(request):
                 cedula_ingresada = form.cleaned_data.get('cedula')
                 equipo_destino = form.cleaned_data.get('equipo')
                 
-                jugadores_activos_bd = Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__activo=True)
+                # 🔥 AISLAMIENTO
+                jugadores_activos_bd = Jugador.objects.filter(
+                    cedula=cedula_ingresada, 
+                    equipo__torneo__activo=True,
+                    equipo__torneo__complejo=mi_complejo
+                )
+                
                 misma_categoria = None
                 if equipo_destino.torneo.categoria:
                     misma_categoria = jugadores_activos_bd.filter(equipo__torneo__categoria=equipo_destino.torneo.categoria).first()
@@ -436,7 +459,8 @@ def gestionar_jugadores(request):
                         misma_categoria.save()
                         messages.success(request, 'Jugador actualizado.')
                     else:
-                        jugador_historial = Jugador.objects.filter(cedula=cedula_ingresada).last()
+                        # 🔥 AISLAMIENTO
+                        jugador_historial = Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__complejo=mi_complejo).last()
                         nuevo_jugador = form.save(commit=False)
                         if jugador_historial and not nuevo_jugador.foto and jugador_historial.foto:
                             nuevo_jugador.foto = jugador_historial.foto
@@ -455,9 +479,11 @@ def gestionar_jugadores(request):
 
     if jugadores:
         for j in jugadores:
+            # 🔥 AISLAMIENTO: En la placa del jugador, solo mostramos si compite en otros equipos de ESTA cancha
             j.otros_equipos = Jugador.objects.filter(
                 cedula=j.cedula,
-                equipo__torneo__activo=True
+                equipo__torneo__activo=True,
+                equipo__torneo__complejo=j.equipo.torneo.complejo 
             ).exclude(id=j.id)
 
     return render(request, 'core/gestionar_jugadores.html', {
@@ -1356,9 +1382,15 @@ def tabla_posiciones_f2(request, torneo_id):
         'es_organizador': es_org
     })
 
+@login_required
 def seleccionar_reporte(request):
-    torneos_activos = Torneo.objects.filter(activo=True).order_by('categoria__nombre', '-fecha_inicio')
-    torneos_finalizados = Torneo.objects.filter(activo=False).order_by('-fecha_inicio')
+    mi_complejo = obtener_mi_complejo(request.user)
+    if not mi_complejo:
+        return redirect('dashboard')
+        
+    # 🔥 AISLAMIENTO: Solo trae torneos de ESTA cancha
+    torneos_activos = Torneo.objects.filter(activo=True, complejo=mi_complejo).order_by('categoria__nombre', '-fecha_inicio')
+    torneos_finalizados = Torneo.objects.filter(activo=False, complejo=mi_complejo).order_by('-fecha_inicio')
     
     return render(request, 'core/seleccionar_reporte.html', {
         'torneos_activos': torneos_activos, 
@@ -1686,12 +1718,18 @@ def registro_publico(request):
     return render(request, 'registration/registro_publico.html', {'form': form})
 
 def ver_torneos_activos(request):
-    torneos_activos = Torneo.objects.filter(activo=True).order_by('categoria__nombre', 'fecha_inicio')
-    torneos_finalizados = Torneo.objects.filter(activo=False).order_by('-fecha_inicio')
+    # 🔥 AISLAMIENTO: Si el dirigente entra, solo le mostramos los torneos
+    # de los complejos donde él ya tiene un equipo o ha jugado.
+    mis_complejos = []
+    if request.user.is_authenticated:
+        mis_complejos = list(Equipo.objects.filter(dirigente=request.user).values_list('torneo__complejo_id', flat=True))
+    
+    # Filtramos la vista global para que no salgan todos los clientes mezclados
+    torneos_activos = Torneo.objects.filter(activo=True, complejo_id__in=mis_complejos).order_by('categoria__nombre', 'fecha_inicio')
+    torneos_finalizados = Torneo.objects.filter(activo=False, complejo_id__in=mis_complejos).order_by('-fecha_inicio')
     
     mis_torneos_ids = []
     if request.user.is_authenticated:
-        # Aunque tenga otro rol principal, si tiene equipos los mostramos
         mis_torneos_ids = list(Equipo.objects.filter(dirigente=request.user).values_list('torneo_id', flat=True))
 
     return render(request, 'core/ver_torneos_activos.html', {
@@ -2381,10 +2419,12 @@ def llaves_eliminatorias(request, torneo_id):
 def importar_equipo_existente(request, torneo_nuevo_id):
     torneo_nuevo = get_object_or_404(Torneo, id=torneo_nuevo_id)
     
+    # 🔥 AISLAMIENTO: Solo permite importar equipos históricos de la MISMA CANCHA
     mis_equipos_historicos = Equipo.objects.filter(
         dirigente=request.user,
         torneo__activo=False,
-        torneo__categoria=torneo_nuevo.categoria  
+        torneo__categoria=torneo_nuevo.categoria,
+        torneo__complejo=torneo_nuevo.complejo # ¡ESTA ES LA LÍNEA CLAVE!
     ).exclude(torneo=torneo_nuevo)
 
     if not mis_equipos_historicos.exists():
@@ -2505,15 +2545,24 @@ def cambiar_formato_fase1(request, torneo_id):
 
     return redirect(f"/programar/?torneo={torneo.id}")
 
+@login_required
 def buscar_jugador_api(request, cedula):
-    jugador = Jugador.objects.filter(cedula=cedula).order_by('-id').first()
+    # Buscamos los IDs de los complejos donde este usuario tiene algún rol (ya sea Dueño, Dirigente, etc.)
+    mis_complejos_ids = RolComplejo.objects.filter(usuario=request.user).values_list('complejo_id', flat=True)
+    
+    # 🔥 AISLAMIENTO: Solo autocompletará el nombre si el jugador ya jugó en alguna de las canchas del usuario
+    jugador = Jugador.objects.filter(
+        cedula=cedula, 
+        equipo__torneo__complejo_id__in=mis_complejos_ids
+    ).order_by('-id').first()
+    
     if jugador:
         return JsonResponse({
             'encontrado': True,
             'nombres': jugador.nombres,
         })
     else:
-        return JsonResponse({'encontrado': False})
+        return JsonResponse({'encontrado': False}) 
     
 # =========================================================
 # GESTIÓN DE CATEGORÍAS
@@ -2522,35 +2571,40 @@ def buscar_jugador_api(request, cedula):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_categorias(request):
+    mi_complejo = obtener_mi_complejo(request.user) # 🔥 Aisla a la cancha actual
+    
     if request.method == 'POST':
         nombre_categoria = request.POST.get('nombre')
         color_elegido = request.POST.get('color_carnet') 
         
         if nombre_categoria:
-            if not Categoria.objects.filter(nombre__iexact=nombre_categoria).exists():
-                Categoria.objects.create(nombre=nombre_categoria, color_carnet=color_elegido)
+            # 🔥 Verifica que no exista en ESTA cancha (no importa si existe en otra)
+            if not Categoria.objects.filter(nombre__iexact=nombre_categoria, complejo=mi_complejo).exists():
+                Categoria.objects.create(nombre=nombre_categoria, color_carnet=color_elegido, complejo=mi_complejo)
                 messages.success(request, f"✅ Categoría '{nombre_categoria}' creada exitosamente.")
             else:
-                messages.error(request, f"⛔ La categoría '{nombre_categoria}' ya existe.")
+                messages.error(request, f"⛔ La categoría '{nombre_categoria}' ya existe en tu complejo.")
         else:
             messages.error(request, "⛔ El nombre de la categoría no puede estar vacío.")
             
         return redirect('gestionar_categorias')
         
-    categorias = Categoria.objects.all().order_by('nombre')
+    # 🔥 Muestra SOLO las categorías de esta cancha
+    categorias = Categoria.objects.filter(complejo=mi_complejo).order_by('nombre')
     return render(request, 'core/gestionar_categorias.html', {'categorias': categorias})
 
 @login_required
 @user_passes_test(es_organizador)
 def editar_categoria(request, categoria_id):
-    categoria = get_object_or_404(Categoria, id=categoria_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    categoria = get_object_or_404(Categoria, id=categoria_id, complejo=mi_complejo) # 🔥 Bloquea acceso ajeno
     
     if request.method == 'POST':
         nuevo_nombre = request.POST.get('nombre')
         nuevo_color = request.POST.get('color_carnet') 
         
         if nuevo_nombre:
-            if not Categoria.objects.filter(nombre__iexact=nuevo_nombre).exclude(id=categoria.id).exists():
+            if not Categoria.objects.filter(nombre__iexact=nuevo_nombre, complejo=mi_complejo).exclude(id=categoria.id).exists():
                 categoria.nombre = nuevo_nombre
                 if nuevo_color:
                     categoria.color_carnet = nuevo_color
@@ -2565,11 +2619,11 @@ def editar_categoria(request, categoria_id):
         
     return render(request, 'core/editar_categoria.html', {'categoria': categoria})
 
-
 @login_required
 @user_passes_test(es_organizador)
 def eliminar_categoria(request, categoria_id):
-    categoria = get_object_or_404(Categoria, id=categoria_id)
+    mi_complejo = obtener_mi_complejo(request.user)
+    categoria = get_object_or_404(Categoria, id=categoria_id, complejo=mi_complejo) # 🔥 Bloquea acceso ajeno
     try:
         categoria.delete()
         messages.success(request, "✅ Categoría eliminada correctamente.")

@@ -140,12 +140,13 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # Para pruebas locales, es mejor que los correos se impriman en la consola 
 # en lugar de enviarlos de verdad, para evitar bloqueos por spam.
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'deyvi2413@gmail.com'  
-# EMAIL_HOST_PASSWORD = 'qjok ygwc hufa tlbm' 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'deyvi2413@gmail.com'  
+EMAIL_HOST_PASSWORD = 'qjok ygwc hufa tlbm' 
+DEFAULT_FROM_EMAIL = 'NEXUS SPORTOPS <deyvi2413@gmail.com>'
 
 # 💻 CONFIGURACIÓN EN COMPUTADORA LOCAL (DESARROLLO)
 STORAGES = {
