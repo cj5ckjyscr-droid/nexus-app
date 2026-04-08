@@ -97,6 +97,9 @@
     .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
 
+    /* Hover para Paginación */
+    .hover-primary:hover { color: #10B981 !important; border-color: #10B981 !important; }
+
     @media (max-width: 991px) {
         .fey-form-panel { position: static; margin-bottom: 30px; }
     }
@@ -130,7 +133,7 @@
         </div>
         <div class="mt-3 mt-md-0">
             <span class="badge bg-primary text-white rounded-pill px-4 py-2 shadow-sm" style="font-size: 0.9rem;">
-                {{ jugadores|length }} Inscritos
+                {{ jugadores.paginator.count|default:"0" }} Inscritos
             </span>
         </div>
     </div>
@@ -216,7 +219,48 @@
                 </div>
                 {% endfor %}
             </div>
-            
+
+            {% if jugadores.has_other_pages %}
+            <div class="d-flex justify-content-center mt-4 mb-2">
+                <nav aria-label="Navegación de páginas">
+                    <ul class="pagination pagination-sm m-0 shadow-sm" style="gap: 8px;">
+                        
+                        {% if jugadores.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ jugadores.previous_page_number }}{% if request.GET.equipo %}&equipo={{ request.GET.equipo }}{% endif %}" style="padding: 8px 16px;">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in jugadores.paginator.page_range %}
+                            {% if jugadores.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link rounded-pill border-0 fw-black text-white shadow-sm" style="background: linear-gradient(135deg, #10B981, #059669); padding: 8px 16px;">
+                                        {{ num }}
+                                    </span>
+                                </li>
+                            {% elif num > jugadores.number|add:'-3' and num < jugadores.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link rounded-pill border border-slate-200 text-slate-600 fw-bold bg-white transition-all hover-primary" href="?page={{ num }}{% if request.GET.equipo %}&equipo={{ request.GET.equipo }}{% endif %}" style="padding: 8px 16px;">
+                                        {{ num }}
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if jugadores.has_next %}
+                            <li class="page-item">
+                                <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ jugadores.next_page_number }}{% if request.GET.equipo %}&equipo={{ request.GET.equipo }}{% endif %}" style="padding: 8px 16px;">
+                                    Siguiente <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
             {% if not puede_fichar and equipo_obj %}
             <div class="alert bg-danger bg-opacity-10 border border-danger border-opacity-25 mt-4 py-3 text-center rounded-4 shadow-sm text-danger fw-bold">
                 <i class="bi bi-lock-fill me-2 fs-5 align-middle"></i> Inscripciones cerradas o límite de cupos alcanzado para este equipo.

@@ -16,6 +16,7 @@ from decimal import Decimal
 from django.contrib.auth import login
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Formularios
 from .forms import (
@@ -195,26 +196,51 @@ def gestionar_usuarios(request):
 @user_passes_test(es_organizador)
 def gestionar_torneos(request):
     mi_complejo = obtener_mi_complejo(request.user)
-    torneos = Torneo.objects.filter(complejo=mi_complejo).order_by('categoria__nombre', '-fecha_inicio')
+    
+    # 1. LEER LÍMITES DEL PLAN SAAS (Solo contamos torneos ACTIVOS)
+    limite_torneos = mi_complejo.plan.max_torneos if mi_complejo.plan else 1
+    torneos_activos_count = Torneo.objects.filter(complejo=mi_complejo, activo=True).count()
+    puede_crear = torneos_activos_count < limite_torneos
+
+    torneos_list = Torneo.objects.filter(complejo=mi_complejo).select_related('categoria').order_by('categoria__nombre', '-fecha_inicio')
+    
+    paginator = Paginator(torneos_list, 10) 
+    page = request.GET.get('page')
+    try:
+        torneos = paginator.page(page)
+    except PageNotAnInteger:
+        torneos = paginator.page(1)
+    except EmptyPage:
+        torneos = paginator.page(paginator.num_pages)
     
     if request.method == 'POST':
+        # 2. APLICAR CANDADO AL GUARDAR
+        if not puede_crear:
+            messages.error(request, f"⛔ Límite alcanzado: Tu plan solo permite {limite_torneos} torneos activos simultáneamente. Finaliza uno viejo o mejora tu plan.")
+            return redirect('gestionar_torneos')
+
         form = TorneoForm(request.POST)
         if form.is_valid():
             t = form.save(commit=False)
             t.organizador = request.user
-            t.complejo = mi_complejo # Asigna el torneo automáticamente a SU cancha
+            t.complejo = mi_complejo
             t.save()
-            messages.success(request, f'✅ Torneo "{t.nombre}" creado en {mi_complejo.nombre}.')
+            messages.success(request, f'✅ Torneo "{t.nombre}" creado.')
             return redirect('gestionar_torneos')
         else:
             messages.error(request, "Error al crear el torneo.")
     else:
         form = TorneoForm()
     
-    # 🔥 AISLAMIENTO: Restringe la lista desplegable de categorías en el HTML
     form.fields['categoria'].queryset = Categoria.objects.filter(complejo=mi_complejo).order_by('nombre')
     
-    return render(request, 'core/gestionar_torneos.html', {'form': form, 'torneos': torneos})
+    return render(request, 'core/gestionar_torneos.html', {
+        'form': form, 
+        'torneos': torneos,
+        'puede_crear': puede_crear,
+        'limite': limite_torneos,
+        'actuales': torneos_activos_count
+    })
 
 @login_required
 @user_passes_test(es_organizador)
@@ -255,22 +281,27 @@ def eliminar_torneo(request, torneo_id):
 @user_passes_test(es_organizador)
 def gestionar_equipos(request):
     mi_complejo = obtener_mi_complejo(request.user)
-    equipos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).select_related(
+    
+    # 🔥 OPTIMIZACIÓN DE DB
+    equipos_list = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).select_related(
         'torneo', 'torneo__categoria', 'dirigente'
     ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
     
+    # --- PAGINACIÓN DE EQUIPOS ---
+    paginator = Paginator(equipos_list, 10) # 10 Equipos por página
+    page = request.GET.get('page')
+    try:
+        equipos = paginator.page(page)
+    except PageNotAnInteger:
+        equipos = paginator.page(1)
+    except EmptyPage:
+        equipos = paginator.page(paginator.num_pages)
+        
     if request.method == 'POST':
         form = EquipoForm(request.POST, request.FILES)
         if form.is_valid():
             nuevo_equipo = form.save()
-            
-            # 🔥 MULTI-TENANCY: Aseguramos que el dirigente tenga rol DIR en esta cancha
-            RolComplejo.objects.get_or_create(
-                usuario=nuevo_equipo.dirigente,
-                complejo=mi_complejo,
-                defaults={'rol': 'DIR'}
-            )
-            
+            RolComplejo.objects.get_or_create(usuario=nuevo_equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
             if not nuevo_equipo.torneo.cobro_por_jugador:
                 costo_inscripcion = getattr(nuevo_equipo.torneo, 'costo_inscripcion', Decimal('0.00')) 
                 Sancion.objects.create(
@@ -477,19 +508,33 @@ def gestionar_jugadores(request):
         messages.error(request, "Acceso denegado.")
         return redirect('dashboard')
 
-    if jugadores:
-        for j in jugadores:
-            # 🔥 AISLAMIENTO: En la placa del jugador, solo mostramos si compite en otros equipos de ESTA cancha
+    if mi_equipo and 'jugadores' in locals() and jugadores: 
+        # (Nota interna: en tu código original tenías 'jugadores = Jugador.objects.filter...' arriba. Ahora lo paginaremos)
+        paginator = Paginator(jugadores, 12) # 12 jugadores por página para diseño en cuadrícula
+        page = request.GET.get('page')
+        try:
+            jugadores_paginados = paginator.page(page)
+        except PageNotAnInteger:
+            jugadores_paginados = paginator.page(1)
+        except EmptyPage:
+            jugadores_paginados = paginator.page(paginator.num_pages)
+            
+        for j in jugadores_paginados:
+            # Ahora esto procesa muy rápido porque solo lo hace 12 veces, no 100
             j.otros_equipos = Jugador.objects.filter(
                 cedula=j.cedula,
                 equipo__torneo__activo=True,
                 equipo__torneo__complejo=j.equipo.torneo.complejo 
             ).exclude(id=j.id)
+    else:
+        jugadores_paginados = []
 
     return render(request, 'core/gestionar_jugadores.html', {
-        'form': form, 'jugadores': jugadores, 
+        'form': form, 
+        'jugadores': jugadores_paginados, # Enviamos la versión paginada
         'equipos_activos': equipos_activos if rol_principal == 'ORG' else mis_equipos.filter(torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre'), 
-        'equipo_seleccionado': equipo_seleccionado, 'es_dirigente': (rol_principal == 'DIR'),
+        'equipo_seleccionado': equipo_seleccionado, 
+        'es_dirigente': (rol_principal == 'DIR'),
         'puede_fichar': puede_fichar,
         'equipo_obj': mi_equipo 
     })
@@ -2571,14 +2616,23 @@ def buscar_jugador_api(request, cedula):
 @login_required
 @user_passes_test(es_organizador)
 def gestionar_categorias(request):
-    mi_complejo = obtener_mi_complejo(request.user) # 🔥 Aisla a la cancha actual
+    mi_complejo = obtener_mi_complejo(request.user)
+    
+    # 1. LEER LÍMITES DEL PLAN SAAS
+    limite_categorias = mi_complejo.plan.max_categorias_por_torneo if mi_complejo.plan else 1
+    categorias_actuales = Categoria.objects.filter(complejo=mi_complejo).count()
+    puede_crear = categorias_actuales < limite_categorias
     
     if request.method == 'POST':
+        # 2. APLICAR CANDADO
+        if not puede_crear:
+            messages.error(request, f"⛔ Límite alcanzado: Tu plan actual solo permite {limite_categorias} categorías. Contacta a NEXUS para mejorar tu plan.")
+            return redirect('gestionar_categorias')
+            
         nombre_categoria = request.POST.get('nombre')
         color_elegido = request.POST.get('color_carnet') 
         
         if nombre_categoria:
-            # 🔥 Verifica que no exista en ESTA cancha (no importa si existe en otra)
             if not Categoria.objects.filter(nombre__iexact=nombre_categoria, complejo=mi_complejo).exists():
                 Categoria.objects.create(nombre=nombre_categoria, color_carnet=color_elegido, complejo=mi_complejo)
                 messages.success(request, f"✅ Categoría '{nombre_categoria}' creada exitosamente.")
@@ -2589,9 +2643,13 @@ def gestionar_categorias(request):
             
         return redirect('gestionar_categorias')
         
-    # 🔥 Muestra SOLO las categorías de esta cancha
     categorias = Categoria.objects.filter(complejo=mi_complejo).order_by('nombre')
-    return render(request, 'core/gestionar_categorias.html', {'categorias': categorias})
+    return render(request, 'core/gestionar_categorias.html', {
+        'categorias': categorias,
+        'puede_crear': puede_crear, 
+        'limite': limite_categorias, 
+        'actuales': categorias_actuales
+    })
 
 @login_required
 @user_passes_test(es_organizador)
@@ -2748,67 +2806,63 @@ from django.conf import settings
 
 @login_required
 def dashboard_saas(request):
-    """ EL PANEL DE CONTROL ABSOLUTO DEL DUEÑO DEL SOFTWARE """
     if not request.user.is_superuser:
         messages.error(request, "Acceso denegado. Solo el dueño de NEXUS SPORTOPS puede entrar aquí.")
         return redirect('dashboard')
 
-    canchas = ComplejoDeportivo.objects.all().order_by('fecha_vencimiento')
+    # 🔥 OPTIMIZACIÓN: select_related para evitar que la DB se trabe
+    canchas_list = ComplejoDeportivo.objects.select_related('organizador', 'plan').all().order_by('fecha_vencimiento')
     
-    # 1. Tu contabilidad personal
+    # --- PAGINACIÓN DE CANCHAS ---
+    paginator_canchas = Paginator(canchas_list, 8) # Mostrará 8 canchas por página
+    page_canchas = request.GET.get('page')
+    try:
+        canchas = paginator_canchas.page(page_canchas)
+    except PageNotAnInteger:
+        canchas = paginator_canchas.page(1)
+    except EmptyPage:
+        canchas = paginator_canchas.page(paginator_canchas.num_pages)
+
+    # 1. Contabilidad
     total_ingresos_saas = PagoSuscripcionSaaS.objects.aggregate(Sum('monto'))['monto__sum'] or 0
-    canchas_activas = canchas.filter(activo=True).count()
-    canchas_suspendidas = canchas.filter(activo=False).count()
+    canchas_activas = canchas_list.filter(activo=True).count()
+    canchas_suspendidas = canchas_list.filter(activo=False).count()
 
-    # ✨ NUEVO: Traemos los últimos 20 pagos para mostrarlos en la tabla
-    ultimos_pagos = PagoSuscripcionSaaS.objects.select_related('complejo').order_by('-fecha_pago', '-id')[:20]
+    # Solo traemos los últimos 15 pagos, no todos
+    ultimos_pagos = PagoSuscripcionSaaS.objects.select_related('complejo').order_by('-fecha_pago', '-id')[:15]
 
-    # 2. LÓGICA DE RECORDATORIOS
+    # 2. Recordatorios
     hoy = timezone.now().date()
     limite_aviso = hoy + timedelta(days=3)
+    canchas_por_vencer = canchas_list.filter(fecha_vencimiento__lte=limite_aviso, activo=True)
+    canchas_vencidas = canchas_list.filter(fecha_vencimiento__lt=hoy, activo=True)
     
-    canchas_por_vencer = canchas.filter(fecha_vencimiento__lte=limite_aviso, activo=True)
-    canchas_vencidas = canchas.filter(fecha_vencimiento__lt=hoy, activo=True)
-    
-    # Si le das al botón de "Enviar Correos de Cobro"
-    if request.method == 'POST' and 'enviar_recordatorios' in request.POST:
-        mensajes_enviados = 0
-        for c in canchas_por_vencer:
-            asunto = f"⚠️ ALERTA DE COBRO: {c.nombre} está por vencer"
-            texto = f"""
-            Hola Deyvi,
+    if request.method == 'POST':
+        if 'enviar_recordatorios' in request.POST:
+            for c in canchas_por_vencer:
+                asunto = f"Vencimiento Próximo: {c.nombre}"
+                mensaje = f"La suscripción de {c.nombre} vence el {c.fecha_vencimiento}."
+                send_mail(asunto, mensaje, settings.EMAIL_HOST_USER, [c.organizador.email], fail_silently=True)
+            messages.success(request, f"📧 Recordatorios enviados a {canchas_por_vencer.count()} canchas.")
+            return redirect('dashboard_saas')
             
-            El plan del organizador de la cancha "{c.nombre}" vence el {c.fecha_vencimiento}.
-            
-            Datos de contacto del Organizador:
-            - Nombre: {c.organizador.first_name} {c.organizador.last_name} ({c.organizador.username})
-            - Teléfono / Celular: {c.telefono_contacto}
-            
-            No olvides contactarlo para renovar su plan y registrar el pago en el sistema.
-            """
-            send_mail(asunto, texto, settings.EMAIL_HOST_USER, ['deyvi2413@gmail.com'], fail_silently=True)
-            mensajes_enviados += 1
-            
-        messages.success(request, f"✉️ Se enviaron {mensajes_enviados} recordatorios a tu correo.")
-        return redirect('dashboard_saas')
-
-    # 3. Lógica para suspender automáticamente si ya venció la fecha
-    if request.method == 'POST' and 'suspender_morosos' in request.POST:
-        suspendidos = 0
-        for c in canchas_vencidas:
-            c.activo = False
-            c.save()
-            suspendidos += 1
-        messages.warning(request, f"🚫 Se suspendió el acceso a {suspendidos} canchas por falta de pago.")
-        return redirect('dashboard_saas')
+        elif 'suspender_morosos' in request.POST:
+            contador = 0
+            for c in canchas_vencidas:
+                c.activo = False
+                c.save()
+                send_mail(f"SUSPENSIÓN: {c.nombre}", "Tu servicio fue suspendido.", settings.EMAIL_HOST_USER, [c.organizador.email], fail_silently=True)
+                contador += 1
+            messages.error(request, f"🚫 Se han suspendido {contador} canchas por morosidad.")
+            return redirect('dashboard_saas')
 
     return render(request, 'core/dashboard_saas.html', {
-        'canchas': canchas,
+        'canchas': canchas, # Ahora enviamos las canchas paginadas
         'total_ingresos': total_ingresos_saas,
         'canchas_activas': canchas_activas,
         'canchas_suspendidas': canchas_suspendidas,
         'canchas_por_vencer': canchas_por_vencer,
-        'ultimos_pagos': ultimos_pagos  # <-- Añade esta línea
+        'ultimos_pagos': ultimos_pagos
     })
 
 @login_required

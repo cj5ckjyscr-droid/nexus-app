@@ -98,6 +98,9 @@
     .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
 
+    /* Estilos de Hover para Paginación */
+    .hover-primary:hover { color: #10B981 !important; border-color: #10B981 !important; }
+
     @media (max-width: 991px) {
         .fey-form-panel { position: static; margin-bottom: 30px; }
     }
@@ -127,7 +130,7 @@
         <div>
             <div class="bg-white border rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center">
                 <i class="bi bi-shield-shaded text-primary me-2"></i>
-                <span class="fw-bold text-dark text-uppercase small" style="letter-spacing: 0.5px;">{{ equipos|length }} Equipos Totales</span>
+                <span class="fw-bold text-dark text-uppercase small" style="letter-spacing: 0.5px;">{{ equipos.paginator.count|default:"0" }} Equipos Totales</span>
             </div>
         </div>
     </div>
@@ -221,7 +224,7 @@
                             </div>
                         </div>
                         <div class="text-start text-md-end">
-                            <span class="badge bg-dark text-white rounded-pill px-4 py-2 shadow-sm" style="font-size: 0.85rem;">{{ grupo_torneo.list|length }} Equipos Totales</span>
+                            <span class="badge bg-dark text-white rounded-pill px-4 py-2 shadow-sm" style="font-size: 0.85rem;">{{ grupo_torneo.list|length }} Equipos Listados</span>
                         </div>
                     </div>
 
@@ -297,7 +300,48 @@
                 </div>
                 {% endfor %}
 
-            {% endif %}
+                {% if equipos.has_other_pages %}
+                <div class="d-flex justify-content-center mt-4 mb-2">
+                    <nav aria-label="Navegación de páginas">
+                        <ul class="pagination pagination-sm m-0 shadow-sm" style="gap: 8px;">
+                            
+                            {% if equipos.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ equipos.previous_page_number }}" style="padding: 8px 16px;">
+                                        <i class="bi bi-chevron-left"></i> Anterior
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% for num in equipos.paginator.page_range %}
+                                {% if equipos.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link rounded-pill border-0 fw-black text-white shadow-sm" style="background: linear-gradient(135deg, #10B981, #059669); padding: 8px 16px;">
+                                            {{ num }}
+                                        </span>
+                                    </li>
+                                {% elif num > equipos.number|add:'-3' and num < equipos.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link rounded-pill border border-slate-200 text-slate-600 fw-bold bg-white transition-all hover-primary" href="?page={{ num }}" style="padding: 8px 16px;">
+                                            {{ num }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if equipos.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ equipos.next_page_number }}" style="padding: 8px 16px;">
+                                        Siguiente <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+                {% endif %}
         </div>
     </div>
 </div>

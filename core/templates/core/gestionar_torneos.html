@@ -34,6 +34,12 @@
     }
     .fey-form-panel.edit-mode::before { background: linear-gradient(90deg, var(--brand-primary), #0EA5E9); }
 
+    /* Uso del Plan SaaS Widget */
+    .saas-usage-widget {
+        background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 16px; padding: 16px; margin-bottom: 24px;
+    }
+    .progress-saas { height: 8px; border-radius: 10px; background-color: #E2E8F0; overflow: hidden; }
+
     /* Auto-styling Inputs Django */
     .fey-form-panel input[type="text"], .fey-form-panel input[type="number"], .fey-form-panel input[type="date"], .fey-form-panel select {
         background-color: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
@@ -109,6 +115,9 @@
     .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
 
+    /* Estilos de Hover para Paginación */
+    .hover-primary:hover { color: #10B981 !important; border-color: #10B981 !important; }
+
     @media (max-width: 991px) {
         .fey-form-panel { position: static; margin-bottom: 30px; }
     }
@@ -138,7 +147,7 @@
         <div>
             <div class="bg-white border rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center">
                 <i class="bi bi-trophy-fill text-warning me-2"></i>
-                <span class="fw-bold text-dark text-uppercase small" style="letter-spacing: 0.5px;">{{ torneos.count }} Campeonatos</span>
+                <span class="fw-bold text-dark text-uppercase small" style="letter-spacing: 0.5px;">{{ torneos.paginator.count|default:"0" }} Campeonatos Totales</span>
             </div>
         </div>
     </div>
@@ -157,6 +166,23 @@
                         <p class="text-muted small m-0 fw-medium">{% if editando %}{{ torneo_edit.nombre }}{% else %}Configura el campeonato{% endif %}</p>
                     </div>
                 </div>
+                
+                {% if not editando %}
+                <div class="saas-usage-widget">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold text-slate-600 text-uppercase" style="letter-spacing: 0.5px;"><i class="bi bi-rocket-takeoff-fill me-1"></i> Tu Plan SaaS</span>
+                        <span class="small fw-black {% if actuales >= limite %}text-danger{% else %}text-success{% endif %}">{{ actuales }} / {{ limite }} Torneos</span>
+                    </div>
+                    <div class="progress-saas">
+                        <div class="progress-bar {% if actuales >= limite %}bg-danger{% else %}bg-success{% endif %}" role="progressbar" style="width: {% widthratio actuales limite 100 %}%; height: 100%;"></div>
+                    </div>
+                    {% if not puede_crear %}
+                        <div class="mt-3 text-danger small fw-bold d-flex align-items-start">
+                            <i class="bi bi-lock-fill me-2 fs-6"></i> Has alcanzado el límite. Para crear uno nuevo, marca un torneo antiguo como inactivo o mejora tu plan.
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
 
                 <form method="post" class="m-0">
                     {% csrf_token %}
@@ -186,7 +212,7 @@
                     </div>
 
                     <div class="d-flex flex-column gap-2 mt-4 pt-3 border-top">
-                        <button type="submit" class="btn w-100 rounded-pill py-3 fw-bold shadow-sm" style="background-color: {% if editando %}var(--brand-primary){% else %}#0F172A{% endif %}; color: #FFFFFF; font-size: 0.95rem;">
+                        <button type="submit" class="btn w-100 rounded-pill py-3 fw-bold shadow-sm" style="background-color: {% if editando %}var(--brand-primary){% else %}#0F172A{% endif %}; color: #FFFFFF; font-size: 0.95rem;" {% if not editando and not puede_crear %}disabled{% endif %}>
                             <i class="bi {% if editando %}bi-save2{% else %}bi-check2-circle{% endif %} me-1"></i> {% if editando %}Guardar Cambios{% else %}Crear Torneo{% endif %}
                         </button>
                         {% if editando %}
@@ -195,8 +221,7 @@
                     </div>
                 </form>
                 
-            </div>
-        </div>
+            </div> </div>
 
         <div class="col-lg-8 col-xl-8 reveal-up" style="animation-delay: 0.2s;">
             {% if not torneos %}
@@ -272,7 +297,49 @@
                         {% endfor %}
                     </div>
                 {% endfor %}
-            {% endif %}
+
+                {% if torneos.has_other_pages %}
+                <div class="d-flex justify-content-center mt-5 mb-2">
+                    <nav aria-label="Navegación de páginas">
+                        <ul class="pagination pagination-sm m-0 shadow-sm" style="gap: 8px;">
+                            
+                            {% if torneos.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ torneos.previous_page_number }}" style="padding: 8px 16px;">
+                                        <i class="bi bi-chevron-left"></i> Anterior
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% for num in torneos.paginator.page_range %}
+                                {% if torneos.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link rounded-pill border-0 fw-black text-white shadow-sm" style="background: linear-gradient(135deg, #10B981, #059669); padding: 8px 16px;">
+                                            {{ num }}
+                                        </span>
+                                    </li>
+                                {% elif num > torneos.number|add:'-3' and num < torneos.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link rounded-pill border border-slate-200 text-slate-600 fw-bold bg-white transition-all hover-primary" href="?page={{ num }}" style="padding: 8px 16px;">
+                                            {{ num }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if torneos.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ torneos.next_page_number }}" style="padding: 8px 16px;">
+                                        Siguiente <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+                {% endif %}
         </div>
 
     </div>
