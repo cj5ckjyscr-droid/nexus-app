@@ -46,7 +46,6 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', # Manejo de CSS/JS en producción
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.Middleware', # Corregido error de escritura común
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
