@@ -17,6 +17,7 @@ from django.contrib.auth import login
 from django.core.mail import send_mail
 from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.utils.safestring import mark_safe
 
 # Formularios
 from .forms import (
@@ -1753,15 +1754,23 @@ def registro_publico(request):
         
         if form.is_valid():
             usuario = form.save()
-            Perfil.objects.get_or_create(usuario=usuario)
+            
+            # Obtenemos el teléfono ingresado en el formulario
+            telefono_ingresado = form.cleaned_data.get('telefono')
+            
+            # Creamos o actualizamos el perfil con el teléfono
+            perfil, created = Perfil.objects.get_or_create(usuario=usuario)
+            perfil.telefono = telefono_ingresado
+            perfil.save()
+            
             login(request, usuario)
-            messages.success(request, f'¡Bienvenido crack! Tu cuenta ha sido creada y ya estás dentro.')
+            from django.contrib import messages
+            messages.success(request, f'Bienvenido. Tu cuenta ha sido creada y ya estás dentro.')
             return redirect('dashboard') 
     else:
         form = RegistroPublicoForm()
         
     return render(request, 'registration/registro_publico.html', {'form': form})
-
 def ver_torneos_activos(request):
     # 🔥 AISLAMIENTO: Si el dirigente entra, solo le mostramos los torneos
     # de los complejos donde él ya tiene un equipo o ha jugado.
@@ -1827,28 +1836,72 @@ def solicitar_inscripcion(request, torneo_id):
                 defaults={'rol': 'DIR'}
             )
             
+            # --- INICIO DEL NUEVO BLOQUE DE CORREO Y WHATSAPP ---
             try:
                 from django.core.mail import send_mail
                 from django.conf import settings
                 
-                asunto = f"🏆 NUEVA SOLICITUD: {equipo.nombre} quiere unirse"
-                mensaje = "Nueva solicitud registrada en el sistema."
+                # Obtenemos los datos EXCLUSIVOS del dueño de esta cancha
+                email_organizador = torneo.complejo.organizador.email
                 
+                # Extraemos el teléfono personal del dirigente desde su Perfil
+                telefono_dirigente = request.user.perfil.telefono if hasattr(request.user, 'perfil') and request.user.perfil.telefono else 'No registrado en perfil'
+                
+                asunto = f"NUEVA SOLICITUD: {equipo.nombre} quiere unirse a {torneo.nombre}"
+                mensaje_correo = (
+                    f"Hola {torneo.complejo.organizador.first_name},\n\n"
+                    f"Se ha registrado una nueva solicitud de inscripción en tu complejo '{torneo.complejo.nombre}'.\n\n"
+                    f"--- DATOS DE LA SOLICITUD ---\n"
+                    f"Torneo: {torneo.nombre}\n"
+                    f"Categoría: {torneo.categoria.nombre if torneo.categoria else 'Libre'}\n"
+                    f"Equipo: {equipo.nombre}\n"
+                    f"Dirigente: {request.user.first_name} {request.user.last_name} ({request.user.username})\n"
+                    f"Celular Personal del Dirigente: {telefono_dirigente}\n"
+                    f"Teléfono de Respaldo del Equipo: {equipo.telefono_contacto}\n"
+                    f"Estado actual: PENDIENTE DE APROBACIÓN\n\n"
+                    f"Por favor, ingresa al sistema NEXUS SPORTOPS para aprobar o rechazar esta solicitud.\n"
+                )
+                
+                # Se envía al correo independiente del organizador de la cancha
                 send_mail(
                     subject=asunto,
-                    message=mensaje,
+                    message=mensaje_correo,
                     from_email=settings.EMAIL_HOST_USER,
-                    recipient_list=['deyvi2413@gmail.com'],
+                    recipient_list=[email_organizador],
                     fail_silently=True 
                 )
             except Exception as e:
                 print("Error enviando email:", e)
+
+            # Generar enlace de WhatsApp para el dirigente
+            import urllib.parse
+            from django.utils.safestring import mark_safe
+            
+            # Obtenemos el número de la cancha específica
+            telefono_organizador = torneo.complejo.telefono_contacto
+            
+            if telefono_organizador:
+                mensaje_wa = f"Hola, acabo de enviar la solicitud de mi equipo '{equipo.nombre}' para el torneo '{torneo.nombre}'. Mi usuario es {request.user.username}. Quedo atento a la aprobación."
+                mensaje_wa_codificado = urllib.parse.quote(mensaje_wa)
+                url_whatsapp = f"https://wa.me/{telefono_organizador}?text={mensaje_wa_codificado}"
                 
-            messages.success(request, '✅ Solicitud enviada con éxito. Tu equipo está PENDIENTE de aprobación y el organizador fue notificado.')
+                texto_exito = mark_safe(
+                    f"Solicitud enviada con éxito. Tu equipo está PENDIENTE de aprobación. "
+                    f"<br><br><a href='{url_whatsapp}' target='_blank' style='background-color:#25D366; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; display:inline-block; font-weight:bold; margin-top:10px;'>Notificar al Organizador por WhatsApp</a>"
+                )
+            else:
+                texto_exito = "Solicitud enviada con éxito. Tu equipo está PENDIENTE de aprobación y el organizador fue notificado por correo."
+                
+            messages.success(request, texto_exito)
             return redirect('ver_torneos_activos') 
+            # --- FIN DEL BLOQUE ---
+            # --- FIN DEL NUEVO BLOQUE ---
+
     else:
+        # Se ejecuta cuando el método es GET (cuando recién entras a la página)
         form = EquipoSolicitudForm()
 
+    # ¡ESTA ES LA LÍNEA QUE FALTABA O SE BORRÓ! Siempre debe retornar algo al final.
     return render(request, 'core/solicitar_inscripcion.html', {'form': form, 'torneo': torneo})
 
 
@@ -1866,17 +1919,43 @@ def gestionar_solicitudes(request):
         if accion == 'APROBAR':
             equipo.estado_inscripcion = 'APROBADO'
             equipo.save()
-            # Aseguramos el rol en caso de aprobación manual de importación
             RolComplejo.objects.get_or_create(usuario=equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
-            messages.success(request, f'✅ {equipo.nombre} APROBADO.')
+            
+            # Notificación de aprobación
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings
+                asunto = f"Solicitud APROBADA: {equipo.nombre} en {equipo.torneo.nombre}"
+                mensaje = (
+                    f"Hola {equipo.dirigente.first_name},\n\n"
+                    f"Buenas noticias. Tu equipo '{equipo.nombre}' ha sido APROBADO para participar en el torneo '{equipo.torneo.nombre}' del complejo '{mi_complejo.nombre}'.\n\n"
+                    f"Ya puedes ingresar al sistema para gestionar tu plantilla de jugadores.\n"
+                )
+                send_mail(asunto, mensaje, settings.EMAIL_HOST_USER, [equipo.dirigente.email], fail_silently=True)
+            except Exception as e:
+                print("Error enviando email de aprobacion:", e)
+
+            messages.success(request, f'El equipo {equipo.nombre} ha sido APROBADO.')
+            
         elif accion == 'RECHAZAR':
             equipo.estado_inscripcion = 'RECHAZADO'
             equipo.save()
-            messages.warning(request, f'Solicitud de {equipo.nombre} rechazada.')
             
-        return redirect('gestionar_solicitudes')
+            # Notificación de rechazo
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings
+                asunto = f"Solicitud RECHAZADA: {equipo.nombre} en {equipo.torneo.nombre}"
+                mensaje = (
+                    f"Hola {equipo.dirigente.first_name},\n\n"
+                    f"Lamentamos informarte que la solicitud de tu equipo '{equipo.nombre}' para el torneo '{equipo.torneo.nombre}' ha sido RECHAZADA por el organizador.\n\n"
+                    f"Para más detalles, comunícate directamente con la administración del complejo '{mi_complejo.nombre}'.\n"
+                )
+                send_mail(asunto, mensaje, settings.EMAIL_HOST_USER, [equipo.dirigente.email], fail_silently=True)
+            except Exception as e:
+                print("Error enviando email de rechazo:", e)
 
-    return render(request, 'core/gestionar_solicitudes.html', {'solicitudes': solicitudes})
+            messages.warning(request, f'Solicitud de {equipo.nombre} rechazada.')
 
 @login_required
 def cancelar_inscripcion_equipo(request, equipo_id):
