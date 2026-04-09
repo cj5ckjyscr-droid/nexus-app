@@ -4,29 +4,22 @@ Django settings for config project.
 
 from pathlib import Path
 import os
-import environ # Librería para leer el archivo .env en producción
 import dj_database_url
 from dotenv import load_dotenv
 
-# 1. INICIALIZAR ENVIROMENT
-env = environ.Env(
-    DEBUG=(bool, True) # Por defecto True para evitar errores en la computadora local
-)
+# Cargar variables de entorno desde el archivo .env
+load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Path base del proyecto
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Leer el archivo .env si existe (creado en la consola)
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'una-clave-super-secreta-para-desarrollo')
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-zl*c8d(v%0z+$%ae!(74z1wwpt2=1qytc*-=pd#eh4%q*d=s!f')
 
-# Será False en Koyeb para que no salgan pantallas amarillas de error al usuario
+# DEBUG: Será False en producción (Render) si la variable existe, True en local
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# Hosts permitidos (Solo los locales para desarrollo)
+# Hosts permitidos
 ALLOWED_HOSTS = ['*']
 
 # Application definition
@@ -39,12 +32,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # --- LIBRERÍAS DE UTILIDAD ---
-    'django.contrib.humanize', # ¡IMPORTANTE! Para formatear dinero ($1,200.00)
+    'django.contrib.humanize', 
 
     # --- MIS APPS ---
     'core',
 
-    # --- ESTILOS Y FORMULARIOS ---
+    # --- ESTILOS, FORMULARIOS Y NUBE ---
     'crispy_forms',
     'crispy_bootstrap5',
     'cloudinary',
@@ -53,7 +46,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Manejo de CSS/JS en producción
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -67,7 +60,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'], # Busca plantillas en la carpeta global
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -82,8 +75,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-
-# Database
+# Database: Usa Neon (PostgreSQL) en la nube y SQLite en local automáticamente
 DATABASES = {
     'default': dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
@@ -94,45 +86,35 @@ DATABASES = {
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
 # Internationalization (CONFIGURACIÓN PARA ECUADOR)
-LANGUAGE_CODE = 'es' # Español
-TIME_ZONE = 'America/Guayaquil' # Hora de Ecuador
+LANGUAGE_CODE = 'es'
+TIME_ZONE = 'America/Guayaquil'
 USE_I18N = True
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-# Usa os.path.join para evitar problemas de rutas en diferentes sistemas operativos
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'core', 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Media files (Fotos de Jugadores, Escudos)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Configuración de Archivos Estáticos (CSS, JS) para Producción
+# Configuración de Archivos Estáticos para Producción (WhiteNoise)
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Configuración de Fotos (Si existe la variable en Koyeb, usa Cloudinary)
+# Media files (Fotos de Jugadores, Escudos)
+MEDIA_URL = '/media/'
+
+# --- CONFIGURACIÓN HÍBRIDA DE ALMACENAMIENTO ---
+# Si existe CLOUDINARY_URL en el entorno, usa la nube; si no, usa el disco local
 if os.getenv('CLOUDINARY_URL'):
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
+else:
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -148,9 +130,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # ==========================================
 # CONFIGURACIÓN PARA ENVIAR CORREOS (GMAIL)
 # ==========================================
-# Para pruebas locales, es mejor que los correos se impriman en la consola 
-# en lugar de enviarlos de verdad, para evitar bloqueos por spam.
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -158,13 +137,3 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'deyvi2413@gmail.com'  
 EMAIL_HOST_PASSWORD = 'qjok ygwc hufa tlbm' 
 DEFAULT_FROM_EMAIL = 'NEXUS SPORTOPS <deyvi2413@gmail.com>'
-
-# 💻 CONFIGURACIÓN EN COMPUTADORA LOCAL (DESARROLLO)
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
