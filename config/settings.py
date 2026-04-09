@@ -5,6 +5,8 @@ Django settings for config project.
 from pathlib import Path
 import os
 import environ # Librería para leer el archivo .env en producción
+import dj_database_url
+from dotenv import load_dotenv
 
 # 1. INICIALIZAR ENVIROMENT
 env = environ.Env(
@@ -19,14 +21,13 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-zl*c8d(v%0z+$%ae!(74z1wwpt2=1qytc*-=pd#eh4%q*d=s!f')
+SECRET_KEY = os.getenv('SECRET_KEY', 'una-clave-super-secreta-para-desarrollo')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-# Forzado a True para desarrollo local
-DEBUG = True
+# Será False en Koyeb para que no salgan pantallas amarillas de error al usuario
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 # Hosts permitidos (Solo los locales para desarrollo)
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -46,11 +47,13 @@ INSTALLED_APPS = [
     # --- ESTILOS Y FORMULARIOS ---
     'crispy_forms',
     'crispy_bootstrap5',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # Quitamos WhiteNoise temporalmente para desarrollo local puro
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -82,10 +85,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
 # Password validation
@@ -121,6 +125,13 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Media files (Fotos de Jugadores, Escudos)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Configuración de Archivos Estáticos (CSS, JS) para Producción
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Configuración de Fotos (Si existe la variable en Koyeb, usa Cloudinary)
+if os.getenv('CLOUDINARY_URL'):
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
