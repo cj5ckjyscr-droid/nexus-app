@@ -2,5 +2,5 @@
 from .models import Configuracion
 
 def configuracion_global(request):
-    config = Configuracion.objects.first()
-    return {'config_global': config}
+    config = Configuracion.objects.filter(complejo__isnull=True).first()
+    return {'config': config}

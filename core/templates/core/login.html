@@ -194,7 +194,13 @@
         <div class="col-lg-6 d-none d-lg-flex login-cover">
             <div class="logo-glow"></div>
             <div class="hero-content animate__animated animate__fadeIn">
-                <img src="{{ config_global.logo_sistema.url }}" alt="Logo" class="hero-logo animate__animated animate__backInDown">
+                
+                {% if config and config.logo_sistema %}
+                    <img src="{{ config.logo_sistema.url }}" alt="Logo NEXUS" class="hero-logo animate__animated animate__backInDown">
+                {% else %}
+                    <i class="bi bi-layers-fill text-white mb-3 animate__animated animate__backInDown" style="font-size: 5rem;"></i>
+                {% endif %}
+                
                 <h1 class="display-4 fw-black mb-2" style="font-family: 'Outfit';">NEXUS SPORTOPS</h1>
                 <p class="opacity-75 fs-5 fw-light" style="letter-spacing: 3px;">EL FUTURO DE LA GESTIÓN DEPORTIVA</p>
             </div>
