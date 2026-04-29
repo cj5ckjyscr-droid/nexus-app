@@ -107,12 +107,14 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # --- CONFIGURACIÓN DE ALMACENAMIENTO (DJANGO 6.0+) ---
 # Esta es la parte que corregí para que Render no falle:
+# --- CONFIGURACIÓN DE ALMACENAMIENTO (DJANGO 6.0+) ---
 STORAGES = {
     "default": {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage" if os.getenv('CLOUDINARY_URL') else "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        # ¡Aquí está el cambio! Le quitamos la palabra "Manifest"
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
@@ -135,5 +137,5 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'deyvi2413@gmail.com'  
-EMAIL_HOST_PASSWORD = 'qjok ygwc hufa tlbm' 
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = 'NEXUS SPORTOPS <deyvi2413@gmail.com>'
