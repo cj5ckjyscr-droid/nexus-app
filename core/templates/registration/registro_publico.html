@@ -145,8 +145,12 @@
 {% block contenido %}
 <div class="reg-card animate__animated animate__fadeInUp">
     <div class="reg-visual">
+        {% if config_global.logo_sistema %}
         <img src="{{ config_global.logo_sistema.url }}" alt="Logo" style="width: 100px; margin: 0 auto 1.5rem auto;">
-        <h1 style="font-family: 'Outfit'; font-weight: 800;">NEXUS SPORTOPS</h1>
+        {% else %}
+        <i class="bi bi-layers-fill" style="font-size: 4rem; color: var(--brand-primary, #4F46E5); display:block; margin-bottom: 1.5rem;"></i>
+        {% endif %}
+        <h1 style="font-family: 'Outfit'; font-weight: 800;"> GESTION DE TORNEOS</h1>
         <p class="small opacity-75 px-3">Plataforma de gestión deportiva. Valida tu identidad para continuar.</p>
     </div>
 

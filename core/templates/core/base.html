@@ -449,8 +449,8 @@
                         {% endif %}
                         <span class="brand-text" style="background: none; -webkit-text-fill-color: var(--text-main);">{{ complejo.nombre }}</span>
                     {% else %}
-                        {% if config.logo_sistema %}
-                            <img src="{{ config.logo_sistema.url }}" alt="Logo Nexus" class="brand-logo-img">
+                        {% if config_global.logo_sistema %}
+                            <img src="{{ config_global.logo_sistema.url }}" alt="Logo Nexus" class="brand-logo-img">
                         {% else %}
                             <i class="bi bi-layers-fill me-2 fs-4" style="color: var(--brand-primary);"></i>
                         {% endif %}

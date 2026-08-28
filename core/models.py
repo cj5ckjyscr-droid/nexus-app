@@ -133,7 +133,11 @@ class RolComplejo(models.Model):
 class Configuracion(models.Model):
     complejo = models.OneToOneField(ComplejoDeportivo, on_delete=models.CASCADE, related_name='configuracion', null=True, blank=True)
     iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=15.00)
-    # Quitamos logo_sistema porque ahora el logo va en ComplejoDeportivo
+    logo_sistema = models.ImageField(
+        upload_to='configuracion/logos/', null=True, blank=True,
+        verbose_name='Logo Global del Sistema',
+        help_text='Logo que se muestra en la barra de navegación, página de inicio, login y registro de todo el sistema.',
+    )
     
     def __str__(self):
         return f"Configuración de {self.complejo.nombre if self.complejo else 'Global'}"

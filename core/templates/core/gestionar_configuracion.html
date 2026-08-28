@@ -14,6 +14,12 @@
             </div>
             
             <div class="card-body p-4">
+                {% if config_global.logo_sistema %}
+                <div class="text-center mb-3">
+                    <img src="{{ config_global.logo_sistema.url }}" alt="Logo actual" class="img-fluid rounded" style="max-height: 90px;">
+                    <p class="text-muted small mt-2 mb-0">Logo actual del sistema</p>
+                </div>
+                {% endif %}
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     

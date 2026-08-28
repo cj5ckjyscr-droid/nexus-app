@@ -344,11 +344,13 @@ class SancionListaNegraForm(forms.ModelForm):
 class ConfiguracionForm(forms.ModelForm):
     class Meta:
         model = Configuracion
-        fields = ['iva_porcentaje']
+        fields = ['logo_sistema', 'iva_porcentaje']
         labels = {
+            'logo_sistema': 'Logo Global del Sistema',
             'iva_porcentaje': 'Porcentaje de IVA (%)'
         }
         widgets = {
+            'logo_sistema': forms.FileInput(attrs={'class': 'form-control'}),
             'iva_porcentaje': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
         }
 

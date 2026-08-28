@@ -170,11 +170,24 @@ EMAIL_HOST_PASSWORD = 'qjok ygwc hufa tlbm'
 DEFAULT_FROM_EMAIL = 'NEXUS SPORTOPS <deyvi2413@gmail.com>'
 
 # 💻 CONFIGURACIÓN EN COMPUTADORA LOCAL (DESARROLLO)
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
+# Si existe CLOUDINARY_URL, los archivos (logos, fotos) se suben a Cloudinary
+# para que persistan en producción (Render plan gratis usa sqlite en memoria).
+# Si no existe la variable, se usan los archivos locales del sistema.
+if os.getenv('CLOUDINARY_URL'):
+    STORAGES = {
+        "default": {
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
