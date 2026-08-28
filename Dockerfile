@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 ENV DATABASE_URL=sqlite:///:memory:
 RUN python manage.py collectstatic --noinput || true
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 config.wsgi:application
+CMD python manage.py migrate --noinput && exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 config.wsgi:application
