@@ -91,6 +91,10 @@
         .logo-wrapper { margin-bottom: 12px; }
         .action-group { width: 100%; display: flex; justify-content: flex-end; margin-top: 12px; border-top: 1px dashed #E2E8F0; padding-top: 12px; }
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { .client-strip { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .client-strip.suspended { background: #2A2020 !important; border-color: #7F1D1D !important; } .logo-img, .logo-placeholder { background: var(--slate-100) !important; border-color: var(--border-light) !important; color: var(--text-soft) !important; } .form-label-pro { color: var(--text-soft) !important; } input[type="file"].clean-input { color: var(--text-soft) !important; } input[type="file"]::file-selector-button { background: var(--bg-surface) !important; color: var(--text-main) !important; border: 1px solid var(--border-light) !important; } .btn-edit { background: #1E3A5F !important; color: #93C5FD !important; border-color: #1E3A5F !important; } .action-group { border-color: var(--border-light) !important; } } }
+    :root[data-theme="dark"] { .client-strip { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .client-strip.suspended { background: #2A2020 !important; border-color: #7F1D1D !important; } .logo-img, .logo-placeholder { background: var(--slate-100) !important; border-color: var(--border-light) !important; color: var(--text-soft) !important; } .form-label-pro { color: var(--text-soft) !important; } input[type="file"].clean-input { color: var(--text-soft) !important; } input[type="file"]::file-selector-button { background: var(--bg-surface) !important; color: var(--text-main) !important; border: 1px solid var(--border-light) !important; } .btn-edit { background: #1E3A5F !important; color: #93C5FD !important; border-color: #1E3A5F !important; } .action-group { border-color: var(--border-light) !important; } }
 </style>
 {% endblock %}
 
@@ -101,7 +105,7 @@
     
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 pb-3 border-bottom reveal-up">
         <div>
-            <span class="badge bg-dark bg-opacity-10 text-dark border border-dark border-opacity-25 px-3 py-2 mb-2 rounded-pill fw-bold">
+            <span class="badge bg-slate-100 text-slate-900 border border-slate-300 px-3 py-2 mb-2 rounded-pill fw-bold">
                 <i class="bi bi-cloud-check-fill me-1"></i> Panel SuperAdmin SaaS
             </span>
             <h2 class="fey-title m-0">Gestión de Clientes</h2>

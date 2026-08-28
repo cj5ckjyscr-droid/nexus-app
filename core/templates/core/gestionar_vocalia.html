@@ -143,6 +143,10 @@
         .ios-step-btn { width: 28px; }
         .ios-step-val { font-size: 0.85rem; }
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ios-bg: #0B1220; --ios-surface: #111827; --ios-separator: rgba(148, 163, 184, 0.18); --text-main: #F1F5F9; --text-muted: #94A3B8; --primary-blue: #60A5FA; --primary-navy: #F1F5F9; --accent-green: #4ADE80; --accent-red: #F87171; --accent-orange: #F97316; --accent-yellow: #FBBF24; } }
+    :root[data-theme="dark"] { --ios-bg: #0B1220; --ios-surface: #111827; --ios-separator: rgba(148, 163, 184, 0.18); --text-main: #F1F5F9; --text-muted: #94A3B8; --primary-blue: #60A5FA; --primary-navy: #F1F5F9; --accent-green: #4ADE80; --accent-red: #F87171; --accent-orange: #F97316; --accent-yellow: #FBBF24; }
 </style>
 {% endblock %}
 

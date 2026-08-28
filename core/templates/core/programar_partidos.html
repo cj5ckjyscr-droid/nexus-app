@@ -183,6 +183,10 @@
         .imc-name { font-size: 0.75rem; max-width: 85px; }
         .imc-score { font-size: 1.2rem; }
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ios-bg: #0B1220; --ios-surface: #111827; --ios-separator: rgba(148, 163, 184, 0.18); --text-main: #F1F5F9; --text-muted: #94A3B8; } }
+    :root[data-theme="dark"] { --ios-bg: #0B1220; --ios-surface: #111827; --ios-separator: rgba(148, 163, 184, 0.18); --text-main: #F1F5F9; --text-muted: #94A3B8; }
 </style>
 {% endblock %}
 

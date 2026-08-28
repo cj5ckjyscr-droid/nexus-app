@@ -123,6 +123,10 @@
         .cancha-details { width: 100%; display: flex; justify-content: space-between; }
         .cancha-status { width: 100%; display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #E2E8F0; padding-top: 10px; }
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { .fey-stat-card { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .fey-stat-card:hover { background: var(--slate-100) !important; border-color: var(--border-light) !important; } .cancha-row { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .cancha-row:hover { border-color: var(--slate-500) !important; } .vencimiento-item { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .cancha-info, .cancha-status { border-color: var(--border-light) !important; } } }
+    :root[data-theme="dark"] { .fey-stat-card { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .fey-stat-card:hover { background: var(--slate-100) !important; border-color: var(--border-light) !important; } .cancha-row { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .cancha-row:hover { border-color: var(--slate-500) !important; } .vencimiento-item { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .cancha-info, .cancha-status { border-color: var(--border-light) !important; } }
 </style>
 {% endblock %}
 
@@ -224,7 +228,7 @@
         <div class="col-lg-8 reveal-up" style="animation-delay: 0.3s;">
             <div class="fey-panel p-0 h-100 d-flex flex-column overflow-hidden">
                 
-                <div class="p-4 border-bottom d-flex flex-column flex-lg-row justify-content-between align-items-lg-center" style="background: #F8FAFC;">
+                <div class="p-4 border-bottom d-flex flex-column flex-lg-row justify-content-between align-items-lg-center" style="background: var(--slate-50); border-color: var(--border-light);">
                     <div>
                         <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;"><i class="bi bi-people-fill text-primary me-2"></i>Tus Clientes (Canchas)</h5>
                     </div>

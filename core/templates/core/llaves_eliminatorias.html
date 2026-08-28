@@ -67,6 +67,10 @@
     .header-final { background: linear-gradient(135deg, #B45309 0%, var(--accent-gold) 100%); color: white; }
     .header-semis { background-color: var(--primary-blue); color: white; }
     .header-cuartos { background-color: var(--primary-navy); color: white; }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { body { background-color: var(--bg-app) !important; } .bracket-card { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } --primary-navy: #F1F5F9; --primary-blue: #818CF8; --accent-gold: #FBBF24; .header-cuartos { background-color: #1E293B !important; } } }
+    :root[data-theme="dark"] { body { background-color: var(--bg-app) !important; } .bracket-card { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } --primary-navy: #F1F5F9; --primary-blue: #818CF8; --accent-gold: #FBBF24; .header-cuartos { background-color: #1E293B !important; } }
 </style>
 {% endblock %}
 

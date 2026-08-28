@@ -203,6 +203,9 @@
     .ios-sponsor-card:active { transform: scale(0.95); }
     .ios-sponsor-card img { width: 100%; height: 100%; object-fit: contain; }
 
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --text-main: #F1F5F9; --bg-app: #0B1220; --card-white: #111827; --primary-navy: #F1F5F9; --ios-separator: rgba(148, 163, 184, 0.18); } }
+    :root[data-theme="dark"] { --text-main: #F1F5F9; --bg-app: #0B1220; --card-white: #111827; --primary-navy: #F1F5F9; --ios-separator: rgba(148, 163, 184, 0.18); }
 </style>
 
 <!-- ALERTAS DE SISTEMA PUSH -->

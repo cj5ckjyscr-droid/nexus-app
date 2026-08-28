@@ -92,6 +92,10 @@
         .badge-header { font-size: 0.65rem !important; }
         h4.mobile-title { font-size: 1.3rem !important; }
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --clean-bg: #0B1220; --clean-surface: #111827; --clean-border: #1E293B; --text-main: #F1F5F9; --text-muted: #94A3B8; --primary-blue: #818CF8; --primary-navy: #F1F5F9; --accent-green: #4ADE80; } }
+    :root[data-theme="dark"] { --clean-bg: #0B1220; --clean-surface: #111827; --clean-border: #1E293B; --text-main: #F1F5F9; --text-muted: #94A3B8; --primary-blue: #818CF8; --primary-navy: #F1F5F9; --accent-green: #4ADE80; }
 </style>
 {% endblock %}
 

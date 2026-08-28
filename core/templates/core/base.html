@@ -357,6 +357,65 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+
+    {# =============================================================
+       CAPA DE COORDINACIÓN DARK/LIGHT (GLOBAL)
+       Se carga DESPUÉS de los <style> de cada plantilla para que
+       los overrides ganen. Remapea clases estáticas de Bootstrap y
+       colores claros hardcodeados a las variables del tema cuando
+       el modo oscuro está activo (manual o por preferencia del SO).
+       ============================================================= #}
+    <style>
+        /* Remapeos globales de clases estáticas light -> variables de tema */
+        .text-dark { color: var(--text-main) !important; }
+        .text-muted { color: var(--text-soft) !important; }
+        .bg-white { background-color: var(--bg-surface) !important; }
+        .bg-light { background-color: var(--slate-100) !important; }
+        .border-light { border-color: var(--border-light) !important; }
+        .text-dark-important { color: var(--text-main) !important; }
+
+        /* Tablas custom que hardcodean fondos claros */
+        .table thead, .table-pro thead, .table-compact thead, .fey-table thead {
+            background-color: var(--slate-100) !important;
+        }
+        .table tbody tr, .table-compact tbody tr, .fey-table tbody tr {
+            border-color: var(--border-light) !important;
+        }
+        .table-pro td, .table-compact td, .fey-table td,
+        .table-pro th, .table-compact th, .fey-table th {
+            border-color: var(--border-light) !important;
+            color: var(--text-main) !important;
+        }
+        .fey-table th, .table-compact th { color: var(--text-soft) !important; }
+        .fey-table-card { background: var(--bg-surface) !important; border-color: var(--border-light) !important; }
+        .fey-table td, .table-compact td { background: var(--bg-surface) !important; }
+        .fey-table tr:hover td { background: var(--slate-100) !important; }
+        .stat-pill.neutral, .pos-other, .rank-other {
+            background: var(--slate-100) !important;
+            color: var(--text-soft) !important;
+            border-color: var(--border-light) !important;
+        }
+
+        /* Clases "fey"/"clean" compartidas por plantillas SaaS y paneles.
+           Se remapean a las variables del tema para que funcionen en claro y oscuro. */
+        .fey-title { color: var(--text-main) !important; }
+        .fey-card, .fey-form-panel, .fey-panel {
+            background: var(--bg-surface-translucent) !important;
+            border-color: var(--border-light) !important;
+        }
+        .clean-input {
+            background-color: var(--bg-surface) !important;
+            border-color: var(--border-light) !important;
+            color: var(--text-main) !important;
+        }
+        .clean-input:focus {
+            background-color: var(--bg-surface) !important;
+        }
+
+        /* Aplica el override solo en modo oscuro para no afectar al claro.
+           En claro las variables ya apuntan a los valores light correctos,
+           por lo que estos remapeos son coherentes en ambos. */
+    </style>
 </head>
 <body>
     

@@ -188,6 +188,9 @@
     .accordion-button:focus { box-shadow: none; }
     .accordion-item { border: none; background: transparent; }
 
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ios-bg: #0B1220; --ios-card: #111827; --ios-text: #F1F5F9; --ios-muted: #94A3B8; --ios-blue: #60A5FA; --ios-green: #4ADE80; --ios-red: #F87171; --ios-orange: #FBBF24; --ios-separator: rgba(148, 163, 184, 0.18); } }
+    :root[data-theme="dark"] { --ios-bg: #0B1220; --ios-card: #111827; --ios-text: #F1F5F9; --ios-muted: #94A3B8; --ios-blue: #60A5FA; --ios-green: #4ADE80; --ios-red: #F87171; --ios-orange: #FBBF24; --ios-separator: rgba(148, 163, 184, 0.18); }
 </style>
 {% endblock %}
 

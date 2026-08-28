@@ -119,6 +119,10 @@
         border: 1px solid var(--ios-separator); display: flex; flex-direction: column; justify-content: space-between;
     }
     .history-card .history-icon { font-size: 2.5rem; color: var(--text-muted); opacity: 0.5; margin-bottom: 10px; }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ios-bg: #0B1220; --ios-surface: #111827; --ios-separator: rgba(148, 163, 184, 0.18); --text-main: #F1F5F9; --text-muted: #94A3B8; --apple-blue: #60A5FA; --apple-green: #4ADE80; --apple-dark: #F1F5F9; } }
+    :root[data-theme="dark"] { --ios-bg: #0B1220; --ios-surface: #111827; --ios-separator: rgba(148, 163, 184, 0.18); --text-main: #F1F5F9; --text-muted: #94A3B8; --apple-blue: #60A5FA; --apple-green: #4ADE80; --apple-dark: #F1F5F9; }
 </style>
 {% endblock %}
 

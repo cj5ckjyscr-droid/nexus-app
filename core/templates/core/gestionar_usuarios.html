@@ -90,6 +90,10 @@
     .page-ios-btn:hover { background: #F8FAFC; }
     .page-ios-btn.active { background: #2B6CB0; color: #FFF; border-color: #2B6CB0; }
     .page-ios-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg-body: #0B1220; --card-bg: #111827; --text-main: #F1F5F9; --text-sec: #94A3B8; --border-light: #1E293B; --role-org-bg: #2E1F4A; --role-org-text: #C4B5FD; --role-dir-bg: #1E3A5F; --role-dir-text: #93C5FD; --role-voc-bg: #3A2E12; --role-voc-text: #FCD34D; --role-fan-bg: #2A2E33; --role-fan-text: #CBD5E1; } }
+    :root[data-theme="dark"] { --bg-body: #0B1220; --card-bg: #111827; --text-main: #F1F5F9; --text-sec: #94A3B8; --border-light: #1E293B; --role-org-bg: #2E1F4A; --role-org-text: #C4B5FD; --role-dir-bg: #1E3A5F; --role-dir-text: #93C5FD; --role-voc-bg: #3A2E12; --role-voc-text: #FCD34D; --role-fan-bg: #2A2E33; --role-fan-text: #CBD5E1; }
 </style>
 {% endblock %}
 

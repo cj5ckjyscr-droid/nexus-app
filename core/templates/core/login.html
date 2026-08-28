@@ -205,6 +205,10 @@
         from { opacity: 0; transform: translate3d(0, 20px, 0); }
         to { opacity: 1; transform: translate3d(0, 0, 0); }
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { body, .login-form-container { background-color: var(--bg-app) !important; } .form-floating > .form-control { background-color: var(--bg-surface) !important; color: var(--text-main) !important; border-color: var(--border-light) !important; } .form-floating > .form-control:focus { background-color: var(--bg-surface) !important; } .form-floating > label { color: var(--text-soft) !important; } .toggle-password-btn { color: var(--text-soft) !important; } .register-box { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .register-box:hover { border-color: var(--slate-500) !important; } .btn-register-pro { background-color: var(--bg-surface) !important; color: var(--text-main) !important; border-color: var(--border-light) !important; } .btn-register-pro:hover { background-color: var(--brand-primary) !important; color: #fff !important; border-color: var(--brand-primary) !important; } } }
+    :root[data-theme="dark"] { body, .login-form-container { background-color: var(--bg-app) !important; } .form-floating > .form-control { background-color: var(--bg-surface) !important; color: var(--text-main) !important; border-color: var(--border-light) !important; } .form-floating > .form-control:focus { background-color: var(--bg-surface) !important; } .form-floating > label { color: var(--text-soft) !important; } .toggle-password-btn { color: var(--text-soft) !important; } .register-box { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .register-box:hover { border-color: var(--slate-500) !important; } .btn-register-pro { background-color: var(--bg-surface) !important; color: var(--text-main) !important; border-color: var(--border-light) !important; } .btn-register-pro:hover { background-color: var(--brand-primary) !important; color: #fff !important; border-color: var(--brand-primary) !important; } }
 </style>
 {% endblock %}
 

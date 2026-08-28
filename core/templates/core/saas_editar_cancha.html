@@ -74,6 +74,10 @@
         .fey-card { padding: 24px; border-radius: 20px; }
         .switch-bento { flex-direction: column; align-items: flex-start; gap: 15px; }
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { .fey-card { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .section-title { color: var(--text-main) !important; border-color: var(--border-light) !important; } .switch-bento { background: var(--slate-100) !important; border-color: var(--border-light) !important; } .form-label-pro { color: var(--text-soft) !important; } input[type="file"].clean-input { color: var(--text-soft) !important; } input[type="file"]::file-selector-button { background: var(--bg-surface) !important; color: var(--text-main) !important; border: 1px solid var(--border-light) !important; } } }
+    :root[data-theme="dark"] { .fey-card { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .section-title { color: var(--text-main) !important; border-color: var(--border-light) !important; } .switch-bento { background: var(--slate-100) !important; border-color: var(--border-light) !important; } .form-label-pro { color: var(--text-soft) !important; } input[type="file"].clean-input { color: var(--text-soft) !important; } input[type="file"]::file-selector-button { background: var(--bg-surface) !important; color: var(--text-main) !important; border: 1px solid var(--border-light) !important; } }
 </style>
 {% endblock %}
 
@@ -84,7 +88,7 @@
     
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 pb-3 border-bottom reveal-up">
         <div class="mb-3 mb-md-0">
-            <span class="badge bg-dark bg-opacity-10 text-dark border border-dark border-opacity-25 px-3 py-2 mb-2 rounded-pill fw-bold">
+            <span class="badge bg-slate-100 text-slate-900 border border-slate-300 px-3 py-2 mb-2 rounded-pill fw-bold">
                 <i class="bi bi-cloud-check-fill me-1"></i> Panel SuperAdmin SaaS
             </span>
             <h2 class="fey-title m-0">Editar Complejo</h2>

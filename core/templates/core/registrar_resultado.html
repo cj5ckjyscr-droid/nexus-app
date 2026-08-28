@@ -33,6 +33,10 @@
         margin-top: 10px;
         letter-spacing: -0.3px;
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { .clean-panel { background-color: var(--bg-surface) !important; border-color: var(--border-light) !important; } .score-input { background-color: var(--bg-surface) !important; border-color: var(--border-light) !important; color: var(--text-main) !important; } .team-name { color: var(--text-main) !important; } } }
+    :root[data-theme="dark"] { .clean-panel { background-color: var(--bg-surface) !important; border-color: var(--border-light) !important; } .score-input { background-color: var(--bg-surface) !important; border-color: var(--border-light) !important; color: var(--text-main) !important; } .team-name { color: var(--text-main) !important; } }
 </style>
 
 <div class="row justify-content-center animate__animated animate__fadeInUp">

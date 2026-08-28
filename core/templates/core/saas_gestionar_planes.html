@@ -86,6 +86,10 @@
         .plan-pricing { width: 100%; display: flex; justify-content: space-between; align-items: flex-end; border-top: 2px dashed #94A3B8; padding-top: 16px; }
         .plan-pricing .text-end { text-align: left !important; align-items: flex-start !important; }
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { .plan-strip { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .plan-strip:hover { border-color: var(--slate-500) !important; } .icon-box { background: var(--slate-100) !important; border-color: var(--border-light) !important; } .form-label-pro { color: var(--text-main) !important; } .clean-input::placeholder { color: var(--text-soft) !important; } .badge-contrast { background: var(--slate-100) !important; color: var(--text-main) !important; border-color: var(--border-light) !important; } .plan-pricing { border-color: var(--border-light) !important; } } }
+    :root[data-theme="dark"] { .plan-strip { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .plan-strip:hover { border-color: var(--slate-500) !important; } .icon-box { background: var(--slate-100) !important; border-color: var(--border-light) !important; } .form-label-pro { color: var(--text-main) !important; } .clean-input::placeholder { color: var(--text-soft) !important; } .badge-contrast { background: var(--slate-100) !important; color: var(--text-main) !important; border-color: var(--border-light) !important; } .plan-pricing { border-color: var(--border-light) !important; } }
 </style>
 {% endblock %}
 

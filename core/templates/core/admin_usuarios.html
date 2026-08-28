@@ -82,6 +82,10 @@
     .ios-page-btn:hover { background: #E5E5EA; }
     .ios-page-btn.active { background: var(--text-main); color: #FFF; border-color: var(--text-main); }
     .ios-page-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ios-bg: #0B1220; --ios-surface: #111827; --ios-border: #1E293B; --text-main: #F1F5F9; --text-muted: #94A3B8; --ios-blue-bg: #1E3A5F; --ios-blue-text: #93C5FD; --ios-green-bg: #16351F; --ios-green-text: #86EFAC; --ios-orange-bg: #3A2E12; --ios-orange-text: #FCD34D; --ios-purple-bg: #2E1F4A; --ios-purple-text: #C4B5FD; --ios-gray-bg: #2A2E33; --ios-gray-text: #CBD5E1; --ios-red-bg: #432220; --ios-red-text: #FCA5A5; } }
+    :root[data-theme="dark"] { --ios-bg: #0B1220; --ios-surface: #111827; --ios-border: #1E293B; --text-main: #F1F5F9; --text-muted: #94A3B8; --ios-blue-bg: #1E3A5F; --ios-blue-text: #93C5FD; --ios-green-bg: #16351F; --ios-green-text: #86EFAC; --ios-orange-bg: #3A2E12; --ios-orange-text: #FCD34D; --ios-purple-bg: #2E1F4A; --ios-purple-text: #C4B5FD; --ios-gray-bg: #2A2E33; --ios-gray-text: #CBD5E1; --ios-red-bg: #432220; --ios-red-text: #FCA5A5; }
 </style>
 {% endblock %}
 

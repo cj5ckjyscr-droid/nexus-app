@@ -12,6 +12,10 @@
         --text-muted-strict: #475569;
     }
 
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --text-dark-strict: #F1F5F9; --text-muted-strict: #94A3B8; } }
+    :root[data-theme="dark"] { --text-dark-strict: #F1F5F9; --text-muted-strict: #94A3B8; }
+
     /* Blindaje del Input de Fecha */
     input[type=date] {
         border-radius: 10px !important;
@@ -50,7 +54,7 @@
                 <p class="small mb-0 fw-bold mt-1" style="color: #FECACA !important;">Ingreso a la Lista Negra</p>
             </div>
             
-            <div class="card-body p-4" style="background-color: #FFFFFF !important;">
+            <div class="card-body p-4" style="background-color: var(--bg-surface) !important;">
                 
                 <div class="text-center mb-4 pb-3 border-bottom">
                     <div class="d-inline-flex justify-content-center align-items-center rounded-circle mb-2" style="width: 50px; height: 50px; background-color: #FEE2E2 !important;">
@@ -82,7 +86,7 @@
                         </label>
                         {{ form.sancionado_hasta }}
                         
-                        <div class="mt-2 p-2 rounded-3 border" style="background-color: #F8FAFC !important; border-color: #E2E8F0 !important;">
+                        <div class="mt-2 p-2 rounded-3 border" style="background-color: var(--slate-50) !important; border-color: var(--border-light) !important;">
                             <div class="fw-bold d-flex align-items-start" style="color: var(--text-muted-strict) !important; font-size: 0.7rem; line-height: 1.4;">
                                 <i class="bi bi-info-circle-fill me-2 mt-1" style="color: var(--accent-red-bg) !important;"></i>
                                 <span>{{ form.sancionado_hasta.help_text }}</span>
@@ -106,7 +110,7 @@
                             <i class="bi bi-gavel me-2"></i> Ejecutar Sentencia
                         </button>
                         
-                        <a href="{% url 'gestionar_equipos' %}" class="btn btn-action fw-bold rounded-pill py-2" style="background-color: #F1F5F9 !important; border: 1px solid #CBD5E1 !important; color: var(--text-dark-strict) !important; font-size: 0.85rem;">
+                        <a href="{% url 'gestionar_equipos' %}" class="btn btn-action fw-bold rounded-pill py-2" style="background-color: var(--slate-100) !important; border: 1px solid var(--border-light) !important; color: var(--text-dark-strict) !important; font-size: 0.85rem;">
                             Cancelar y Volver
                         </a>
                     </div>

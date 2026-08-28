@@ -57,6 +57,10 @@
     @media (max-width: 768px) {
         .fey-card { padding: 24px; border-radius: 20px; }
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { .fey-card { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .form-label-pro { color: var(--text-soft) !important; } input[type="file"].clean-input { color: var(--text-soft) !important; } input[type="file"]::file-selector-button { background: var(--bg-surface) !important; color: var(--text-main) !important; border: 1px solid var(--border-light) !important; } } }
+    :root[data-theme="dark"] { .fey-card { background: var(--bg-surface) !important; border-color: var(--border-light) !important; } .form-label-pro { color: var(--text-soft) !important; } input[type="file"].clean-input { color: var(--text-soft) !important; } input[type="file"]::file-selector-button { background: var(--bg-surface) !important; color: var(--text-main) !important; border: 1px solid var(--border-light) !important; } }
 </style>
 {% endblock %}
 

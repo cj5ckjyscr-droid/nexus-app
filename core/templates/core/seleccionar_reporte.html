@@ -146,6 +146,10 @@
         border-color: inherit;
         box-shadow: none;
     }
+
+    /* ===== MODO OSCURO ===== */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg-app: #0B1220; --card-bg: #111827; --border-color: #1E293B; --text-main: #F1F5F9; --text-muted: #94A3B8; --primary-accent: #818CF8; --success-accent: #4ADE80; } }
+    :root[data-theme="dark"] { --bg-app: #0B1220; --card-bg: #111827; --border-color: #1E293B; --text-main: #F1F5F9; --text-muted: #94A3B8; --primary-accent: #818CF8; --success-accent: #4ADE80; }
 </style>
 {% endblock %}
 
