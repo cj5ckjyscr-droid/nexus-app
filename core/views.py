@@ -3149,7 +3149,12 @@ def imprimir_carnets(request, equipo_id):
 @user_passes_test(es_organizador)
 def gestionar_configuracion(request):
     mi_complejo = obtener_mi_complejo(request.user)
-    config, created = Configuracion.objects.get_or_create(complejo=mi_complejo)
+    # El superadmin edita la configuración GLOBAL (complejo=None), que es la que
+    # se muestra en la barra de navegación, login, inicio y registro.
+    if request.user.is_superuser:
+        config, created = Configuracion.objects.get_or_create(complejo=None)
+    else:
+        config, created = Configuracion.objects.get_or_create(complejo=mi_complejo)
     
     if request.method == 'POST':
         form = ConfiguracionForm(request.POST, request.FILES, instance=config)
