@@ -4,7 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light dark">
     <title>{% block title %}{% if complejo %}{{ complejo.nombre }}{% else %}NEXUS SPORTOPS{% endif %}{% endblock %}</title>
+    <script>
+        /* Aplica el tema ANTES de pintar la página, para evitar parpadeo. */
+        (function () {
+            try {
+                var guardado = localStorage.getItem('nexus-theme');
+                var tema = guardado || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', tema);
+                document.documentElement.setAttribute('data-bs-theme', tema);
+            } catch (e) {}
+        })();
+    </script>
     
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -21,17 +33,106 @@
             --border-light: #E2E8F0;       
             
             /* Acentos */
-            --brand-primary: #4F46E5;      
+            --brand-primary: #4F46E5;
             --brand-hover: #4338CA;
+
+            /* Alias de compatibilidad: nombres de variables que usan las
+               plantillas migradas de gestion_futbol, mapeados a esta
+               paleta para que nunca queden colores/clases sin definir. */
+            --primary-navy: var(--text-main);
+            --primary-blue: var(--brand-primary);
+            --accent-light-blue: #818CF8;
+            --white-pure: var(--bg-surface);
+            --bg-body: var(--bg-app);
             
             /* Sombras Minimalistas */
             --shadow-float: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.01);
             --shadow-nav: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+            --bg-surface-translucent: rgba(255, 255, 255, 0.95);
             
             /* Radios de borde modernos pero estructurados */
             --radius-md: 12px;
             --radius-btn: 8px;
+
+            /* Escala "slate" (grises) usada por varias plantillas.
+               La posición en la escala mantiene su significado (50 = fondo
+               sutil, 900 = texto más fuerte) en ambos temas; los valores
+               concretos se invierten en modo oscuro más abajo. */
+            --slate-50: #F8FAFC;
+            --slate-100: #F1F5F9;
+            --slate-200: #E2E8F0;
+            --slate-300: #CBD5E1;
+            --slate-400: #94A3B8;
+            --slate-500: #64748B;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-800: #1E293B;
+            --slate-900: #0F172A;
         }
+
+        /* =========================================================
+           MODO OSCURO: automático (sistema) + manual (data-theme)
+           ========================================================= */
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg-app: #0B1220;
+                --bg-surface: #111827;
+                --text-main: #F1F5F9;
+                --text-soft: #94A3B8;
+                --border-light: #1E293B;
+                --brand-primary: #818CF8;
+                --brand-hover: #A5B4FC;
+                --bg-surface-translucent: rgba(17, 24, 39, 0.95);
+
+                --slate-50: #0F172A;
+                --slate-100: #1E293B;
+                --slate-200: #334155;
+                --slate-300: #475569;
+                --slate-400: #64748B;
+                --slate-500: #94A3B8;
+                --slate-600: #CBD5E1;
+                --slate-700: #E2E8F0;
+                --slate-800: #F1F5F9;
+                --slate-900: #F8FAFC;
+            }
+        }
+        :root[data-theme="dark"] {
+            --bg-app: #0B1220;
+            --bg-surface: #111827;
+            --text-main: #F1F5F9;
+            --text-soft: #94A3B8;
+            --border-light: #1E293B;
+            --brand-primary: #818CF8;
+            --brand-hover: #A5B4FC;
+            --bg-surface-translucent: rgba(17, 24, 39, 0.95);
+
+            --slate-50: #0F172A;
+            --slate-100: #1E293B;
+            --slate-200: #334155;
+            --slate-300: #475569;
+            --slate-400: #64748B;
+            --slate-500: #94A3B8;
+            --slate-600: #CBD5E1;
+            --slate-700: #E2E8F0;
+            --slate-800: #F1F5F9;
+            --slate-900: #F8FAFC;
+        }
+
+        /* --- ALIAS "SLATE" (usados por varias plantillas migradas) --- */
+        .text-slate-50 { color: var(--slate-50) !important; }
+        .text-slate-100 { color: var(--slate-100) !important; }
+        .text-slate-200 { color: var(--slate-200) !important; }
+        .text-slate-300 { color: var(--slate-300) !important; }
+        .text-slate-400 { color: var(--slate-400) !important; }
+        .text-slate-500 { color: var(--slate-500) !important; }
+        .text-slate-600 { color: var(--slate-600) !important; }
+        .text-slate-700 { color: var(--slate-700) !important; }
+        .text-slate-800 { color: var(--slate-800) !important; }
+        .text-slate-900 { color: var(--slate-900) !important; }
+        .bg-slate-50 { background-color: var(--slate-50) !important; }
+        .bg-slate-100 { background-color: var(--slate-100) !important; }
+        .bg-slate-200 { background-color: var(--slate-200) !important; }
+        .border-slate-200 { border-color: var(--slate-200) !important; }
 
         body {
             background-color: var(--bg-app);
@@ -52,7 +153,7 @@
 
         /* --- NAVBAR MINIMALISTA --- */
         .navbar-custom {
-            background-color: rgba(255, 255, 255, 0.95);
+            background-color: var(--bg-surface-translucent);
             backdrop-filter: blur(8px);
             border-bottom: 1px solid var(--border-light);
             box-shadow: var(--shadow-nav);
@@ -71,7 +172,7 @@
         .brand-text {
             font-weight: 800;
             font-size: 1.3rem;
-            background: linear-gradient(90deg, #0F172A 0%, #4F46E5 100%);
+            background: linear-gradient(90deg, var(--text-main) 0%, var(--brand-primary) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -127,9 +228,49 @@
             transition: all 0.2s ease;
         }
         .btn-outline-nexus:hover {
-            background-color: #F8FAFC;
-            border-color: #CBD5E1;
+            background-color: var(--slate-50);
+            border-color: var(--slate-300);
             color: var(--text-main) !important;
+        }
+
+        /* --- ALIAS DE COMPATIBILIDAD (plantillas migradas de gestion_futbol) --- */
+        .btn-sport {
+            background-color: var(--brand-primary);
+            color: #FFFFFF !important;
+            border: none;
+            font-weight: 700;
+            padding: 0.6rem 1.75rem;
+            border-radius: var(--radius-btn);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+            transition: all 0.2s ease;
+        }
+        .btn-sport:hover {
+            background-color: var(--brand-hover);
+            color: #FFFFFF !important;
+            transform: translateY(-1px);
+        }
+        .btn-outline-sport {
+            background: transparent;
+            color: var(--brand-primary) !important;
+            border: 2px solid var(--brand-primary);
+            font-weight: 700;
+            border-radius: var(--radius-btn);
+            transition: all 0.2s ease;
+        }
+        .btn-outline-sport:hover {
+            background: var(--brand-primary);
+            color: #FFFFFF !important;
+        }
+        .card-pro {
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            background: var(--bg-surface);
+            box-shadow: var(--shadow-float);
+            position: relative;
+            overflow: hidden;
         }
 
         /* --- MENÚ DESPLEGABLE (Dropdown) --- */
@@ -150,7 +291,7 @@
             transition: background-color 0.15s;
         }
         .dropdown-item:hover {
-            background-color: #F1F5F9;
+            background-color: var(--slate-100);
             color: var(--brand-primary);
         }
 
@@ -260,12 +401,17 @@
             </div>
             
             <button class="navbar-toggler border-0 p-1 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <i class="bi bi-list fs-2 text-dark"></i>
+                <i class="bi bi-list fs-2" style="color: var(--text-main);"></i>
+            </button>
+
+            <button type="button" id="themeToggleBtn" class="btn-outline-nexus d-flex align-items-center justify-content-center ms-2" style="width: 40px; height: 40px; padding: 0; border-radius: 50%;" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema claro/oscuro">
+                <i class="bi bi-moon-stars-fill" id="themeToggleIconDark" style="display: none;"></i>
+                <i class="bi bi-sun-fill" id="themeToggleIconLight" style="display: none;"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
-                    
+
                     <li class="nav-item">
                         <a class="nav-link fw-bold {% if request.resolver_match.url_name == 'landing_principal' %}text-primary{% endif %}" href="{% url 'landing_principal' %}">
                             <i class="bi bi-grid-fill me-1"></i> Explorar Canchas
@@ -340,7 +486,7 @@
         {% for message in messages %}
             <div class="toast align-items-center mb-3 border-start border-4 {% if message.tags == 'error' %}border-danger{% elif message.tags == 'success' %}border-success{% elif message.tags == 'warning' %}border-warning{% else %}border-primary{% endif %}" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex p-2">
-                    <div class="toast-body fw-medium fs-6 text-dark d-flex align-items-center">
+                    <div class="toast-body fw-medium fs-6 d-flex align-items-center" style="color: var(--text-main);">
                         {% if message.tags == 'error' %}
                             <i class="bi bi-x-circle text-danger fs-5 me-2"></i>
                         {% elif message.tags == 'success' %}
@@ -367,15 +513,15 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
-                    <span class="fw-bold text-dark fs-6" style="font-family: 'Outfit', sans-serif;">NEXUS SPORTOPS</span>
-                    <span class="mx-2 d-none d-md-inline text-muted opacity-50">|</span>
-                    <small class="d-block d-md-inline text-muted mt-1 mt-md-0">Smart Sports Management</small>
+                    <span class="fw-bold fs-6" style="font-family: 'Outfit', sans-serif; color: var(--text-main);">NEXUS SPORTOPS</span>
+                    <span class="mx-2 d-none d-md-inline opacity-50" style="color: var(--text-soft);">|</span>
+                    <small class="d-block d-md-inline mt-1 mt-md-0" style="color: var(--text-soft);">Smart Sports Management</small>
                 </div>
-                
+
                 <div class="col-md-6 text-center text-md-end">
-                    <small class="text-muted">
-                        &copy; {% now "Y" %}. Desarrollado por 
-                        <a href="https://wa.me/593987408528" target="_blank" class="fw-semibold text-decoration-none text-dark" style="transition: color 0.2s;" onmouseover="this.style.color='var(--brand-primary)'" onmouseout="this.style.color='var(--text-main)'">
+                    <small style="color: var(--text-soft);">
+                        &copy; {% now "Y" %}. Desarrollado por
+                        <a href="https://wa.me/593987408528" target="_blank" class="fw-semibold text-decoration-none" style="transition: color 0.2s; color: var(--text-main);" onmouseover="this.style.color='var(--brand-primary)'" onmouseout="this.style.color='var(--text-main)'">
                            Deyvi Rivera <i class="bi bi-whatsapp ms-1 text-success"></i>
                         </a>
                     </small>
@@ -404,6 +550,33 @@
             });
             toastList.forEach(toast => toast.show());
         });
+    </script>
+
+    <script>
+        (function () {
+            var root = document.documentElement;
+            var btn = document.getElementById('themeToggleBtn');
+            var iconDark = document.getElementById('themeToggleIconDark');
+            var iconLight = document.getElementById('themeToggleIconLight');
+
+            function actualizarIcono() {
+                var esOscuro = root.getAttribute('data-theme') === 'dark';
+                iconDark.style.display = esOscuro ? 'none' : 'inline-block';
+                iconLight.style.display = esOscuro ? 'inline-block' : 'none';
+            }
+
+            actualizarIcono();
+
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    var nuevoTema = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                    root.setAttribute('data-theme', nuevoTema);
+                    root.setAttribute('data-bs-theme', nuevoTema);
+                    try { localStorage.setItem('nexus-theme', nuevoTema); } catch (e) {}
+                    actualizarIcono();
+                });
+            }
+        })();
     </script>
 
     {% block extra_js %}{% endblock %}

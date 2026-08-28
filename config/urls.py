@@ -26,6 +26,7 @@ urlpatterns = [
     path('torneos/', views.gestionar_torneos, name='gestionar_torneos'),
     path('torneos/editar/<int:torneo_id>/', views.editar_torneo, name='editar_torneo'),
     path('torneos/eliminar/<int:torneo_id>/', views.eliminar_torneo, name='eliminar_torneo'),
+    path('torneos/estado/<int:torneo_id>/', views.cambiar_estado_torneo, name='cambiar_estado_torneo'),
     
     path('categorias/', views.gestionar_categorias, name='gestionar_categorias'),
     path('categorias/editar/<int:categoria_id>/', views.editar_categoria, name='editar_categoria'),
@@ -85,6 +86,8 @@ urlpatterns = [
 
     # Finanzas
     path('finanzas/', views.gestionar_finanzas, name='gestionar_finanzas'),
+    path('finanzas/caja-diaria/', views.cierre_diario_caja, name='cierre_diario_caja'),
+    path('finanzas/notificar-whatsapp/<int:equipo_id>/', views.notificar_equipo_whatsapp, name='notificar_equipo_whatsapp'),
     path('pago/registrar/', views.registrar_pago, name='registrar_pago'),
     path('pago/historial/<int:equipo_id>/', views.historial_pagos_equipo, name='historial_pagos_equipo'),
     path('pago/pdf/<int:pago_id>/', views.generar_recibo_pago_pdf, name='generar_recibo_pago_pdf'),
@@ -102,6 +105,8 @@ urlpatterns = [
     path('configuracion/', views.gestionar_configuracion, name='gestionar_configuracion'),
     path('medios/', views.gestionar_medios, name='gestionar_medios'),
     path('medios/eliminar-foto/<int:foto_id>/', views.eliminar_foto, name='eliminar_foto'),
+    path('horarios/imagen/', views.generar_horarios_imagen, name='generar_horarios_imagen'),
+    path('mis-finanzas-equipo/', views.mis_finanzas_equipo, name='mis_finanzas_equipo'),
 
     # Gestión Global de Usuarios
     path('usuarios/crear/', views.crear_usuario, name='crear_usuario'),

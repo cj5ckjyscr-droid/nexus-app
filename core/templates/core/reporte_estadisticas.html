@@ -324,7 +324,7 @@
 
     <div class="row g-4 mb-5 reveal-up" style="animation-delay: 0.3s;">
         
-        <div class="col-lg-5 print-col-5">
+        <div class="col-lg-4 print-col-5">
             <div class="fey-card h-100" style="border-top: 5px solid #10B981;">
                 <div class="fey-card-header py-3">
                     <div class="d-flex align-items-center">
@@ -332,7 +332,7 @@
                         <h6 class="mb-0 fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Top Goleadores</h6>
                     </div>
                 </div>
-                
+
                 <div class="card-body p-0 scroll-y-area">
                     {% for g in goleadores %}
                     <div class="list-item-pro">
@@ -356,7 +356,39 @@
             </div>
         </div>
 
-        <div class="col-lg-7 print-col-7 d-flex flex-column gap-4">
+        <div class="col-lg-4 print-col-5">
+            <div class="fey-card h-100" style="border-top: 5px solid #F59E0B;">
+                <div class="fey-card-header py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;"><i class="bi bi-star-fill"></i></div>
+                        <h6 class="mb-0 fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Top 15 MVP</h6>
+                    </div>
+                </div>
+
+                <div class="card-body p-0 scroll-y-area">
+                    {% for m in top_mvps %}
+                    <div class="list-item-pro">
+                        <div class="rank-badge {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-other{% endif %}">{{ forloop.counter }}</div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold text-dark text-truncate" style="font-size: 0.9rem;">{{ m.jugador__nombres }}</div>
+                            <div class="text-muted fw-medium text-truncate d-flex align-items-center mt-1" style="font-size: 0.75rem;">
+                                {% if m.jugador__equipo__escudo %}<img src="/media/{{ m.jugador__equipo__escudo }}" class="team-shield-mini me-1" style="width: 16px; height: 16px;">
+                                {% else %}<i class="bi bi-shield-fill me-1 opacity-50"></i>{% endif %}
+                                {{ m.jugador__equipo__nombre }}
+                            </div>
+                        </div>
+                        <div class="ms-3">
+                            <span class="stat-pill warning fw-black px-3" style="font-size: 1rem;">⭐ {{ m.total_stars }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5 text-muted bg-slate-50"><i class="bi bi-stars fs-3 d-block mb-2 opacity-25"></i>Aún no hay MVPs registrados.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 print-col-7 d-flex flex-column gap-4">
             
             <div class="fey-card" style="border-top: 5px solid #EF4444;">
                 <div class="fey-card-header py-3">

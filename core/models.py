@@ -42,6 +42,10 @@ class PlanSuscripcion(models.Model):
     precio_mensual = models.DecimalField(max_digits=8, decimal_places=2)
     max_torneos = models.PositiveIntegerField(default=1)
     max_categorias_por_torneo = models.PositiveIntegerField(default=1)
+    max_jugadores = models.PositiveIntegerField(
+        default=50, verbose_name="Máximo de jugadores inscritos",
+        help_text="Número total de jugadores que esta cancha puede tener registrados.",
+    )
 
     def __str__(self):
         return f"{self.nombre} - ${self.precio_mensual}/mes"
@@ -61,7 +65,7 @@ class ComplejoDeportivo(models.Model):
     def esta_al_dia(self):
         if not self.activo:
             return False
-        if self.fecha_vencimiento and self.fecha_vencimiento < timezone.now().date():
+        if self.fecha_vencimiento and self.fecha_vencimiento < timezone.localtime(timezone.now()).date():
             return False
         return True
 
@@ -78,6 +82,12 @@ class Perfil(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
     telefono = models.CharField(max_length=15, blank=True, null=True)
     foto = models.ImageField(upload_to='perfiles/', blank=True, null=True)
+    cedula = models.CharField(
+        max_length=10, unique=True, null=True, blank=True,
+        validators=[validar_cedula_db],
+        verbose_name="Cédula",
+        help_text="Permite iniciar sesión con la cédula además del usuario.",
+    )
     sancionado_hasta = models.DateField(null=True, blank=True, verbose_name="Suspendido (Lista Negra) Global hasta:")
 
     def __str__(self):
@@ -123,12 +133,11 @@ class RolComplejo(models.Model):
 class Configuracion(models.Model):
     complejo = models.OneToOneField(ComplejoDeportivo, on_delete=models.CASCADE, related_name='configuracion', null=True, blank=True)
     iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=15.00)
-    
-    # ESTO ES LO QUE AGREGAMOS PARA QUE APAREZCA EN EL ADMIN
-    logo_sistema = models.ImageField(upload_to='logos_sistema/', null=True, blank=True, verbose_name="Logo Global de Nexus")
+    # Quitamos logo_sistema porque ahora el logo va en ComplejoDeportivo
     
     def __str__(self):
         return f"Configuración de {self.complejo.nombre if self.complejo else 'Global'}"
+
 # =====================================================
 # 3. MULTIMEDIA (AHORA POR COMPLEJO)
 # =====================================================
@@ -184,7 +193,7 @@ class Cupon(models.Model):
         ]
 
     def es_valido(self):
-        ahora = timezone.now().date()
+        ahora = timezone.localtime(timezone.now()).date()
         if not self.activo: return False
         if self.fecha_expiracion and ahora > self.fecha_expiracion: return False
         if self.limite_usos and self.usos_actuales >= self.limite_usos: return False
@@ -393,6 +402,9 @@ class Partido(models.Model):
     hubo_penales = models.BooleanField(default=False, verbose_name="¿Hubo Penales?")
     penales_local = models.PositiveIntegerField(default=0, blank=True, null=True)
     penales_visita = models.PositiveIntegerField(default=0, blank=True, null=True)
+
+    firma_local_base64 = models.TextField(blank=True, null=True, verbose_name="Firma Local Base64")
+    firma_visita_base64 = models.TextField(blank=True, null=True, verbose_name="Firma Visita Base64")
 
     def clean(self):
         if self.equipo_local == self.equipo_visita:

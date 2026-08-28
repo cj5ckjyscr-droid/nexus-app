@@ -1,0 +1,358 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Horarios de la Semana | {{ complejo.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --hi-bg: #F2F2F7;
+        --hi-surface: #FFFFFF;
+        --hi-green: #16342A;
+        --hi-orange: #FF9500;
+        --hi-text: #1C1C1E;
+        --hi-muted: #8E8E93;
+        --hi-separator: rgba(60,60,67,0.13);
+    }
+
+    body { background-color: var(--hi-bg); }
+
+    /* ===== BARRA DE ACCIONES (fuera de la imagen) ===== */
+    .horarios-toolbar {
+        display: flex; justify-content: space-between; align-items: center;
+        max-width: 900px; margin: 0 auto 20px auto; padding: 0 4px;
+        flex-wrap: wrap; gap: 12px;
+    }
+    .btn-volver-horarios {
+        color: var(--hi-text); font-weight: 600; text-decoration: none; font-size: 0.9rem;
+    }
+    .btn-descargar-horarios {
+        background: var(--hi-orange);
+        color: #fff; border: none; padding: 12px 24px; border-radius: 12px;
+        font-weight: 700; letter-spacing: 0.2px;
+        display: inline-flex; align-items: center; gap: 8px; transition: transform 0.15s;
+    }
+    .btn-descargar-horarios:active { transform: scale(0.97); }
+    .btn-descargar-horarios:disabled { opacity: 0.7; }
+
+    /* ===== ENVOLTORIO CON SCROLL EN MÓVIL ===== */
+    .poster-wrapper { overflow-x: auto; padding: 4px 4px 40px 4px; }
+
+    /* Sombra tenue solo para la vista previa en pantalla (no se exporta:
+       .poster no lleva box-shadow porque html2canvas la renderiza mal
+       cuando se combina con border-radius + overflow:hidden). */
+    .poster-frame { width: 900px; margin: 0 auto; border-radius: 24px; box-shadow: 0 12px 32px rgba(28,28,30,0.10); }
+
+    /* ===== EL CARTEL (esto es lo que se exporta como imagen) ===== */
+    .poster {
+        width: 900px; margin: 0 auto; border-radius: 24px; overflow: hidden;
+        background: var(--hi-bg);
+        font-family: 'Inter', sans-serif; color: var(--hi-text);
+        position: relative;
+    }
+
+    /* --- CABECERA --- */
+    .poster-header {
+        background: var(--hi-green); color: #fff;
+        padding: 30px 32px 26px 32px;
+    }
+    .poster-header-top { display: flex; align-items: center; gap: 22px; }
+    .poster-logo {
+        width: 170px; height: 170px; object-fit: contain; border-radius: 28px;
+        background: rgba(255,255,255,0.08); padding: 10px; flex-shrink: 0;
+    }
+    .poster-title {
+        font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.85rem;
+        letter-spacing: 0.2px; margin: 0; line-height: 1.15;
+    }
+    .poster-subtitle {
+        font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.72rem;
+        letter-spacing: 2.2px; color: var(--hi-orange); margin-top: 4px; text-transform: uppercase;
+    }
+    .poster-location {
+        margin-top: 16px; font-size: 0.78rem; font-weight: 500; color: rgba(255,255,255,0.6);
+        display: flex; align-items: center; gap: 6px;
+    }
+
+    /* --- CUERPO --- */
+    .poster-body { padding: 4px 20px 8px 20px; }
+
+    .poster-day-header {
+        display: flex; align-items: center; gap: 9px;
+        margin: 22px 8px 12px 8px; padding-bottom: 10px;
+        border-bottom: 2px solid var(--hi-green);
+        font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.4px; color: var(--hi-text);
+    }
+    .poster-day-header::before {
+        content: ""; width: 9px; height: 9px; border-radius: 50%;
+        background: var(--hi-green); flex-shrink: 0;
+    }
+    .poster-day-header:first-child { margin-top: 16px; }
+
+    .poster-matches {
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+        align-items: stretch;
+    }
+
+    .poster-match-card {
+        background: var(--hi-surface); border-radius: 16px; padding: 17px 16px 12px 16px;
+        box-shadow: 0 1px 3px rgba(28,28,30,0.06);
+        position: relative; display: flex; flex-direction: column; justify-content: space-between;
+        min-width: 0; overflow: hidden;
+    }
+    .poster-match-card.pm-full { grid-column: 1 / -1; }
+
+    .pm-meta {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        gap: 8px; margin-bottom: 12px;
+    }
+    .pm-hora {
+        display: flex; align-items: baseline; gap: 6px;
+        font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.3rem;
+        color: var(--hi-text); line-height: 1;
+    }
+    .pm-hora i { font-size: 0.62rem; color: var(--hi-muted); }
+    .pm-full .pm-hora { font-size: 1.55rem; }
+    .pm-meta-right { text-align: right; max-width: 62%; }
+    .pm-torneo {
+        display: block; font-size: 0.62rem; font-weight: 700; color: var(--hi-muted);
+        text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.3;
+    }
+    .pm-categoria {
+        display: block; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1px;
+        line-height: 1.3; margin-top: 1px;
+    }
+    .pm-stage {
+        display: inline-block; margin-top: 4px; font-size: 0.6rem; font-weight: 800;
+        color: var(--hi-green); border: 1px solid var(--hi-green);
+        padding: 1px 7px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+
+    .pm-teams { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 2px 0; }
+    .pm-team { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+    .pm-shield {
+        width: 68px; height: 68px; border-radius: 16px; background: var(--hi-bg);
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+        flex-shrink: 0;
+    }
+    .pm-shield img { width: 100%; height: 100%; object-fit: cover; }
+    .pm-name {
+        font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.78rem;
+        color: var(--hi-text); text-align: center; line-height: 1.25;
+        word-break: break-word; max-width: 100%;
+    }
+    .pm-vs {
+        flex-shrink: 0; font-family: 'Montserrat', sans-serif; font-weight: 800;
+        font-size: 0.65rem; color: var(--hi-muted); letter-spacing: 1px;
+    }
+
+    .pm-full .pm-teams { gap: 24px; }
+    .pm-full .pm-shield { width: 84px; height: 84px; border-radius: 18px; }
+    .pm-full .pm-name { font-size: 0.95rem; }
+    .pm-full .pm-team { max-width: 300px; }
+
+    .pm-cancha {
+        display: flex; align-items: center; justify-content: center; gap: 5px;
+        margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hi-separator);
+        font-size: 0.68rem; font-weight: 600; color: var(--hi-muted);
+        text-align: center;
+    }
+
+    /* Franjas con el color de la categoría del torneo (lateral + superior) */
+    .pm-category-tag {
+        position: absolute; top: 0; left: 0; bottom: 0; width: 5px;
+        background: var(--cat-color);
+    }
+    .pm-category-top {
+        position: absolute; top: 0; left: 0; right: 0; height: 5px;
+        background: var(--cat-color);
+    }
+
+    /* --- FOOTER --- */
+    .poster-footer {
+        text-align: center; padding: 22px 20px 26px 20px; font-size: 0.72rem;
+        font-weight: 600; color: var(--hi-muted);
+    }
+
+    .poster-empty {
+        padding: 60px 30px; text-align: center; color: var(--hi-muted); font-weight: 600;
+    }
+
+    @media (max-width: 600px) {
+        .pm-teams { gap: 10px; }
+        .pm-name { font-size: 0.82rem; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container-fluid px-2 pb-5 animate__animated animate__fadeIn">
+
+    <div class="horarios-toolbar">
+        <a href="{% url 'dashboard' %}" class="btn-volver-horarios"><i class="bi bi-arrow-left me-1"></i> Volver al Dashboard</a>
+        <button type="button" id="btnDescargarImagen" class="btn-descargar-horarios">
+            <i class="bi bi-download"></i> Descargar Imagen
+        </button>
+    </div>
+
+    <div class="poster-wrapper">
+        <div class="poster-frame">
+        <div class="poster" id="posterHorarios">
+
+            <div class="poster-header">
+                <div class="poster-header-top">
+                    {% if complejo.logo %}
+                        <img src="{{ complejo.logo.url }}" class="poster-logo" crossorigin="anonymous" alt="Logo">
+                    {% endif %}
+                    <div>
+                        <h1 class="poster-title">{{ complejo.nombre }}</h1>
+                        <div class="poster-subtitle">Horario de Juego</div>
+                    </div>
+                </div>
+                {% if complejo.telefono_contacto %}<div class="poster-location"><i class="bi bi-whatsapp"></i> {{ complejo.telefono_contacto }}</div>{% endif %}
+            </div>
+
+            <div class="poster-body">
+                {% if partidos %}
+                    {% regroup partidos by fecha_local as partidos_por_dia %}
+                    {% for dia in partidos_por_dia %}
+                        <div class="poster-day-header">{{ dia.grouper|date:"l, d \d\e F" }}</div>
+                        <div class="poster-matches">
+                            {% for p in dia.list %}
+                            <div class="poster-match-card{% if forloop.last and not dia.list|length|divisibleby:2 %} pm-full{% endif %}" style="--cat-color: {{ p.torneo.categoria.color_carnet|default:'#16342A' }};">
+                                <div class="pm-category-top"></div>
+                                <div class="pm-category-tag"></div>
+                                <div class="pm-meta">
+                                    <div class="pm-hora"><i class="bi bi-clock-fill"></i> {{ p.fecha_hora|time:"H:i" }}</div>
+                                    <div class="pm-meta-right">
+                                        <span class="pm-torneo">{{ p.torneo.nombre }}</span>
+                                        {% if p.torneo.categoria %}
+                                            <span class="pm-categoria" style="color: {{ p.torneo.categoria.color_carnet }};">{{ p.torneo.categoria.nombre }}</span>
+                                        {% endif %}
+                                        {% if p.etapa == 'F1' or p.etapa == 'F2' %}
+                                            <span class="pm-torneo">Jornada {{ p.numero_fecha }}</span>
+                                        {% else %}
+                                            <span class="pm-stage">{{ p.get_etapa_display }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="pm-teams">
+                                    <div class="pm-team">
+                                        <div class="pm-shield">
+                                            {% if p.equipo_local.escudo %}<img src="{{ p.equipo_local.escudo.url }}" crossorigin="anonymous">
+                                            {% else %}<i class="bi bi-shield-fill text-secondary fs-2"></i>{% endif %}
+                                        </div>
+                                        <div class="pm-name">{{ p.equipo_local.nombre }}</div>
+                                    </div>
+
+                                    <div class="pm-vs">VS</div>
+
+                                    <div class="pm-team">
+                                        <div class="pm-shield">
+                                            {% if p.equipo_visita.escudo %}<img src="{{ p.equipo_visita.escudo.url }}" crossorigin="anonymous">
+                                            {% else %}<i class="bi bi-shield-fill text-secondary fs-2"></i>{% endif %}
+                                        </div>
+                                        <div class="pm-name">{{ p.equipo_visita.nombre }}</div>
+                                    </div>
+                                </div>
+                                <div class="pm-cancha"><i class="bi bi-geo-alt"></i> {{ p.cancha }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="poster-empty">
+                        <i class="bi bi-calendar-x" style="font-size:2.5rem;"></i>
+                        <div class="mt-2">Todavía no hay partidos programados con fecha y hora.</div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="poster-footer">
+                Generado el {{ generado_en|date:"d/m/Y" }} a las {{ generado_en|time:"H:i" }} &bull; {{ complejo.nombre }} &bull; Dev: Deyvi Rivera
+            </div>
+
+        </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('btnDescargarImagen');
+    var poster = document.getElementById('posterHorarios');
+
+    btn.addEventListener('click', function () {
+        var textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando...';
+
+        var render = function () {
+            html2canvas(poster, {
+                useCORS: true,
+                backgroundColor: null,
+                scale: 2
+            }).then(function (canvas) {
+                var hoy = new Date().toISOString().slice(0, 10);
+                var nombreArchivo = 'horarios-{{ complejo.slug }}-' + hoy + '.png';
+
+                var descargarComoArchivo = function (blob) {
+                    var enlace = document.createElement('a');
+                    enlace.download = nombreArchivo;
+                    enlace.href = URL.createObjectURL(blob);
+                    enlace.click();
+                    btn.disabled = false;
+                    btn.innerHTML = textoOriginal;
+                };
+
+                canvas.toBlob(function (blob) {
+                    if (!blob) {
+                        btn.disabled = false;
+                        btn.innerHTML = textoOriginal;
+                        alert('No se pudo generar la imagen. Intenta nuevamente.');
+                        return;
+                    }
+
+                    var archivo = new File([blob], nombreArchivo, { type: 'image/png' });
+
+                    // En celulares, usar el panel nativo de compartir para poder
+                    // guardar la imagen directamente en la galería/fotos.
+                    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+                        navigator.share({
+                            files: [archivo],
+                            title: 'Horario {{ complejo.nombre }}'
+                        }).then(function () {
+                            btn.disabled = false;
+                            btn.innerHTML = textoOriginal;
+                        }).catch(function (err) {
+                            btn.disabled = false;
+                            btn.innerHTML = textoOriginal;
+                            // Si el usuario simplemente canceló el panel, no hacer nada más.
+                            if (err && err.name !== 'AbortError') {
+                                descargarComoArchivo(blob);
+                            }
+                        });
+                    } else {
+                        descargarComoArchivo(blob);
+                    }
+                }, 'image/png');
+            }).catch(function (err) {
+                console.error('Error generando la imagen:', err);
+                alert('No se pudo generar la imagen. Intenta nuevamente.');
+                btn.disabled = false;
+                btn.innerHTML = textoOriginal;
+            });
+        };
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(render);
+        } else {
+            render();
+        }
+    });
+});
+</script>
+{% endblock %}

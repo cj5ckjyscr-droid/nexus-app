@@ -5,10 +5,10 @@ from django.core.exceptions import ValidationError
 
 # Importamos SOLO lo que sobrevivió a la limpieza SaaS
 from .models import (
-    Perfil, Torneo, Equipo, Jugador, Partido, Pago, 
+    Perfil, Torneo, Equipo, Jugador, Partido, Pago,
     Cupon, FotoGaleria, Configuracion, Sancion,
     ComplejoDeportivo, PlanSuscripcion, PagoSuscripcionSaaS,
-    RolComplejo, ComplejoDeportivo
+    RolComplejo, ComplejoDeportivo, validar_cedula_db
 )
 
 # =====================================================
@@ -20,7 +20,12 @@ class RegistroUsuarioForm(UserCreationForm):
         label="Rol del Usuario",
         widget=forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'})
     )
-    
+    cedula = forms.CharField(
+        label="Cédula", required=False,
+        help_text="Opcional. Le permitirá iniciar sesión con la cédula además del usuario.",
+        widget=forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': '10 dígitos'}),
+    )
+
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']
@@ -30,6 +35,15 @@ class RegistroUsuarioForm(UserCreationForm):
             'last_name': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary'}),
             'email': forms.EmailInput(attrs={'class': 'form-control bg-dark text-white border-secondary'}),
         }
+
+    def clean_cedula(self):
+        cedula = self.cleaned_data.get('cedula')
+        if not cedula:
+            return cedula
+        validar_cedula_db(cedula)
+        if Perfil.objects.filter(cedula=cedula).exists():
+            raise forms.ValidationError("Esa cédula ya está registrada en otra cuenta.")
+        return cedula
 # =====================================================
 # 2. CREAR TORNEOS
 # =====================================================
@@ -198,6 +212,11 @@ class RegistroPublicoForm(UserCreationForm):
     last_name = forms.CharField(label="Apellidos", required=True, widget=forms.TextInput(attrs={'class': 'form-control'}))
     email = forms.EmailField(label="Correo Electrónico", required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
     telefono = forms.CharField(label="Teléfono", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    cedula = forms.CharField(
+        label="Cédula", required=False,
+        help_text="Opcional. Podrás iniciar sesión con ella además de tu usuario.",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '10 dígitos'}),
+    )
 
     class Meta:
         model = User
@@ -205,6 +224,15 @@ class RegistroPublicoForm(UserCreationForm):
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def clean_cedula(self):
+        cedula = self.cleaned_data.get('cedula')
+        if not cedula:
+            return cedula
+        validar_cedula_db(cedula)
+        if Perfil.objects.filter(cedula=cedula).exists():
+            raise forms.ValidationError("Esa cédula ya está registrada en otra cuenta.")
+        return cedula
 
     # Le agregamos el parámetro "complejo=None" por si se registran desde la página de una cancha específica
     def save(self, complejo=None, commit=True):
@@ -220,6 +248,7 @@ class RegistroPublicoForm(UserCreationForm):
         # 1. Creamos el Perfil GLOBAL (Solo datos personales)
         perfil, created = Perfil.objects.get_or_create(usuario=user)
         perfil.telefono = self.cleaned_data.get('telefono')
+        perfil.cedula = self.cleaned_data.get('cedula') or None
         # ELIMINADO: perfil.rol = 'FAN' <-- Esto ya no va aquí
         perfil.save()
         
@@ -345,13 +374,14 @@ class SancionManualForm(forms.ModelForm):
 class PlanSuscripcionForm(forms.ModelForm):
     class Meta:
         model = PlanSuscripcion
-        fields = ['nombre', 'costo_inscripcion', 'precio_mensual', 'max_torneos', 'max_categorias_por_torneo']
+        fields = ['nombre', 'costo_inscripcion', 'precio_mensual', 'max_torneos', 'max_categorias_por_torneo', 'max_jugadores']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Plan Premium'}),
             'costo_inscripcion': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Costo del primer mes'}),
             'precio_mensual': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Costo a partir del segundo mes'}),
             'max_torneos': forms.NumberInput(attrs={'class': 'form-control'}),
             'max_categorias_por_torneo': forms.NumberInput(attrs={'class': 'form-control'}),
+            'max_jugadores': forms.NumberInput(attrs={'class': 'form-control'}),
         }
         
 class ComplejoDeportivoForm(forms.ModelForm):

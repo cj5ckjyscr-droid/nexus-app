@@ -1,108 +1,92 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Registrar Mensualidad SaaS | NEXUS SPORTOPS{% endblock %}
-
-{% block extra_css %}
-<style>
-    .ambient-glow {
-        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
-        background: 
-            radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.05) 0%, transparent 40%);
-        z-index: -1; pointer-events: none;
-    }
-    .fey-card {
-        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
-        border: 1px solid #E2E8F0; border-radius: 24px; padding: 40px;
-        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.05); position: relative; overflow: hidden;
-    }
-    .fey-card::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
-        background: linear-gradient(90deg, #8B5CF6, #EC4899);
-    }
-    .fey-title { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: clamp(1.8rem, 4vw, 2.2rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1; }
-    .clean-input {
-        background-color: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
-        border-radius: 14px !important; padding: 14px 16px !important; font-size: 0.95rem;
-        font-weight: 600 !important; color: #0F172A !important; transition: all 0.3s ease !important; width: 100%;
-    }
-    .clean-input:focus { border-color: #8B5CF6 !important; background-color: #FFFFFF !important; box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1) !important; outline: none !important; }
-    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
-    .btn-save-pro {
-        background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); color: white;
-        font-weight: 800; font-size: 1rem; padding: 14px 24px; border-radius: 14px; border: none;
-        box-shadow: 0 8px 20px rgba(139, 92, 246, 0.25); transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .btn-save-pro:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(139, 92, 246, 0.35); color: white; }
-    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-</style>
-{% endblock %}
-
 {% block contenido %}
-<div class="ambient-glow"></div>
 
-<div class="d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 120px); padding: 20px 0;">
-    <div class="w-100 reveal-up" style="max-width: 650px;">
-        
-        <div class="fey-card">
-            <div class="d-flex align-items-start justify-content-between mb-4 pb-3 border-bottom">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="bg-purple bg-opacity-10 text-purple rounded-circle d-flex align-items-center justify-content-center border" style="width: 56px; height: 56px; color: #8B5CF6; border-color: #8B5CF6;">
-                        <i class="bi bi-buildings-fill fs-3"></i>
-                    </div>
-                    <div>
-                        <h2 class="fey-title mb-0" style="font-size: 1.8rem;">Cobro de Mensualidad</h2>
-                        <p class="text-muted fw-medium m-0 mt-1">Registra el pago de una cancha (SaaS).</p>
-                    </div>
-                </div>
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-dark text-white border-bottom border-secondary d-flex justify-content-between align-items-center">
+                <h3 class="mb-0 text-neon-green">
+                    <i class="bi bi-cash-coin"></i> Registrar Pago
+                </h3>
+                {% if equipo %}
+                   <span class="badge bg-secondary border border-light">{{ equipo.nombre }}</span>
+                {% endif %}
             </div>
             
-            <div class="card-body p-0">
+            <div class="card-body bg-dark text-white">
+                
+                {% if equipo %}
+                <div class="alert alert-dismissible fade show mb-4 shadow-sm" role="alert" 
+                     style="background: rgba(0, 243, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-info-circle-fill fs-4 me-2"></i>
+                            <span class="fs-5">Deuda actual del equipo:</span>
+                        </div>
+                        <div class="fs-2 fw-bold text-white" style="text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);">
+                            ${{ equipo.deuda_pendiente }}
+                        </div>
+                    </div>
+                    <small class="text-light opacity-75 mt-1 d-block">
+                        * Este es el monto máximo que deberías cobrar.
+                    </small>
+                </div>
+                {% endif %}
+
                 {% if form.errors %}
-                    <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-4 p-3 mb-4 shadow-sm">
-                        <ul class="mb-0 ps-4 small fw-bold text-danger">
-                            {% for field in form %}
-                                {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
-                            {% endfor %}
-                        </ul>
+                    <div class="alert alert-danger d-flex align-items-center mb-4" role="alert" style="border-left: 5px solid var(--neon-red); background: #2c0b0e;">
+                        <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-danger"></i>
+                        <div>
+                            <strong>No se pudo guardar:</strong>
+                            <ul class="mb-0 ps-3 mt-1">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                        <li>{{ error }}</li> {% endfor %}
+                                {% endfor %}
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
                 {% endif %}
 
-                <form method="post" class="m-0">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     
-                    <div class="mb-4">
-                        <label class="form-label-pro">Cancha / Complejo <span class="text-danger">*</span></label>
-                        {{ form.complejo }}
-                    </div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label text-neon-blue fw-bold">Equipo a Pagar:</label>
+                            {{ form.equipo }}
+                        </div>
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label-pro">Monto ($) <span class="text-danger">*</span></label>
+                        <div class="col-md-6">
+                            <label class="form-label text-neon-blue fw-bold">Monto a Pagar ($):</label>
                             {{ form.monto }}
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label-pro">Meses Pagados <span class="text-danger">*</span></label>
-                            {{ form.meses_pagados }}
+
+                        <div class="col-md-6">
+                            <label class="form-label text-neon-blue fw-bold">Fecha del Pago:</label>
+                            {{ form.fecha }}
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label-pro">Fecha Exacta <span class="text-danger">*</span></label>
-                            {{ form.fecha_pago }}
+
+                        <div class="col-12">
+                            <label class="form-label text-neon-blue fw-bold">
+                                <i class="bi bi-image"></i> Foto del Comprobante:
+                            </label>
+                            {{ form.comprobante }}
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="form-label-pro">Observación <span class="text-muted fw-normal text-lowercase">(Opcional)</span></label>
-                        {{ form.observacion }}
-                    </div>
+                    <hr class="border-secondary my-4">
 
-                    <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-5 pt-4 border-top">
-                        <a href="{% url 'dashboard_saas' %}" class="btn btn-light fw-bold text-slate-600 border rounded-pill py-2 px-4 d-flex align-items-center justify-content-center">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'gestionar_finanzas' %}" class="btn btn-outline-secondary">
                             Cancelar
                         </a>
-                        <button type="submit" class="btn-save-pro">
-                            <i class="bi bi-shield-check me-1"></i> APLICAR PAGO
+                        <button type="submit" class="btn btn-neon">
+                            <i class="bi bi-save"></i> GUARDAR PAGO
                         </button>
                     </div>
                 </form>
@@ -111,14 +95,4 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const inputs = document.querySelectorAll('input, select');
-        inputs.forEach(input => {
-            if (input.type !== 'hidden' && input.type !== 'checkbox') {
-                input.classList.add('clean-input');
-            }
-        });
-    });
-</script>
 {% endblock %}

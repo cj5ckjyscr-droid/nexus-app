@@ -1,216 +1,265 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Seleccionar Reporte | NEXUS SPORTOPS{% endblock %}
-
 {% block extra_css %}
 <style>
-    /* =========================================================
-       ESTÉTICA FEY - SELECCIÓN DE REPORTE (ALTO CONTRASTE)
-       ========================================================= */
-    .ambient-glow {
-        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
-        background: 
-            radial-gradient(circle at 15% 0%, rgba(14, 165, 233, 0.05) 0%, transparent 40%),
-            radial-gradient(circle at 85% 80%, rgba(79, 70, 229, 0.05) 0%, transparent 40%);
-        z-index: -1; pointer-events: none;
+    /* --- ESTILOS APP MOBILE-FIRST --- */
+    :root {
+        --bg-app: #F4F7FA;
+        --card-bg: #FFFFFF;
+        --border-color: #E2E8F0;
+        --text-main: #0F172A;
+        --text-muted: #64748B;
+        --primary-accent: #2563EB;
+        --success-accent: #10B981;
     }
 
-    .fey-title {
-        font-family: 'Outfit', sans-serif; font-weight: 900;
-        font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1;
+    body {
+        background-color: var(--bg-app);
     }
 
-    /* Títulos de Sección */
-    .section-header {
-        display: flex; align-items: center; padding-bottom: 12px; margin-bottom: 20px;
-        border-bottom: 2px solid #CBD5E1; margin-top: 30px;
+    /* Cabecera Principal */
+    .app-header {
+        padding: 1.5rem 1rem 1rem;
+        background: var(--card-bg);
+        border-radius: 0 0 24px 24px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        margin-bottom: 1.5rem;
+        text-align: center;
     }
-    .section-header h5 { font-family: 'Outfit', sans-serif; font-weight: 900; color: #0F172A; margin: 0; letter-spacing: -0.5px; }
 
-    /* Acordeones de Alto Contraste */
-    .accordion-item {
-        background: #FFFFFF; border: 1px solid #94A3B8 !important; border-radius: 16px !important;
-        margin-bottom: 16px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+    /* Indicador Parpadeante (En vivo) */
+    .pulse-dot {
+        width: 10px;
+        height: 10px;
+        background-color: var(--success-accent);
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Títulos de Categoría */
+    .category-title {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+        padding-left: 0.5rem;
+    }
+
+    /* Tarjetas de Torneo (Clicables enteras) */
+    .tournament-card {
+        display: flex;
+        align-items: center;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        text-decoration: none !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        transition: transform 0.1s ease-in-out, background-color 0.1s;
+    }
+    .tournament-card:active {
+        transform: scale(0.97);
+        background-color: #F8FAFC;
+    }
+
+    /* Íconos de Tarjeta */
+    .icon-box {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        flex-shrink: 0;
+        margin-right: 14px;
+    }
+    .icon-active {
+        background: #DCFCE7;
+        color: #15803D;
+    }
+    .icon-finished {
+        background: #F1F5F9;
+        color: #64748B;
+    }
+
+    /* Textos de Tarjeta */
+    .card-content {
+        flex-grow: 1;
+        min-width: 0;
+    }
+    .card-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-subtitle {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin: 0;
+        margin-top: 2px;
+    }
+
+    /* Flecha derecha */
+    .card-arrow {
+        color: #CBD5E1;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        margin-left: 10px;
+    }
+
+    /* Acordeón para Historial (Mejorado) */
+    .history-accordion {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
     .accordion-button {
-        background: #F8FAFC !important; color: #0F172A !important; font-family: 'Outfit', sans-serif;
-        font-weight: 900; font-size: 1.05rem; padding: 16px 24px; border: none !important; box-shadow: none !important;
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: var(--text-main) !important;
+        background-color: var(--card-bg) !important;
+        padding: 1rem;
     }
     .accordion-button:not(.collapsed) {
-        background: #FFFFFF !important; border-bottom: 3px solid var(--brand-primary) !important;
+        box-shadow: none;
+        border-bottom: 1px solid var(--border-color);
     }
-    .accordion-body { padding: 20px; background: #FFFFFF; }
-
-    /* Smart Strips (Tarjetas de Torneo) */
-    .fey-strip {
-        background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 14px;
-        padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden;
-    }
-    .fey-strip:last-child { margin-bottom: 0; }
-    .fey-strip:hover { transform: translateX(5px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06); border-color: #94A3B8; background: #F8FAFC; }
-    
-    .fey-strip.active-strip::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: #10B981; }
-    .fey-strip.past-strip::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: #64748B; }
-
-    .icon-box {
-        width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-        font-size: 1.2rem; flex-shrink: 0; border: 1px solid #E2E8F0;
-    }
-    .icon-box.active-icon { background: #ECFDF5; color: #059669; border-color: #A7F3D0; }
-    .icon-box.past-icon { background: #F1F5F9; color: #475569; border-color: #CBD5E1; }
-
-    /* Botones de Acción */
-    .btn-view-pro {
-        background: #0F172A; color: #FFFFFF; font-family: 'Outfit', sans-serif; font-weight: 800;
-        padding: 10px 24px; border-radius: 12px; text-decoration: none; font-size: 0.9rem;
-        transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); letter-spacing: 0.5px;
-    }
-    .btn-view-pro:hover { background: #1E293B; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); color: #FFFFFF; }
-
-    .btn-view-muted {
-        background: #F8FAFC; color: #1E293B; font-family: 'Outfit', sans-serif; font-weight: 800;
-        padding: 10px 24px; border-radius: 12px; border: 2px solid #94A3B8; text-decoration: none; font-size: 0.9rem;
-        transition: all 0.2s ease; letter-spacing: 0.5px;
-    }
-    .btn-view-muted:hover { background: #E2E8F0; border-color: #475569; transform: translateY(-2px); color: #0F172A; }
-
-    /* Animación */
-    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-
-    @media (max-width: 576px) {
-        .fey-strip { flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; }
-        .btn-view-pro, .btn-view-muted { width: 100%; text-align: center; justify-content: center; display: flex; }
+    .accordion-button:focus {
+        border-color: inherit;
+        box-shadow: none;
     }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="ambient-glow"></div>
+<div class="animate__animated animate__fadeIn pb-5">
 
-<div class="container py-4 pb-5">
-    
-    <div class="text-center mb-5 reveal-up">
-        <div class="badge bg-slate-100 text-dark border border-secondary px-3 py-2 mb-3 rounded-pill fw-black shadow-sm" style="font-size: 0.75rem; letter-spacing: 1px;">
-            <i class="bi bi-bar-chart-fill text-primary me-1"></i> ANÁLISIS DEPORTIVO
+    <!-- CABECERA DE LA PANTALLA -->
+    <div class="app-header">
+        <div class="d-inline-block bg-primary bg-opacity-10 text-primary p-3 rounded-circle mb-2">
+            <i class="bi bi-bar-chart-line-fill fs-2"></i>
         </div>
-        <h2 class="fey-title mb-2">Centro de Estadísticas</h2>
-        <p class="text-slate-600 fw-bold m-0" style="font-size: 1.05rem;">Elige el campeonato para consultar goleadores, tablas y rendimiento.</p>
+        <h3 class="fw-black m-0" style="color: var(--text-main); letter-spacing: -0.5px;">Estadísticas</h3>
+        <p class="text-muted fw-bold small mb-0 mt-1">Selecciona un torneo para ver el reporte</p>
     </div>
 
-    {% if torneos_activos %}
-        <div class="reveal-up" style="animation-delay: 0.1s;">
-            <div class="section-header">
-                <i class="bi bi-play-circle-fill text-success fs-4 me-2"></i>
-                <h5>Torneos en Curso</h5>
+    <div class="container px-3">
+        <!-- SECCIÓN: TORNEOS EN CURSO -->
+        {% if torneos_activos %}
+            <div class="d-flex align-items-center mb-3 px-1">
+                <span class="pulse-dot me-2"></span>
+                <h6 class="fw-black m-0 text-dark text-uppercase" style="letter-spacing: 0.5px;">Torneos en Curso</h6>
             </div>
 
             {% regroup torneos_activos by categoria as torneos_por_categoria %}
-            <div class="accordion" id="accActivos">
-                {% for grupo in torneos_por_categoria %}
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#catActiva{{ forloop.counter }}">
-                            <i class="bi bi-tags-fill me-3 text-primary"></i>
-                            CATEGORÍA: {{ grupo.grouper.nombre|default:"GENERAL"|upper }}
-                            <span class="badge bg-dark text-white ms-auto rounded-pill px-3 py-2 shadow-sm" style="font-size: 0.8rem;">{{ grupo.list|length }}</span>
-                        </button>
-                    </h2>
-                    <div id="catActiva{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#accActivos">
-                        <div class="accordion-body">
-                            
-                            {% for t in grupo.list %}
-                            <div class="fey-strip active-strip">
-                                <div class="d-flex align-items-center gap-3 w-100">
-                                    <div class="icon-box active-icon shadow-sm">
-                                        <i class="bi bi-trophy-fill"></i>
-                                    </div>
-                                    <div class="flex-grow-1 min-w-0">
-                                        <h6 class="fw-black text-dark m-0 mb-1 text-truncate" style="font-family: 'Outfit', sans-serif; font-size: 1.15rem;">{{ t.nombre }}</h6>
-                                        <div class="text-slate-600 fw-bold" style="font-size: 0.8rem;">
-                                            <i class="bi bi-calendar-event me-1"></i> Iniciado: {{ t.fecha_inicio|date:"d M Y" }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mt-3 mt-sm-0 w-100 w-sm-auto">
-                                    <a href="{% url 'reporte_estadisticas' t.id %}" class="btn-view-pro">
-                                        VER REPORTE <i class="bi bi-arrow-right-short ms-1 fs-5"></i>
-                                    </a>
-                                </div>
-                            </div>
-                            {% endfor %}
-                            
-                        </div>
-                    </div>
+            
+            {% for grupo in torneos_por_categoria %}
+                <!-- Título de la categoría flotante -->
+                <div class="category-title mt-3">
+                    <i class="bi bi-diagram-3-fill me-1 opacity-75"></i> 
+                    Categoría: {{ grupo.grouper.nombre|default:"GENERAL" }}
                 </div>
-                {% endfor %}
-            </div>
-        </div>
-    {% endif %}
+                
+                <!-- Lista de torneos como botones gigantes -->
+                <div class="mb-3">
+                    {% for t in grupo.list %}
+                    <a href="{% url 'reporte_estadisticas' t.id %}" class="tournament-card">
+                        <div class="icon-box icon-active shadow-sm">
+                            <i class="bi bi-trophy-fill"></i>
+                        </div>
+                        <div class="card-content">
+                            <h6 class="card-title">{{ t.nombre }}</h6>
+                            <p class="card-subtitle">
+                                <i class="bi bi-calendar2-check"></i> Inició: {{ t.fecha_inicio|date:"d M, Y" }}
+                            </p>
+                        </div>
+                        <div class="card-arrow">
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        {% endif %}
 
-    {% if torneos_finalizados %}
-        <div class="reveal-up" style="animation-delay: 0.2s;">
-            <div class="section-header mt-5">
-                <i class="bi bi-archive-fill text-slate-500 fs-4 me-2"></i>
-                <h5 class="text-slate-700">Historial de Cierres</h5>
+
+        <!-- SECCIÓN: HISTORIAL DE CIERRES -->
+        {% if torneos_finalizados %}
+            <div class="d-flex align-items-center mb-3 mt-5 px-1 opacity-75">
+                <i class="bi bi-archive-fill text-secondary fs-6 me-2"></i>
+                <h6 class="fw-black m-0 text-secondary text-uppercase" style="letter-spacing: 0.5px;">Historial de Cierres</h6>
             </div>
 
             {% regroup torneos_finalizados by fecha_inicio.year as torneos_por_anio %}
-            <div class="accordion" id="accFinalizados">
+            <div class="accordion history-accordion mb-4" id="accFinalizados">
                 {% for grupo in torneos_por_anio %}
-                <div class="accordion-item">
+                <div class="accordion-item border-0">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#anio{{ grupo.grouper }}">
-                            <i class="bi bi-calendar-check-fill me-3 text-slate-600"></i>
-                            AÑO DE INICIO: {{ grupo.grouper }}
-                            <span class="badge bg-slate-200 text-dark border border-secondary ms-auto rounded-pill px-3 py-2 shadow-sm" style="font-size: 0.8rem;">{{ grupo.list|length }}</span>
+                            <i class="bi bi-calendar-check-fill me-2 text-secondary"></i>
+                            Temporada {{ grupo.grouper }}
+                            <span class="badge bg-secondary ms-auto rounded-pill px-2">{{ grupo.list|length }}</span>
                         </button>
                     </h2>
                     <div id="anio{{ grupo.grouper }}" class="accordion-collapse collapse" data-bs-parent="#accFinalizados">
-                        <div class="accordion-body bg-slate-50">
-                            
+                        <div class="accordion-body p-2 bg-light">
                             {% for t in grupo.list %}
-                            <div class="fey-strip past-strip">
-                                <div class="d-flex align-items-center gap-3 w-100">
-                                    <div class="icon-box past-icon shadow-sm">
-                                        <i class="bi bi-check-circle-fill"></i>
-                                    </div>
-                                    <div class="flex-grow-1 min-w-0">
-                                        <h6 class="fw-black text-slate-700 m-0 mb-1 text-truncate" style="font-family: 'Outfit', sans-serif; font-size: 1.1rem;">{{ t.nombre }}</h6>
-                                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                                            <span class="text-slate-500 fw-bold" style="font-size: 0.8rem;"><i class="bi bi-calendar-event me-1"></i> {{ t.fecha_inicio|date:"Y" }}</span>
-                                            {% if t.categoria %}
-                                                <span class="badge bg-white text-slate-600 border px-2 py-1 shadow-sm" style="font-size: 0.65rem;">{{ t.categoria.nombre|upper }}</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
+                            <!-- Tarjeta inactiva para historial -->
+                            <a href="{% url 'reporte_estadisticas' t.id %}" class="tournament-card mb-2" style="border: none;">
+                                <div class="icon-box icon-finished">
+                                    <i class="bi bi-check2-circle"></i>
                                 </div>
-                                <div class="mt-3 mt-sm-0 w-100 w-sm-auto">
-                                    <a href="{% url 'reporte_estadisticas' t.id %}" class="btn-view-muted">
-                                        HISTÓRICO <i class="bi bi-journal-text ms-1"></i>
-                                    </a>
+                                <div class="card-content">
+                                    <h6 class="card-title text-muted">{{ t.nombre }}</h6>
+                                    <p class="card-subtitle">
+                                        {% if t.categoria %}
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary px-1 py-0 rounded">{{ t.categoria.nombre|upper }}</span>
+                                        {% else %}
+                                            General
+                                        {% endif %}
+                                    </p>
                                 </div>
-                            </div>
+                                <div class="card-arrow">
+                                    <i class="bi bi-chevron-right"></i>
+                                </div>
+                            </a>
                             {% endfor %}
-                            
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
-        </div>
-    {% endif %}
+        {% endif %}
 
-    {% if not torneos_activos and not torneos_finalizados %}
-        <div class="text-center py-5 reveal-up" style="animation-delay: 0.1s;">
-            <div class="bg-white border border-secondary rounded-circle d-inline-flex justify-content-center align-items-center mb-4 shadow-sm" style="width: 100px; height: 100px;">
-                <i class="bi bi-clipboard-x text-slate-400" style="font-size: 3rem;"></i>
+
+        <!-- ESTADO VACÍO -->
+        {% if not torneos_activos and not torneos_finalizados %}
+            <div class="text-center py-5 mt-4">
+                <div class="d-inline-block bg-white p-4 rounded-circle shadow-sm mb-3">
+                    <i class="bi bi-folder-x text-muted opacity-50" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="fw-black text-dark mb-1">Sin información</h5>
+                <p class="text-muted fw-bold small px-4">Aún no hay torneos registrados en el sistema para analizar estadísticas.</p>
             </div>
-            <h4 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Sin información disponible</h4>
-            <p class="text-slate-600 fw-bold m-0 mt-2">No hay torneos registrados en el sistema para analizar.</p>
-        </div>
-    {% endif %}
-
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

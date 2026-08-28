@@ -4,427 +4,410 @@
 
 {% block extra_css %}
 <style>
-    /* =========================================================
-       ESTÉTICA FEY - CENTRO FINANCIERO (LIGHT MODE)
-       ========================================================= */
-    .ambient-glow {
-        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
-        background: 
-            radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
-            radial-gradient(circle at 20% 80%, rgba(79, 70, 229, 0.05) 0%, transparent 40%);
-        z-index: -1; pointer-events: none;
+    /* ==========================================
+       ESTILOS PREMIUM iOS - MODO ADMINISTRADOR
+       ========================================== */
+    :root {
+        --ios-bg: #F2F2F7;
+        --ios-surface: #FFFFFF;
+        --text-main: #1C1C1E;
+        --text-muted: #8E8E93;
+        --ios-separator: rgba(60, 60, 67, 0.2);
+        
+        /* Colores Apple */
+        --apple-blue: #007AFF;
+        --apple-green: #34C759;
+        --apple-red: #FF3B30;
+        --apple-yellow: #FFCC00;
+        --apple-orange: #FF9500;
     }
 
-    .fey-title {
-        font-family: 'Outfit', sans-serif; font-weight: 900;
-        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
-    }
-
-    /* Tarjeta Principal (Caja General) */
-    .hero-stat-card {
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-        border-radius: 24px; padding: 30px; color: white;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-        position: relative; overflow: hidden; margin-bottom: 30px;
-    }
-    .hero-stat-card::before {
-        content: ''; position: absolute; top: -50%; right: -20%; width: 300px; height: 300px;
-        background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, transparent 70%); border-radius: 50%;
-    }
-
-    /* Scroll Horizontal Mini-Stats */
-    .scroll-horizontal {
-        display: flex; overflow-x: auto; gap: 20px; padding: 10px 10px 20px 10px;
-        scroll-snap-type: x mandatory; scrollbar-width: none;
-    }
-    .scroll-horizontal::-webkit-scrollbar { display: none; }
-    
-    .stat-card-mini {
-        min-width: 280px; flex-shrink: 0; scroll-snap-align: start;
-        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
-        border: 1px solid #E2E8F0; border-radius: 20px; padding: 24px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02); position: relative; overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .stat-card-mini:hover { transform: translateY(-4px); box-shadow: 0 12px 25px rgba(15, 23, 42, 0.06); }
-    .stat-card-mini::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
-    .stat-card-mini.blue::before { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
-    .stat-card-mini.gold::before { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
-    .stat-card-mini.green::before { background: linear-gradient(90deg, #10B981, #34D399); }
-
-    /* Formulario Bento (Multas) */
-    .fey-form-panel {
-        background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
-        border: 1px solid #E2E8F0; border-radius: 24px; padding: 30px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02); margin-bottom: 40px;
-    }
-    
-    /* Auto-styling Inputs Django */
-    .fey-form-panel select, .fey-form-panel input {
-        background-color: #F8FAFC !important; border: 1px solid #E2E8F0 !important;
-        border-radius: 12px !important; padding: 10px 15px !important;
-        font-weight: 600 !important; color: #0F172A !important;
-        transition: all 0.3s ease !important; width: 100%;
-    }
-    .fey-form-panel select:focus, .fey-form-panel input:focus {
-        border-color: var(--brand-primary) !important; background-color: #FFFFFF !important;
-        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none !important;
-    }
+    body { background-color: var(--ios-bg); font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: var(--text-main); }
 
     /* ==========================================
-       ACORDEÓN FINANCIERO (FEY STYLE)
+       TARJETAS DE RESUMEN TIPO WALLET
        ========================================== */
-    .finance-accordion .accordion-item {
-        border: none; background: transparent; margin-bottom: 20px;
-    }
-    .finance-accordion .accordion-button {
-        background: #FFFFFF; border-radius: 20px !important; border: 1px solid #E2E8F0;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.02); padding: 20px; color: #0F172A; transition: all 0.3s ease;
-    }
-    .finance-accordion .accordion-button:not(.collapsed) {
-        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06); border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important;
-        border-bottom: 1px dashed #CBD5E1; background-color: #F8FAFC;
-    }
+    .scroll-horizontal { display: flex; overflow-x: auto; gap: 16px; padding: 10px 5px 20px 5px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+    .scroll-horizontal::-webkit-scrollbar { display: none; }
     
-    .finance-accordion .accordion-body {
-        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px);
-        border: 1px solid #E2E8F0; border-top: none; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
-        padding: 0; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04); overflow: hidden;
+    .ios-wallet-card {
+        min-width: 260px; max-width: 280px; flex-shrink: 0; scroll-snap-align: start;
+        border-radius: 20px; padding: 20px; background: var(--ios-surface);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03); position: relative; overflow: hidden; border: none;
     }
+    .ios-wallet-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
+    .wallet-blue::before { background: var(--apple-blue); }
+    .wallet-orange::before { background: var(--apple-orange); }
+    .wallet-green::before { background: var(--apple-green); }
 
-    .team-shield-large { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #FFFFFF; box-shadow: 0 2px 10px rgba(0,0,0,0.08); background: #F8FAFC; flex-shrink: 0; }
-
-    /* Divisiones (Pendiente / Pagado) */
-    .section-title { font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; padding: 15px 24px; margin: 0; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; }
-    .section-pending .section-title { color: #EF4444; }
-    .section-paid .section-title { color: #10B981; background: #F1F5F9; border-top: 1px solid #E2E8F0; }
-    .empty-state-micro { padding: 20px 24px; font-size: 0.85rem; color: #94A3B8; font-weight: 500; font-style: italic; }
-
-    /* Items de Deuda */
-    .debt-item { display: flex; flex-direction: column; background: #FFFFFF; padding: 20px 24px; border-bottom: 1px dashed #E2E8F0; transition: background 0.2s; }
-    .debt-item:hover { background: #F8FAFC; }
-    .debt-item:last-child { border-bottom: none; }
+    /* ==========================================
+       BARRA DE BÚSQUEDA Y FILTROS iOS
+       ========================================== */
+    .ios-search-container {
+        background: #7676801F; border-radius: 12px; display: flex; align-items: center; overflow: hidden; height: 44px;
+        transition: background 0.2s;
+    }
+    .ios-search-container:focus-within { background: #7676802E; box-shadow: inset 0 0 0 2px var(--apple-blue); }
+    .ios-search-input {
+        border: none; background: transparent; width: 100%; padding: 0 12px; font-size: 0.95rem; color: var(--text-main); font-weight: 500;
+    }
+    .ios-search-input:focus { outline: none; }
     
-    .debt-item-paid { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px dashed #CBD5E1; background: #F8FAFC; transition: background 0.2s; }
-    .debt-item-paid:hover { background: #F1F5F9; }
-    .debt-item-paid:last-child { border-bottom: none; }
+    .ios-filter-select {
+        background: #7676801F; border-radius: 12px; border: none; height: 44px; width: 100%; padding: 0 16px; 
+        font-size: 0.9rem; font-weight: 600; color: var(--apple-blue); -webkit-appearance: none; appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 10px center; background-size: 20px;
+    }
+    .ios-filter-select:focus { outline: none; box-shadow: inset 0 0 0 2px var(--apple-blue); }
 
-    /* Inputs de Pago Premium */
-    .pay-input-group { width: 100%; max-width: 220px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border-radius: 12px; overflow: hidden; display: flex; border: 1px solid #CBD5E1; }
-    .pay-input-group:focus-within { border-color: #10B981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
+    /* ==========================================
+       FORMULARIO DE MULTA (COLAPSABLE)
+       ========================================== */
+    .btn-ios-toggle {
+        background: var(--ios-surface); border-radius: 16px; padding: 14px 20px; width: 100%;
+        text-align: left; border: none; font-weight: 600; color: var(--apple-red);
+        display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;
+    }
+    .ios-panel-oculto { background: var(--ios-surface); border-radius: 20px; padding: 20px; margin-top: 10px; border: 1px solid rgba(255, 59, 48, 0.15); }
     
-    .pay-input { border: none !important; border-radius: 0 !important; font-weight: 900 !important; font-size: 1.2rem !important; color: #0F172A !important; padding: 12px 10px !important; text-align: right; background: #FFFFFF !important; flex-grow: 1; box-shadow: none !important; }
-    .pay-input:focus { box-shadow: none !important; }
-    
-    .btn-pay { border-radius: 0; font-weight: 800; font-size: 0.85rem; padding: 0 16px; background: #10B981; color: white; border: none; transition: background 0.2s; }
-    .btn-pay:hover { background: #059669; }
+    .ios-input-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+    .ios-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: none; background: #7676801F; color: var(--text-main); font-size: 0.9rem; }
+    .ios-input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--apple-red); background: #7676802E; }
 
-    /* Detalles y Tags */
-    .pill-tag { font-size: 0.65rem; padding: 4px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-    .detail-box { background: #F8FAFC; border-left: 3px solid #CBD5E1; padding: 12px 16px; border-radius: 0 12px 12px 0; margin-top: 12px; }
-    .abono-history { background: #FFFFFF; border-radius: 12px; padding: 12px 16px; margin-top: 10px; border: 1px dashed #CBD5E1; font-size: 0.75rem; }
+    /* ==========================================
+       ACORDEÓN INSET GROUPED (ESTILO AJUSTES iOS)
+       ========================================== */
+    .ios-inset-group { background: var(--ios-surface); border-radius: 16px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+    .finance-accordion .accordion-item { border: none; background: transparent; }
+    .finance-accordion .accordion-button { background: transparent; padding: 12px 20px; color: var(--text-main); border: none; border-bottom: 1px solid var(--ios-separator); transition: background 0.2s; }
+    .finance-accordion .accordion-item:last-child .accordion-button.collapsed { border-bottom: none; }
+    .finance-accordion .accordion-button:not(.collapsed) { background: #F9F9FB; box-shadow: none; border-bottom: 1px solid var(--ios-separator); }
+    .finance-accordion .accordion-button:focus { box-shadow: none; }
+    .team-shield-mini { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: #fff; }
+    .finance-accordion .accordion-body { padding: 0; background: #F9F9FB; border-bottom: 1px solid var(--ios-separator); }
 
-    /* Animación */
-    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+    /* DISEÑO DE LAS DEUDAS */
+    .debt-row { padding: 16px 20px; border-bottom: 1px solid var(--ios-separator); display: flex; flex-direction: column; gap: 12px; background: var(--ios-surface); }
+    .debt-row:last-child { border-bottom: none; }
+    .debt-row-paid { padding: 12px 20px; border-bottom: 1px solid var(--ios-separator); display: flex; justify-content: space-between; align-items: center; background: transparent; opacity: 0.8; }
+
+    /* Etiquetas de Color Inteligentes */
+    .ios-tag { font-size: 0.65rem; padding: 3px 8px; border-radius: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tag-blue { background: rgba(0, 122, 255, 0.15); color: var(--apple-blue); }
+    .tag-yellow { background: rgba(255, 204, 0, 0.2); color: #B28D00; }
+    .tag-red { background: rgba(255, 59, 48, 0.15); color: var(--apple-red); }
+    .tag-gray { background: rgba(142, 142, 147, 0.15); color: var(--text-main); }
+
+    .debt-context { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin-top: 4px; }
+    .debt-context span { color: var(--text-main); font-weight: 600; }
+
+    /* Input de Cobro */
+    .ios-pay-capsule { display: flex; align-items: center; background: var(--ios-bg); border-radius: 12px; border: 1px solid var(--ios-separator); overflow: hidden; height: 38px; }
+    .ios-pay-capsule input { border: none; background: transparent; text-align: right; width: 80px; font-weight: 700; color: var(--text-main); padding: 0 10px; font-size: 1rem; }
+    .ios-pay-capsule input:focus { outline: none; }
+    .ios-pay-capsule button { background: var(--apple-green); color: white; border: none; padding: 0 14px; font-weight: 700; font-size: 0.8rem; height: 100%; transition: opacity 0.2s; }
+    .ios-pay-capsule button:active { opacity: 0.7; }
+
+    .abono-mini-list { font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--ios-separator); }
+
+    /* ==========================================
+       PAGINACIÓN iOS
+       ========================================== */
+    .ios-pagination { gap: 8px; flex-wrap: wrap; justify-content: center; margin: 0; padding: 0; }
+    .ios-pagination .page-item { list-style: none; }
+    .ios-pagination .page-link {
+        border: none; border-radius: 12px; color: var(--text-main); background: var(--ios-surface);
+        font-weight: 600; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.04); transition: transform 0.1s;
+    }
+    .ios-pagination .page-link:active { transform: scale(0.95); }
+    .ios-pagination .page-item.active .page-link { background: var(--apple-blue); color: white; }
 
     @media (min-width: 768px) {
-        .debt-item { flex-direction: row; align-items: center; justify-content: space-between; }
+        .debt-row { flex-direction: row; justify-content: space-between; align-items: center; }
         .debt-info { width: 65%; }
-        .debt-action { width: 35%; display: flex; flex-direction: column; align-items: flex-end; }
-        .pay-input-group { width: 220px; }
+        .debt-actions { width: 35%; display: flex; flex-direction: column; align-items: flex-end; }
     }
-    @media (max-width: 767px) {
-        .debt-action { margin-top: 20px; padding-top: 20px; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; }
-        .pay-input-group { max-width: 180px; }
-        .finance-accordion .accordion-button, .debt-item, .debt-item-paid { padding: 16px; }
-    }
+    @media (max-width: 767px) { .debt-actions { border-top: 1px solid var(--ios-separator); padding-top: 12px; display: flex; justify-content: space-between; align-items: center; } }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="ambient-glow"></div>
+<div class="container-fluid px-2 animate__animated animate__fadeIn pb-5">
 
-<div class="container-fluid px-0 pb-5">
-
-    <div class="hero-stat-card reveal-up">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
-            <div class="d-flex align-items-center gap-3">
-                <div class="bg-white bg-opacity-10 p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
-                    <i class="bi bi-wallet2 text-success fs-2"></i>
-                </div>
-                <div>
-                    <h4 class="fw-black mb-1 text-white" style="font-family: 'Outfit', sans-serif;">Centro Financiero</h4>
-                    <span class="text-white-50 small fw-medium">Gestión y recaudación de NEXUS SPORTOPS</span>
-                </div>
-            </div>
-            <div class="text-center text-md-end border-start-md border-light border-opacity-25 ps-md-5">
-                <div class="text-white-50 fw-bold small text-uppercase mb-2" style="letter-spacing: 1px;">Total General en Caja</div>
-                <h1 class="fw-black text-success m-0 lh-1" style="font-family: 'Outfit', sans-serif; font-size: clamp(2.5rem, 5vw, 3.5rem);">${{ total_caja|floatformat:2 }}</h1>
-            </div>
-        </div>
-    </div>
-
-    <div class="scroll-horizontal reveal-up" style="animation-delay: 0.1s;">
-        <div class="stat-card-mini blue">
-            <div class="d-flex align-items-center mb-3">
-                <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3 text-primary"><i class="bi bi-journal-text fs-5"></i></div>
-                <div><h6 class="fw-black text-dark mb-0 fs-6" style="font-family: 'Outfit', sans-serif;">Inscripciones</h6></div>
-            </div>
-            <div class="mb-3">
-                <h2 class="fw-black m-0 lh-1 text-primary" style="font-family: 'Outfit', sans-serif;">${{ inscripciones_pagadas|floatformat:2 }}</h2>
-                <span class="text-muted fw-medium" style="font-size: 0.75rem;">Dinero Cobrado en Caja</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center border-top pt-3" style="font-size: 0.8rem;">
-                <span class="text-muted fw-bold">Por cobrar:</span>
-                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1">${{ inscripciones_pendientes|floatformat:2 }}</span>
-            </div>
-        </div>
-
-        <div class="stat-card-mini gold">
-            <div class="d-flex align-items-center mb-3">
-                <div class="bg-warning bg-opacity-10 p-2 rounded-3 me-3 text-warning"><i class="bi bi-file-earmark-ruled fs-5"></i></div>
-                <div><h6 class="fw-black text-dark mb-0 fs-6" style="font-family: 'Outfit', sans-serif;">Sanciones</h6></div>
-            </div>
-            <div class="mb-3">
-                <h2 class="fw-black m-0 lh-1 text-warning" style="font-family: 'Outfit', sans-serif;">${{ multas_pagadas|floatformat:2 }}</h2>
-                <span class="text-muted fw-medium" style="font-size: 0.75rem;">Dinero Cobrado en Caja</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center border-top pt-3" style="font-size: 0.8rem;">
-                <span class="text-muted fw-bold">Por cobrar:</span>
-                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1">${{ multas_pendientes|floatformat:2 }}</span>
-            </div>
-        </div>
-
-        <div class="stat-card-mini green">
-            <div class="d-flex align-items-center mb-3">
-                <div class="bg-success bg-opacity-10 p-2 rounded-3 me-3 text-success"><i class="bi bi-clock-history fs-5"></i></div>
-                <div><h6 class="fw-black text-dark mb-0 fs-6" style="font-family: 'Outfit', sans-serif;">Alquiler Libre</h6></div>
-            </div>
-            <div class="mb-3">
-                <h2 class="fw-black m-0 lh-1 text-success" style="font-family: 'Outfit', sans-serif;">${{ ingreso_canchas|floatformat:2 }}</h2>
-                <span class="text-muted fw-medium" style="font-size: 0.75rem;">Turnos Externos Cobrados</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center border-top pt-3" style="font-size: 0.8rem;">
-                <span class="text-muted fw-bold">Estado actual:</span>
-                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill">Al día</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="fey-form-panel reveal-up" style="animation-delay: 0.2s;">
-        <div class="d-flex align-items-center mb-4">
-            <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
-                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-            </div>
-            <div>
-                <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Imponer Multa / Deuda</h5>
-                <p class="text-muted small m-0 fw-medium">Registrar una sanción administrativa a un equipo.</p>
-            </div>
-        </div>
-        
-        <form method="POST" class="m-0">
-            {% csrf_token %}
-            <div class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label text-slate-600 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Torneo</label>
-                    {{ form_sancion.torneo }}
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label text-slate-600 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Equipo Infractor</label>
-                    {{ form_sancion.equipo }}
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label text-slate-600 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Monto ($)</label>
-                    {{ form_sancion.monto }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label text-slate-600 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Motivo / Descripción</label>
-                    {{ form_sancion.descripcion }}
-                </div>
-            </div>
-            <div class="text-end mt-4 pt-3 border-top">
-                <button type="submit" name="agregar_sancion_manual" class="btn btn-danger fw-bold rounded-pill px-4 py-2 shadow-sm">
-                    <i class="bi bi-plus-circle-fill me-1"></i> Guardar Deuda
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mt-5 mb-4 px-2 reveal-up" style="animation-delay: 0.3s;">
+    <!-- CABECERA PRINCIPAL -->
+    <div class="mb-3 mt-2 px-1 d-flex justify-content-between align-items-center">
         <div>
-            <h4 class="fey-title fs-3 mb-1"><i class="bi bi-diagram-3-fill me-2 text-primary"></i>Cuentas por Equipo</h4>
-            <p class="text-muted small m-0 fw-medium">Despliega un equipo para cobrar deudas pendientes o ver su historial.</p>
+            <h3 class="fw-black text-dark mb-0">Control Financiero</h3>
+            <span class="text-muted small">Caja Fuerte NEXUS SPORTOPS</span>
         </div>
+        <div class="text-end">
+            <div class="text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Total en Caja</div>
+            <h2 class="fw-black text-success m-0 lh-1">${{ total_caja|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <!-- TARJETAS WALLET -->
+    <div class="scroll-horizontal mb-2">
+        <div class="ios-wallet-card wallet-blue">
+            <div class="d-flex align-items-center mb-2"><i class="bi bi-journal-check fs-5 me-2" style="color: var(--apple-blue);"></i><h6 class="fw-bold m-0">Inscripciones</h6></div>
+            <h3 class="fw-black m-0" style="color: var(--apple-blue);">${{ inscripciones_pagadas|floatformat:2 }}</h3>
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top" style="font-size: 0.75rem;"><span class="text-muted">Pendiente:</span><span class="fw-bold text-danger">${{ inscripciones_pendientes|floatformat:2 }}</span></div>
+        </div>
+        <div class="ios-wallet-card wallet-orange">
+            <div class="d-flex align-items-center mb-2"><i class="bi bi-exclamation-triangle fs-5 me-2" style="color: var(--apple-orange);"></i><h6 class="fw-bold m-0">Multas y Tarjetas</h6></div>
+            <h3 class="fw-black m-0" style="color: var(--apple-orange);">${{ multas_pagadas|floatformat:2 }}</h3>
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top" style="font-size: 0.75rem;"><span class="text-muted">Pendiente:</span><span class="fw-bold text-danger">${{ multas_pendientes|floatformat:2 }}</span></div>
+        </div>
+        <a href="{% url 'cierre_diario_caja' %}" class="ios-wallet-card wallet-green text-decoration-none">
+            <div class="d-flex align-items-center mb-2"><i class="bi bi-calendar2-check fs-5 me-2" style="color: var(--apple-green);"></i><h6 class="fw-bold m-0" style="color: var(--text-main);">Caja Diaria</h6></div>
+            <h3 class="fw-black m-0" style="color: var(--apple-green);">Ver Corte</h3>
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top" style="font-size: 0.75rem;"><span class="text-muted">Ingresos de hoy</span><i class="bi bi-arrow-right-circle-fill" style="color: var(--apple-green);"></i></div>
+        </a>
+    </div>
+
+    <!-- BUSCADOR Y FILTROS iOS -->
+    <form method="GET" class="mb-4 mt-2 px-1">
+        <div class="row g-2">
+            <div class="col-12 col-md-8">
+                <div class="ios-search-container shadow-sm">
+                    <i class="bi bi-search text-muted ms-3 me-2"></i>
+                    <input type="text" name="q" class="ios-search-input" placeholder="Buscar por nombre de equipo..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <select name="torneo" class="ios-filter-select shadow-sm" onchange="this.form.submit()">
+                    <option value="">Todas las Categorías / Torneos</option>
+                    {% for t in torneos_lista %}
+                        <option value="{{ t.id }}" {% if request.GET.torneo == t.id|stringformat:"s" %}selected{% endif %}>{{ t.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- Botón oculto para permitir "Enter" en el input -->
+            <button type="submit" class="d-none"></button>
+        </div>
+    </form>
+
+    <!-- PANEL COLAPSABLE: IMPONER MULTA -->
+    <div class="mb-4">
+        <button class="btn-ios-toggle shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#panelSancion">
+            <span><i class="bi bi-plus-circle-fill me-2"></i> Añadir Infracción Manual</span><i class="bi bi-chevron-down"></i>
+        </button>
+        <div class="collapse" id="panelSancion">
+            <div class="ios-panel-oculto shadow-sm">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-6 col-md-3"><label class="ios-input-label">Torneo</label>{{ form_sancion.torneo }}</div>
+                        <div class="col-6 col-md-3"><label class="ios-input-label">Equipo</label>{{ form_sancion.equipo }}</div>
+                        <div class="col-12 col-md-4"><label class="ios-input-label">Descripción Detallada</label>{{ form_sancion.descripcion }}</div>
+                        <div class="col-6 col-md-2"><label class="ios-input-label">Monto ($)</label>{{ form_sancion.monto }}</div>
+                        <div class="col-6 col-md-12 text-end align-self-end"><button type="submit" name="agregar_sancion_manual" class="btn text-white fw-bold rounded-pill w-100 w-md-auto" style="background-color: var(--apple-red);">Guardar</button></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACCIONES RÁPIDAS -->
+    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+        <h5 class="fw-bold text-dark m-0">Saldos de Equipos</h5>
         <div class="d-flex gap-2">
+            <a href="{% url 'cierre_diario_caja' %}" class="btn btn-sm rounded-pill text-white fw-bold shadow-sm" style="background: var(--apple-green);">
+                <i class="bi bi-calendar-check me-1"></i> Cierre Diario
+            </a>
             <form method="POST" class="m-0">
                 {% csrf_token %}
-                <button type="submit" name="generar_inscripciones_viejas" class="btn btn-light border bg-white fw-bold shadow-sm rounded-pill px-3 py-2" onclick="return confirm('¿Buscar y generar deudas de inscripción faltantes para equipos oficiales?');">
-                    <i class="bi bi-arrow-clockwise text-primary me-1"></i> Sincronizar
+                <button type="submit" name="generar_inscripciones_viejas" class="btn btn-sm rounded-pill bg-white border fw-bold shadow-sm text-dark" onclick="return confirm('¿Generar deudas de inscripción faltantes?');">
+                    <i class="bi bi-arrow-clockwise text-primary"></i> Sync
                 </button>
             </form>
+            <a href="{% url 'registrar_pago' %}" class="btn btn-sm rounded-pill text-white fw-bold shadow-sm" style="background: var(--text-main);">Cobro Libre</a>
         </div>
     </div>
 
+    <!-- LISTA INSET GROUPED (EQUIPOS Y DEUDAS) -->
     {% if sanciones %}
         {% regroup sanciones|dictsort:"equipo.nombre" by equipo as sanciones_por_equipo %}
         
-        <div class="accordion finance-accordion mb-5 reveal-up" id="accordionFinanzas" style="animation-delay: 0.4s;">
+        <div class="ios-inset-group finance-accordion" id="accordionFinanzas">
             {% for grupo in sanciones_por_equipo %}
-
             <div class="accordion-item">
+                
                 <h2 class="accordion-header" id="heading-{{ grupo.grouper.id }}">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ grupo.grouper.id }}" aria-expanded="false" aria-controls="collapse-{{ grupo.grouper.id }}">
-                        <div class="d-flex align-items-center gap-3 w-100 pe-2">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ grupo.grouper.id }}">
+                        <div class="d-flex align-items-center gap-3 w-100">
                             {% if grupo.grouper.escudo %}
-                                <img src="{{ grupo.grouper.escudo.url }}" class="team-shield-large">
+                                <img src="{{ grupo.grouper.escudo.url }}" class="team-shield-mini">
                             {% else %}
-                                <div class="team-shield-large d-flex align-items-center justify-content-center text-muted"><i class="bi bi-shield-fill fs-3 opacity-25"></i></div>
+                                <div class="team-shield-mini d-flex align-items-center justify-content-center bg-light"><i class="bi bi-shield-fill text-muted"></i></div>
                             {% endif %}
                             
-                            <div class="flex-grow-1">
-                                <h5 class="fw-black text-dark mb-1" style="font-family: 'Outfit', sans-serif;">{{ grupo.grouper.nombre }}</h5>
-                                <span class="badge bg-slate-50 text-slate-600 border border-secondary border-opacity-25"><i class="bi bi-receipt me-1"></i>{{ grupo.list|length }} Registros</span>
+                            <div class="flex-grow-1 d-flex justify-content-between align-items-center pe-2">
+                                <h6 class="fw-bold mb-0 text-dark">{{ grupo.grouper.nombre }}</h6>
+                                <span class="badge bg-secondary bg-opacity-10 text-muted rounded-pill">{{ grupo.list|length }}</span>
                             </div>
                         </div>
                     </button>
                 </h2>
 
-                <div id="collapse-{{ grupo.grouper.id }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ grupo.grouper.id }}" data-bs-parent="#accordionFinanzas">
+                <div id="collapse-{{ grupo.grouper.id }}" class="accordion-collapse collapse" data-bs-parent="#accordionFinanzas">
                     <div class="accordion-body">
-                        
-                        <div class="section-pending">
-                            <h6 class="section-title"><i class="bi bi-exclamation-circle-fill me-2"></i>Por Cobrar / Deudas Pendientes</h6>
-                            
-                            <div class="pending-list-container">
-                                {% for s in grupo.list %}
-                                    {% if not s.pagada %}
-                                    <div class="debt-item">
+
+                        <!-- NOTIFICAR POR WHATSAPP -->
+                        <div class="px-3 pt-3 pb-1">
+                            {% with numero=grupo.grouper.telefono_contacto|default:grupo.grouper.dirigente.perfil.telefono %}
+                            {% if numero %}
+                                <a href="{% url 'notificar_equipo_whatsapp' grupo.grouper.id %}" target="_blank" class="btn btn-sm rounded-pill text-white fw-bold shadow-sm w-100 d-flex align-items-center justify-content-center gap-2 py-2" style="background:#25D366;">
+                                    <i class="bi bi-whatsapp"></i> Notificar por WhatsApp
+                                </a>
+                            {% else %}
+                                <div class="text-center text-muted fw-bold py-2" style="font-size: 0.75rem;">
+                                    <i class="bi bi-exclamation-circle me-1"></i> Sin número de celular registrado, no se puede notificar
+                                </div>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+
+                        <!-- LISTA DE DEUDAS DEL EQUIPO -->
+                        {% for s in grupo.list %}
+                            {% if not s.pagada %}
+                            <div class="debt-row">
+                                <div class="debt-info">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <!-- ETIQUETAS INTELIGENTES -->
+                                        {% if 'Inscripci' in s.descripcion %}
+                                            <span class="ios-tag tag-blue">Inscripción</span>
+                                        {% elif 'Amarilla' in s.descripcion or 'amarilla' in s.descripcion %}
+                                            <span class="ios-tag tag-yellow">T. Amarilla</span>
+                                        {% elif 'Roja' in s.descripcion or 'roja' in s.descripcion %}
+                                            <span class="ios-tag tag-red">T. Roja</span>
+                                        {% else %}
+                                            <span class="ios-tag tag-gray">Multa</span>
+                                        {% endif %}
                                         
-                                        <div class="debt-info d-flex align-items-start gap-3">
-                                            <div class="bg-slate-50 border rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 mt-1" style="width: 40px; height: 40px; color: {% if 'Inscripci' in s.descripcion %}var(--brand-primary){% else %}#F59E0B{% endif %};">
-                                                <i class="bi {% if 'Inscripci' in s.descripcion %}bi-journal-check{% else %}bi-exclamation-triangle-fill{% endif %} fs-5"></i>
-                                            </div>
-                                            
-                                            <div style="min-width: 0;">
-                                                <div class="d-flex align-items-center gap-2 mb-2">
-                                                    {% if 'Inscripci' in s.descripcion %}
-                                                        <span class="pill-tag bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 shadow-sm">INSCRIPCIÓN</span>
-                                                    {% else %}
-                                                        <span class="pill-tag bg-warning bg-opacity-10 text-warning border border-warning border-opacity-50 shadow-sm text-dark">SANCIÓN / MULTA</span>
-                                                    {% endif %}
-                                                    {% if s.partido %}
-                                                        <span class="text-muted fw-bold" style="font-size: 0.7rem;">{{ s.partido.fecha_hora|date:"d M Y" }}</span>
-                                                    {% endif %}
-                                                </div>
-                                                
-                                                <h6 class="fw-bold text-slate-900 mb-1" style="font-size: 0.95rem;">{{ s.descripcion }}</h6>
-                                                
-                                                {% if s.jugador or s.partido %}
-                                                <div class="detail-box">
-                                                    {% if s.jugador %}
-                                                        <div class="text-slate-900 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-person-fill text-muted me-1"></i>Jugador: <span class="text-primary">{{ s.jugador.nombres }}</span></div>
-                                                    {% endif %}
-                                                    {% if s.partido %}
-                                                        <div class="text-muted mt-1" style="font-size: 0.75rem;"><i class="bi bi-geo-alt-fill me-1"></i>Origen: {{ s.partido.equipo_local.nombre }} vs {{ s.partido.equipo_visita.nombre }}</div>
-                                                    {% endif %}
-                                                </div>
-                                                {% endif %}
-                                                
-                                                {% if s.monto_pagado > 0 %}
-                                                    <div class="text-success fw-bold mt-3" style="font-size: 0.75rem;"><i class="bi bi-check-circle-fill me-1"></i>Abonado: ${{ s.monto_pagado }} de ${{ s.monto }}</div>
-                                                    {% if s.historial_abonos.all %}
-                                                        <div class="abono-history">
-                                                            {% for abono in s.historial_abonos.all %}
-                                                                <div class="d-flex justify-content-between mb-1 border-bottom border-dashed pb-1">
-                                                                    <span class="text-muted"><i class="bi bi-calendar2-check me-1"></i>{{ abono.fecha|date:"d M Y" }}</span>
-                                                                    <span class="fw-bold text-success">+${{ abono.monto }}</span>
-                                                                </div>
-                                                            {% endfor %}
-                                                        </div>
-                                                    {% endif %}
-                                                {% else %}
-                                                    <div class="text-slate-500 fw-bold mt-2" style="font-size: 0.75rem;"><i class="bi bi-dash-circle me-1"></i>Monto Original: ${{ s.monto }}</div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-
-                                        <div class="debt-action">
-                                            <div class="d-flex flex-column align-items-md-end align-items-start w-100">
-                                                <div class="d-flex w-100 justify-content-between justify-content-md-end align-items-center mb-3 gap-2">
-                                                    <span class="text-muted fw-bold d-md-none small">Saldo pendiente:</span>
-                                                    
-                                                    {% if s.monto_pagado > 0 %}
-                                                    <form action="{% url 'revertir_cobro_sancion' s.id %}" method="POST" class="m-0" onsubmit="return confirm('⚠️ ¿Estás seguro de anular EL ÚLTIMO ABONO de esta sanción?');">
-                                                        {% csrf_token %} <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm py-1 px-2 rounded-3" title="Anular Último Abono">
-                                                            <i class="bi bi-arrow-counterclockwise"></i> Reversar
-                                                        </button>
-                                                    </form>
-                                                    {% endif %}
-                                                    
-                                                    <h3 class="fw-black text-danger m-0" style="font-family: 'Outfit', sans-serif;">${{ s.saldo }}</h3>
-                                                </div>
-                                                
-                                                <form action="{% url 'cobrar_sancion' s.id %}" method="post" class="m-0 w-100 d-flex justify-content-md-end" onsubmit="guardarEstadoAcordeon('collapse-{{ grupo.grouper.id }}')">
-                                                    {% csrf_token %}
-                                                    <div class="pay-input-group">
-                                                        <span class="input-group-text bg-white border-end-0 text-muted fw-bold ps-3 pe-1 border-0" style="font-size: 1.2rem;">$</span>
-                                                        <input type="number" name="monto_abono" class="form-control pay-input" step="0.01" min="0.01" max="{{ s.saldo }}" value="{{ s.saldo }}" required>
-                                                        <button type="submit" class="btn btn-pay" onclick="return confirm('¿Registrar pago a esta cuenta?');" title="Cobrar Deuda">PAGAR</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
+                                        {% if s.partido %}<span class="text-muted" style="font-size: 0.65rem;">{{ s.partido.fecha_hora|date:"d M" }}</span>{% endif %}
+                                    </div>
+                                    
+                                    <div class="fw-bold text-dark" style="font-size: 0.9rem;">{{ s.descripcion }}</div>
+                                    
+                                    <!-- CONTEXTO COMPACTO -->
+                                    {% if s.jugador or s.partido %}
+                                    <div class="debt-context">
+                                        {% if s.jugador %}Jugador: <span>{{ s.jugador.nombres }}</span> {% if s.partido %}&bull;{% endif %} {% endif %}
+                                        {% if s.partido %}Partido: <span>{{ s.partido.equipo_local.nombre }} vs {{ s.partido.equipo_visita.nombre }}</span>{% endif %}
                                     </div>
                                     {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="section-paid">
-                            <h6 class="section-title"><i class="bi bi-check2-all me-2"></i>Cuentas Saldadas</h6>
-                            
-                            <div class="paid-list-container">
-                                {% for s in grupo.list %}
-                                    {% if s.pagada %}
-                                    <div class="debt-item-paid">
-                                        <div class="d-flex align-items-center gap-3" style="min-width: 0; width: 75%;">
-                                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex justify-content-center align-items-center flex-shrink-0" style="width: 32px; height: 32px;">
-                                                <i class="bi bi-check-lg"></i>
+                                    
+                                    <!-- ABONOS -->
+                                    {% if s.monto_pagado > 0 %}
+                                    <div class="abono-mini-list">
+                                        <div class="text-success fw-bold mb-1"><i class="bi bi-check2"></i> Abonado: ${{ s.monto_pagado }} de ${{ s.monto }}</div>
+                                        {% for abono in s.historial_abonos.all %}
+                                            <div class="d-flex justify-content-between">
+                                                <span>{{ abono.fecha|date:"d/m" }}</span>
+                                                <span class="text-success">+${{ abono.monto }}</span>
                                             </div>
-                                            <div class="text-truncate">
-                                                <div class="fw-bold text-slate-900 text-truncate" style="font-size: 0.85rem;">{{ s.descripcion }}</div>
-                                                <div class="text-muted fw-medium mt-1" style="font-size: 0.7rem;">
-                                                    {% if s.historial_abonos.all %} Cancelado el {{ s.historial_abonos.last.fecha|date:"d M Y" }}
-                                                    {% else %} Cuenta Saldada {% endif %}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="fw-black text-success d-flex align-items-center gap-2" style="font-family: 'Outfit', sans-serif; font-size: 1rem;">
-                                            ${{ s.monto }}
-                                            
-                                            <form action="{% url 'revertir_cobro_sancion' s.id %}" method="POST" class="m-0" onsubmit="return confirm('⚠️ ¿Estás seguro de anular el pago de esta cuenta?');">
-                                                {% csrf_token %} <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm py-1 px-2 rounded-3 ms-2" title="Anular Pago">
-                                                    <i class="bi bi-arrow-counterclockwise"></i>
-                                                </button>
-                                            </form>
-                                        </div>
+                                        {% endfor %}
                                     </div>
+                                    {% else %}
+                                        <div class="text-muted fw-bold mt-1" style="font-size: 0.75rem;">Monto inicial: ${{ s.monto }}</div>
                                     {% endif %}
-                                {% endfor %}
+                                </div>
+
+                                <div class="debt-actions">
+                                    <div class="d-flex w-100 justify-content-between justify-content-md-end align-items-center mb-2 gap-3">
+                                        <span class="text-muted fw-bold d-md-none small">Saldo:</span>
+                                        {% if s.monto_pagado > 0 %}
+                                        <form action="{% url 'revertir_cobro_sancion' s.id %}" method="POST" class="m-0" onsubmit="return confirm('⚠️ ¿Anular el último abono?');">
+                                            {% csrf_token %} <button type="submit" class="btn btn-link text-danger p-0" style="font-size: 0.75rem; text-decoration: none;">Deshacer</button>
+                                        </form>
+                                        {% endif %}
+                                        <h4 class="fw-black text-danger m-0">${{ s.saldo }}</h4>
+                                    </div>
+                                    
+                                    <form action="{% url 'cobrar_sancion' s.id %}" method="post" class="m-0 w-100 d-flex justify-content-md-end" onsubmit="guardarEstadoAcordeon('collapse-{{ grupo.grouper.id }}')">
+                                        {% csrf_token %}
+                                        <div class="ios-pay-capsule">
+                                            <span class="text-muted fw-bold ps-2">$</span>
+                                            <input type="number" name="monto_abono" step="0.01" min="0.01" max="{{ s.saldo }}" value="{{ s.saldo }}" required>
+                                            <button type="submit" onclick="return confirm('¿Registrar pago?');">Pagar</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
+                            {% endif %}
+                        {% endfor %}
+
+                        <!-- SECCIÓN COMPACTA DE PAGADOS -->
+                        {% for s in grupo.list %}
+                            {% if s.pagada %}
+                            <div class="debt-row-paid">
+                                <div class="d-flex align-items-center gap-2 text-truncate pe-3">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    <div class="text-truncate">
+                                        <div class="text-dark fw-medium text-truncate" style="font-size: 0.8rem;">{{ s.descripcion }}</div>
+                                        <div class="text-muted" style="font-size: 0.65rem;">Saldado</div>
+                                    </div>
+                                </div>
+                                <div class="fw-bold text-success d-flex align-items-center gap-2" style="font-size: 0.85rem;">
+                                    ${{ s.monto }}
+                                    <form action="{% url 'revertir_cobro_sancion' s.id %}" method="POST" class="m-0" onsubmit="return confirm('⚠️ ¿Anular pago?');">
+                                        {% csrf_token %} <button type="submit" class="btn btn-link text-danger p-0"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
                         
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
+
+        <!-- CONTROLES DE PAGINACIÓN iOS -->
+        {% if sanciones.has_other_pages %}
+        <div class="d-flex justify-content-center mt-4">
+            <ul class="pagination ios-pagination">
+                {% if sanciones.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ sanciones.previous_page_number }}&q={{ request.GET.q|default_if_none:'' }}&torneo={{ request.GET.torneo|default_if_none:'' }}"><i class="bi bi-chevron-left"></i></a>
+                    </li>
+                {% endif %}
+                
+                {% for num in sanciones.paginator.page_range %}
+                    {% if sanciones.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > sanciones.number|add:'-3' and num < sanciones.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&q={{ request.GET.q|default_if_none:'' }}&torneo={{ request.GET.torneo|default_if_none:'' }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if sanciones.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ sanciones.next_page_number }}&q={{ request.GET.q|default_if_none:'' }}&torneo={{ request.GET.torneo|default_if_none:'' }}"><i class="bi bi-chevron-right"></i></a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+
     {% else %}
-        <div class="text-center py-5 rounded-4 border border-dashed bg-white shadow-sm reveal-up" style="animation-delay: 0.4s;">
-            <i class="bi bi-inboxes fs-1 d-block mb-3 text-muted opacity-25"></i>
-            <h5 class="fw-bold text-dark" style="font-family: 'Outfit', sans-serif;">Sistema Financiero Limpio</h5>
-            <p class="text-muted mb-0">No existen registros de deudas o pagos en este momento.</p>
+        <div class="text-center py-5 rounded-4 bg-white shadow-sm border">
+            {% if request.GET.q or request.GET.torneo %}
+                <i class="bi bi-search fs-1 d-block mb-2 text-muted opacity-50"></i>
+                <h5 class="fw-bold text-dark">Sin resultados</h5>
+                <p class="text-muted small mb-0">No encontramos equipos que coincidan con tu búsqueda.</p>
+                <a href="{% url 'gestionar_finanzas' %}" class="btn btn-sm btn-outline-primary rounded-pill mt-3 fw-bold">Limpiar filtros</a>
+            {% else %}
+                <i class="bi bi-check-circle-fill fs-1 d-block mb-2 text-success opacity-50"></i>
+                <h5 class="fw-bold text-dark">Todo al día</h5>
+                <p class="text-muted small mb-0">No hay deudas registradas.</p>
+            {% endif %}
         </div>
     {% endif %}
 
@@ -432,28 +415,15 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        
-        // 1. Ocultar sub-secciones si están vacías
-        document.querySelectorAll('.pending-list-container').forEach(container => {
-            if (container.children.length === 0 || container.innerHTML.trim() === '') {
-                container.innerHTML = '<div class="empty-state-micro">No hay deudas pendientes en este momento.</div>';
-            }
-        });
+        const selectInputs = document.querySelectorAll('#panelSancion select, #panelSancion input, #panelSancion textarea');
+        selectInputs.forEach(input => input.classList.add('ios-input'));
 
-        document.querySelectorAll('.paid-list-container').forEach(container => {
-            if (container.children.length === 0 || container.innerHTML.trim() === '') {
-                container.parentElement.style.display = 'none'; 
-            }
-        });
-
-        // 2. Restaurar Acordeón y Scroll tras un pago (Mantiene fluido el proceso de cobro)
         let openId = sessionStorage.getItem('openAccordion');
         let scrollPos = sessionStorage.getItem('scrollPosFinanzas');
 
         if (openId) {
             let collapseDiv = document.getElementById(openId);
             let toggleButton = document.querySelector(`[data-bs-target="#${openId}"]`);
-            
             if (collapseDiv && toggleButton) {
                 collapseDiv.classList.add('show');
                 toggleButton.classList.remove('collapsed');
@@ -463,7 +433,7 @@
         }
 
         if (scrollPos) {
-            setTimeout(() => { window.scrollTo(0, parseInt(scrollPos)); }, 100);
+            setTimeout(() => window.scrollTo(0, parseInt(scrollPos)), 100);
             sessionStorage.removeItem('scrollPosFinanzas');
         }
     });
@@ -473,5 +443,4 @@
         sessionStorage.setItem('scrollPosFinanzas', window.scrollY);
     }
 </script>
-
 {% endblock %}

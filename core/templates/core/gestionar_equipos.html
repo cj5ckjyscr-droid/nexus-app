@@ -3,357 +3,386 @@
 {% block title %}Equipos | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
+<!-- Select2 CSS para el buscador de usuarios -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
 <style>
-    /* =========================================================
-       ESTÉTICA FEY - GESTIÓN DE EQUIPOS (LIGHT MODE)
-       ========================================================= */
-    .ambient-glow {
-        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
-        background: 
-            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
-            radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
-        z-index: -1; pointer-events: none;
+    /* ==============================================================
+       ESTILO iOS / iPHONE - INTERFAZ PREMIUM
+       ============================================================== */
+    :root {
+        --ios-bg: #F2F2F7;         
+        --ios-card: #FFFFFF;
+        --ios-text: #1C1C1E;
+        --ios-muted: #8E8E93;
+        --ios-blue: #007AFF;
+        --ios-green: #34C759;
+        --ios-red: #FF3B30;
+        --ios-orange: #FF9500;
+        --ios-separator: rgba(60, 60, 67, 0.15);
     }
 
-    .fey-title {
-        font-family: 'Outfit', sans-serif; font-weight: 900;
-        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
+    body { 
+        background-color: var(--ios-bg); 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--ios-text);
+        -webkit-font-smoothing: antialiased;
     }
 
-    /* Panel Flotante (Formulario / Info) */
-    .fey-form-panel {
-        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
-        border: 1px solid #E2E8F0; border-radius: 24px; padding: 30px;
-        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.03);
-        position: sticky; top: 100px; z-index: 10;
-        transition: all 0.3s ease;
+    /* Tarjetas estilo Widget iOS */
+    .ios-card {
+        background: var(--ios-card);
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        border: none;
+        overflow: hidden;
+        margin-bottom: 15px;
     }
-    .fey-form-panel::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
-        background: linear-gradient(90deg, #94A3B8, #CBD5E1); transition: all 0.3s ease;
-    }
-    .fey-form-panel.edit-mode::before { background: linear-gradient(90deg, var(--brand-primary), #0EA5E9); }
 
-    /* Inputs Fey */
-    input.clean-input, select.clean-input {
-        background-color: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
-        border-radius: 12px !important; padding: 12px 16px !important;
-        font-weight: 500 !important; color: #0F172A !important;
-        transition: all 0.3s ease !important; box-shadow: 0 2px 4px rgba(0,0,0,0.01) !important; width: 100%;
-    }
-    input.clean-input:focus, select.clean-input:focus {
-        border-color: var(--brand-primary) !important; background-color: #FFFFFF !important;
-        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none !important;
-    }
-    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-
-    /* Tarjetas de Torneo (Agrupador) */
-    .torneo-card {
-        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 24px;
-        padding: 30px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    /* Panel de Formulario */
+    .form-panel {
+        padding: 24px;
+        border: 1px solid rgba(0,0,0,0.05);
     }
     
-    /* Tarjetas de Equipo (Mini Cards) */
-    .equipo-card {
-        background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 16px;
-        padding: 20px; display: flex; flex-direction: column; height: 100%;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden;
-    }
-    .equipo-card:hover {
-        background: #FFFFFF; border-color: var(--brand-primary);
-        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.08); transform: translateY(-4px);
+    .ios-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        color: var(--ios-text);
     }
 
-    /* Estados de Equipos */
-    .equipo-card.pendiente { background: #FFFBEB; border-color: #FDE68A; }
-    .equipo-card.rechazado { background: #FEF2F2; border-color: #FECACA; opacity: 0.8; }
-    .sancion-overlay {
-        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(2px);
-        z-index: 5; display: flex; align-items: center; justify-content: center;
+    /* Inputs estilo iOS */
+    .ios-input-group {
+        margin-bottom: 12px;
+    }
+    .ios-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--ios-muted);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        display: block;
+        padding-left: 4px;
+        letter-spacing: 0.5px;
+    }
+    .clean-input {
+        width: 100%; 
+        padding: 12px 15px;
+        border: none !important;
+        border-radius: 12px; 
+        background-color: #7676801F !important; 
+        color: var(--ios-text) !important; 
+        font-size: 1rem;
+        transition: background-color 0.2s;
+    }
+    .clean-input:focus {
+        background-color: #7676802E !important;
+        outline: none;
+        box-shadow: inset 0 0 0 2px var(--ios-blue);
     }
 
-    /* Escudos y Botones */
+    /* Botón de Guardar iOS */
+    .btn-ios-primary {
+        background-color: var(--ios-blue);
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        padding: 14px;
+        border-radius: 14px;
+        border: none;
+        width: 100%;
+        transition: transform 0.1s;
+    }
+    .btn-ios-primary:active { transform: scale(0.96); background-color: #0066D6; }
+
+    .btn-ios-secondary {
+        background-color: #E5E5EA;
+        color: var(--ios-text);
+        font-weight: 600;
+        font-size: 1rem;
+        padding: 14px;
+        border-radius: 14px;
+        border: none;
+        width: 100%;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+    }
+
+    /* Lista de Equipos */
+    .ios-list-group {
+        background: var(--ios-card);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    .ios-list-item {
+        padding: 16px;
+        border-bottom: 1px solid var(--ios-separator);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: relative;
+    }
+    .ios-list-item:last-child { border-bottom: none; }
+
+    /* Escudos */
     .team-shield {
-        width: 54px; height: 54px; border-radius: 50%; object-fit: cover;
-        border: 2px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: #F1F5F9; flex-shrink: 0;
+        width: 55px; height: 55px; 
+        border-radius: 14px; 
+        object-fit: cover;
+        background: #F2F2F7;
+        border: 1px solid var(--ios-separator);
     }
     .team-shield-icon {
-        width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-        border: 2px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: #F8FAFC; color: #94A3B8; font-size: 1.5rem; flex-shrink: 0;
+        width: 55px; height: 55px; 
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        background: #F2F2F7; color: var(--ios-muted); font-size: 1.5rem;
     }
 
-    .btn-circle-action {
-        width: 36px; height: 36px; border-radius: 10px;
-        display: inline-flex; align-items: center; justify-content: center;
-        border: 1px solid transparent; transition: all 0.2s; text-decoration: none; font-size: 1rem;
+    /* Botones de acción compactos */
+    .action-row {
+        display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
+        margin-top: 10px;
     }
-    .btn-circle-action:hover { transform: translateY(-2px); }
-    .btn-edit { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
-    .btn-delete { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
-    .btn-cupos { background: #F0FDF4; color: #16A34A; border-color: #BBF7D0; }
-    .btn-sancion { background: #FFFBEB; color: #D97706; border-color: #FDE68A; }
-
-    /* Animación */
-    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-
-    /* Estilos de Hover para Paginación */
-    .hover-primary:hover { color: #10B981 !important; border-color: #10B981 !important; }
-
-    @media (max-width: 991px) {
-        .fey-form-panel { position: static; margin-bottom: 30px; }
+    .btn-action-ios {
+        background: #F2F2F7;
+        color: var(--ios-blue);
+        border-radius: 10px;
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex; align-items: center; gap: 6px;
+        transition: background-color 0.2s;
     }
-    @media (max-width: 576px) {
-        .torneo-card { padding: 20px; border-radius: 20px; }
-        .fey-form-panel { padding: 20px; border-radius: 20px; }
-        .equipo-card { padding: 16px; }
-        .btn-circle-action { width: 32px; height: 32px; font-size: 0.9rem; }
+    .btn-action-ios.danger { color: var(--ios-red); }
+    .btn-action-ios.success { color: var(--ios-green); }
+    .btn-action-ios.warning { color: var(--ios-orange); }
+    
+    .btn-action-ios:active { filter: brightness(0.9); }
+
+    /* Estilos para Select2 (Buscador) */
+    .select2-container--default .select2-selection--single {
+        background-color: #7676801F !important;
+        border: none !important;
+        border-radius: 12px !important;
+        height: 48px !important;
+        display: flex;
+        align-items: center;
     }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: var(--ios-text) !important;
+        font-size: 1rem;
+        padding-left: 15px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 48px !important;
+        right: 10px !important;
+    }
+
+    /* Accordion iOS */
+    .accordion-button { font-size: 1rem; font-weight: 600; color: var(--ios-text); background: transparent; padding: 15px 5px;}
+    .accordion-button:not(.collapsed) { background-color: transparent; color: var(--ios-blue); box-shadow: none; border-bottom: 1px solid var(--ios-separator);}
+    .accordion-button:focus { box-shadow: none; }
+    .accordion-item { border: none; background: transparent; }
+
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="ambient-glow"></div>
-
-<div class="container-fluid px-0 pb-5">
-
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 pb-3 border-bottom reveal-up">
-        <div class="mb-3 mb-md-0">
-            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 mb-2 rounded-pill fw-bold">
-                <i class="bi bi-shield-check me-1"></i> Control Organizador
-            </span>
-            <h2 class="fey-title m-0">Gestión de Equipos</h2>
-            <p class="text-muted small m-0 fw-medium mt-1">Directorio global de equipos inscritos en tus torneos activos.</p>
+<div class="container-fluid px-2 animate__animated animate__fadeIn pb-5">
+    
+    <!-- CABECERA: TÍTULO Y BOTÓN DE DESPLEGAR FORMULARIO -->
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-2 px-1">
+        <div>
+            <h5 class="ios-title mb-0">Directorio</h5>
+            <div class="text-muted" style="font-size: 0.85rem; font-weight: 500;">Torneos Activos ({{ equipos|length }})</div>
         </div>
         
-        <div>
-            <div class="bg-white border rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center">
-                <i class="bi bi-shield-shaded text-primary me-2"></i>
-                <span class="fw-bold text-dark text-uppercase small" style="letter-spacing: 0.5px;">{{ equipos.paginator.count|default:"0" }} Equipos Totales</span>
+        <!-- Botón que abre/cierra el formulario -->
+        <button class="btn btn-action-ios" style="background: var(--ios-blue); color: white; padding: 10px 16px; border-radius: 14px;" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFormulario" aria-expanded="{% if editando %}true{% else %}false{% endif %}" aria-controls="collapseFormulario">
+            <i class="bi {% if editando %}bi-pencil-square{% else %}bi-plus-lg{% endif %}"></i> 
+            {% if editando %}Editando{% else %}Nuevo Equipo{% endif %}
+        </button>
+    </div>
+
+    <!-- EL FORMULARIO (RECOGIDO POR DEFECTO) -->
+    <div class="collapse {% if editando %}show{% endif %} mb-4" id="collapseFormulario">
+        <div class="ios-card form-panel">
+            <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                <div class="me-3" style="color: var(--ios-blue); font-size: 1.8rem;">
+                    <i class="bi {% if editando %}bi-pencil-square{% else %}bi-shield-plus{% endif %}"></i>
+                </div>
+                <div>
+                    <h5 class="ios-title mb-0">{% if editando %}Editar Equipo{% else %}Registrar Equipo{% endif %}</h5>
+                    <div class="text-muted" style="font-size: 0.8rem; font-weight: 500;">Completa los datos solicitados</div>
+                </div>
             </div>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- El row g-3 acomoda los inputs en varias columnas en PC y 1 en móvil -->
+                <div class="row g-3">
+                    {% for field in form %}
+                        <div class="col-12 col-md-6 col-lg-4 ios-input-group">
+                            <label class="ios-label">{{ field.label }}</label>
+                            
+                            {{ field }}
+                            
+                            {% if field.errors %}
+                                <div class="text-danger mt-1" style="font-size: 0.75rem; font-weight: 500;">
+                                    <i class="bi bi-info-circle-fill me-1"></i>{{ field.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="row mt-4 pt-3 border-top">
+                    <div class="col-12 col-md-6 mb-2">
+                        <button type="submit" class="btn-ios-primary">
+                            <i class="bi bi-check-lg me-1"></i> {% if editando %}Actualizar Cambios{% else %}Guardar Equipo{% endif %}
+                        </button>
+                    </div>
+                    {% if editando %}
+                    <div class="col-12 col-md-6">
+                        <a href="{% url 'gestionar_equipos' %}" class="btn-ios-secondary">Cancelar Edición</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="row g-4">
-        
-        <div class="col-lg-4 col-xl-3 reveal-up" style="animation-delay: 0.1s;">
-            <div class="fey-form-panel {% if editando %}edit-mode{% endif %}">
-                
-                {% if editando %}
-                    <div class="text-center border-bottom pb-3 mb-4">
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; background: #EFF6FF; color: var(--brand-primary); border: 1px solid #BFDBFE;">
-                            <i class="bi bi-pencil-fill fs-3"></i>
-                        </div>
-                        <h4 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">Editar Equipo</h4>
-                        <p class="text-muted small m-0 mt-1">Modificando datos oficiales</p>
-                    </div>
+    <!-- LISTA DE EQUIPOS (AHORA OCUPA TODA LA PANTALLA) -->
+    <div>
+        {% if not equipos %}
+            <div class="ios-card text-center py-5 mt-3">
+                <i class="bi bi-shield-slash text-muted" style="font-size: 3.5rem; opacity: 0.3;"></i>
+                <h6 class="fw-bold mt-3 text-dark">Sin equipos registrados</h6>
+                <p class="text-muted small mb-0">No hay equipos en los torneos activos.</p>
+            </div>
+        {% else %}
 
-                    <form method="post" enctype="multipart/form-data" class="m-0">
-                        {% csrf_token %}
-                        <div class="d-flex flex-column gap-3">
-                            {% for field in form %}
-                                <div>
-                                    <label class="form-label-pro">{{ field.label }}</label>
-                                    {{ field }}
-                                    {% if field.errors %}
-                                        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-2 mt-2 text-danger small fw-bold d-flex align-items-center shadow-sm">
-                                            <i class="bi bi-exclamation-circle-fill me-2"></i> {{ field.errors|striptags }}
+            {% regroup equipos by torneo.categoria as categorias %}
+            <div class="accordion" id="accCategorias">
+                
+                {% for cat in categorias %}
+                <div class="accordion-item mb-4">
+                    <h2 class="accordion-header px-1">
+                        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#colCat{{ forloop.counter }}">
+                            {{ cat.grouper.nombre|default:"CATEGORÍA GENERAL" }}
+                        </button>
+                    </h2>
+                    
+                    <div id="colCat{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#accCategorias">
+                        <div class="accordion-body px-0 py-3">
+                            
+                            {% regroup cat.list by torneo as torneos %}
+                            {% for t in torneos %}
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center mb-3 px-2">
+                                        <div class="text-muted fw-semibold" style="font-size: 0.85rem; text-transform: uppercase;">
+                                            <i class="bi bi-trophy-fill text-warning me-1"></i> {{ t.grouper.nombre }}
                                         </div>
-                                    {% endif %}
+                                    </div>
+                                    
+                                    <!-- Lista iOS -->
+                                    <div class="ios-list-group shadow-sm">
+                                        {% for equipo in t.list %}
+                                            <div class="ios-list-item flex-column align-items-stretch">
+                                                
+                                                <div class="d-flex align-items-center gap-3 w-100">
+                                                    <!-- Escudo -->
+                                                    {% if equipo.escudo %}
+                                                        <img src="{{ equipo.escudo.url }}" class="team-shield">
+                                                    {% else %}
+                                                        <div class="team-shield-icon"><i class="bi bi-shield-fill"></i></div>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Info Principal -->
+                                                    <div class="flex-grow-1 min-w-0">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="fw-bold text-dark text-truncate" style="font-size: 1.05rem;">{{ equipo.nombre }}</div>
+                                                            {% if equipo.esta_sancionado %}
+                                                                <span class="badge bg-danger rounded-pill" style="font-size: 0.6rem;">SANCIONADO</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        
+                                                        {% if equipo.estado_inscripcion == 'APROBADO' %}
+                                                            <div class="d-flex align-items-center gap-2 mt-1">
+                                                                <span style="font-size: 0.8rem; color: var(--ios-muted); font-weight: 500;">
+                                                                    {{ equipo.jugadores.count }}/{{ equipo.cupos_pagados }} Jugadores
+                                                                </span>
+                                                                <span style="font-size: 0.8rem; color: var(--ios-green); font-weight: 600;">
+                                                                    <i class="bi bi-check-circle-fill"></i> Oficial
+                                                                </span>
+                                                            </div>
+                                                        {% elif equipo.estado_inscripcion == 'PENDIENTE' %}
+                                                            <div class="text-warning fw-semibold mt-1" style="font-size: 0.8rem;">
+                                                                <i class="bi bi-clock-history"></i> En Revisión
+                                                            </div>
+                                                        {% elif equipo.estado_inscripcion == 'RECHAZADO' %}
+                                                            <div class="text-danger fw-semibold mt-1 text-decoration-line-through" style="font-size: 0.8rem;">
+                                                                Rechazado
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+
+                                                <!-- Botones de Acción -->
+                                                <div class="action-row">
+                                                    {% if equipo.estado_inscripcion == 'APROBADO' %}
+                                                        <a href="{% url 'imprimir_carnets' equipo.id %}" target="_blank" class="btn-action-ios" style="background: var(--ios-blue); color: white;">
+                                                            <i class="bi bi-person-badge"></i> Carnets
+                                                        </a>
+                                                        <a href="{% url 'asignar_cupos' equipo.id %}" class="btn-action-ios success"><i class="bi bi-123"></i> Cupos</a>
+                                                        <a href="{% url 'sancionar_equipo' equipo.id %}" class="btn-action-ios warning"><i class="bi bi-gavel"></i> Sanción</a>
+                                                    {% endif %}
+                                                    
+                                                    {% if equipo.estado_inscripcion != 'RECHAZADO' %}
+                                                        <a href="{% url 'editar_equipo' equipo.id %}" class="btn-action-ios"><i class="bi bi-pencil"></i> Editar</a>
+                                                    {% endif %}
+                                                    
+                                                    <a href="{% url 'eliminar_equipo' equipo.id %}" class="btn-action-ios danger" onclick="return confirm('⚠️ ¿Eliminar equipo permanentemente?');"><i class="bi bi-trash"></i></a>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
                                 </div>
                             {% endfor %}
+
                         </div>
-
-                        <div class="d-flex flex-column gap-2 mt-4 pt-4 border-top">
-                            <button type="submit" class="btn btn-nexus w-100 rounded-pill py-3 fw-bold shadow-sm" style="font-size: 0.95rem;">
-                                <i class="bi bi-save2 me-1"></i> Actualizar Equipo
-                            </button>
-                            <a href="{% url 'gestionar_equipos' %}" class="btn btn-light w-100 rounded-pill py-2 fw-bold text-muted border">Cancelar Edición</a>
-                        </div>
-                    </form>
-                
-                {% else %}
-                    <div class="text-center">
-                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 border border-primary border-opacity-25 shadow-sm" style="width: 64px; height: 64px;">
-                            <i class="bi bi-diagram-3-fill fs-2"></i>
-                        </div>
-                        <h4 class="fw-black text-dark mb-2" style="font-family: 'Outfit', sans-serif; line-height: 1.1;">Flujo de Inscripciones</h4>
-                        <p class="text-muted small fw-medium mb-4" style="line-height: 1.5;">La creación de equipos no se hace manualmente. Se realiza a través del <strong>Portal Público</strong> por los futuros dirigentes.</p>
-                        
-                        <div class="bg-slate-50 border rounded-4 p-3 text-start mb-4 shadow-sm">
-                            <ul class="list-unstyled mb-0 small text-slate-700 fw-medium d-flex flex-column gap-2">
-                                <li class="d-flex align-items-center"><i class="bi bi-1-circle-fill text-primary fs-5 me-2"></i> Usuarios envían su solicitud.</li>
-                                <li class="d-flex align-items-center"><i class="bi bi-2-circle-fill text-primary fs-5 me-2"></i> Tú la apruebas o rechazas.</li>
-                                <li class="d-flex align-items-center"><i class="bi bi-3-circle-fill text-primary fs-5 me-2"></i> Selecciona un equipo aquí para editarlo.</li>
-                            </ul>
-                        </div>
-                        
-                        <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-dark w-100 rounded-pill fw-bold shadow-sm py-3" style="font-size: 0.9rem;">
-                            <i class="bi bi-inbox-fill me-1"></i> Ver Solicitudes Pendientes
-                        </a>
-                    </div>
-                {% endif %}
-
-            </div>
-        </div>
-
-        <div class="col-lg-8 col-xl-9 reveal-up" style="animation-delay: 0.2s;">
-            
-            {% if not equipos %}
-                <div class="text-center py-5 bg-white border border-dashed rounded-4 shadow-sm">
-                    <i class="bi bi-shield-x text-muted opacity-25 d-block mb-3" style="font-size: 4rem;"></i>
-                    <h4 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Sin equipos registrados</h4>
-                    <p class="text-muted small m-0">Aún no hay equipos inscritos en los torneos activos.</p>
-                </div>
-            {% else %}
-
-                {% regroup equipos by torneo as torneos_agrupados %}
-                
-                {% for grupo_torneo in torneos_agrupados %}
-                <div class="torneo-card">
-                    
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
-                        <div class="d-flex align-items-center gap-3 mb-3 mb-md-0">
-                            <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 54px; height: 54px;">
-                                <i class="bi bi-trophy-fill fs-3"></i>
-                            </div>
-                            <div>
-                                <h4 class="fw-black text-dark m-0 text-uppercase" style="font-family: 'Outfit', sans-serif; letter-spacing: 0.5px;">{{ grupo_torneo.grouper.nombre }}</h4>
-                                <span class="badge bg-slate-50 text-slate-600 border border-secondary border-opacity-25 px-3 py-1 mt-1 rounded-pill">{{ grupo_torneo.grouper.categoria.nombre|default:"Categoría General" }}</span>
-                            </div>
-                        </div>
-                        <div class="text-start text-md-end">
-                            <span class="badge bg-dark text-white rounded-pill px-4 py-2 shadow-sm" style="font-size: 0.85rem;">{{ grupo_torneo.list|length }} Equipos Listados</span>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 g-xl-4">
-                        {% for equipo in grupo_torneo.list %}
-                            <div class="col-md-6 col-xl-4">
-                                
-                                {% if equipo.estado_inscripcion == 'APROBADO' %}
-                                <div class="equipo-card">
-                                    {% if equipo.esta_sancionado %}
-                                        <div class="sancion-overlay">
-                                            <span class="badge bg-danger text-white rounded-pill px-4 py-2 shadow-lg fs-6 fw-black"><i class="bi bi-slash-circle me-2"></i> SANCIONADO</span>
-                                        </div>
-                                    {% endif %}
-                                    
-                                    <div class="d-flex align-items-center gap-3 mb-4">
-                                        {% if equipo.escudo %}<img src="{{ equipo.escudo.url }}" class="team-shield">
-                                        {% else %}<div class="team-shield-icon"><i class="bi bi-shield-fill text-muted opacity-25"></i></div>{% endif %}
-                                        
-                                        <div class="flex-grow-1 min-w-0">
-                                            <div class="fw-black text-dark text-truncate" style="font-family: 'Outfit', sans-serif; font-size: 1.1rem;">{{ equipo.nombre }}</div>
-                                            <span class="badge {% if equipo.puede_fichar %}bg-success text-success border-success{% else %}bg-danger text-danger border-danger{% endif %} bg-opacity-10 border mt-1 px-2 py-1" style="font-size: 0.65rem; font-weight: 800;">
-                                                {{ equipo.jugadores.count }}/{{ equipo.cupos_pagados }} Jugadores
-                                            </span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
-                                        <div class="d-flex gap-2">
-                                            <a href="{% url 'editar_equipo' equipo.id %}" class="btn-circle-action btn-edit shadow-sm" title="Editar"><i class="bi bi-pencil-fill"></i></a>
-                                            <a href="{% url 'asignar_cupos' equipo.id %}" class="btn-circle-action btn-cupos shadow-sm" title="Cupos"><i class="bi bi-person-fill-add"></i></a>
-                                            <a href="{% url 'sancionar_equipo' equipo.id %}" class="btn-circle-action btn-sancion shadow-sm" title="Sancionar"><i class="bi bi-gavel"></i></a>
-                                            <a href="{% url 'eliminar_equipo' equipo.id %}" class="btn-circle-action btn-delete shadow-sm" title="Eliminar" onclick="return confirm('⚠️ ¿Eliminar equipo?');"><i class="bi bi-trash3-fill"></i></a>
-                                        </div>
-                                        <a href="{% url 'imprimir_carnets' equipo.id %}" target="_blank" class="btn btn-dark btn-sm rounded-pill fw-bold py-1 px-3 shadow-sm d-flex align-items-center" title="Imprimir Carnets" style="font-size: 0.75rem;">
-                                            <i class="bi bi-printer-fill"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                                {% endif %}
-
-                                {% if equipo.estado_inscripcion == 'PENDIENTE' %}
-                                <div class="equipo-card pendiente">
-                                    <div class="d-flex align-items-center gap-3 mb-3">
-                                        {% if equipo.escudo %}<img src="{{ equipo.escudo.url }}" class="team-shield">
-                                        {% else %}<div class="team-shield-icon"><i class="bi bi-shield-fill text-muted opacity-25"></i></div>{% endif %}
-                                        
-                                        <div class="flex-grow-1 min-w-0">
-                                            <div class="fw-black text-dark text-truncate" style="font-family: 'Outfit', sans-serif; font-size: 1.1rem;">{{ equipo.nombre }}</div>
-                                            <div class="text-warning text-dark fw-bold mt-1" style="font-size: 0.7rem;"><i class="bi bi-clock-history me-1"></i> EN REVISIÓN</div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-auto pt-3 border-top border-warning border-opacity-50 d-flex gap-2">
-                                        <a href="{% url 'editar_equipo' equipo.id %}" class="btn-circle-action btn-edit shadow-sm"><i class="bi bi-pencil-fill"></i></a>
-                                        <a href="{% url 'eliminar_equipo' equipo.id %}" class="btn-circle-action btn-delete shadow-sm" onclick="return confirm('⚠️ ¿Eliminar solicitud?');"><i class="bi bi-trash3-fill"></i></a>
-                                    </div>
-                                </div>
-                                {% endif %}
-
-                                {% if equipo.estado_inscripcion == 'RECHAZADO' %}
-                                <div class="equipo-card rechazado d-flex flex-row align-items-center justify-content-between">
-                                    <div class="flex-grow-1 min-w-0 pe-2">
-                                        <div class="fw-bold text-muted text-truncate text-decoration-line-through" style="font-size: 0.95rem;">{{ equipo.nombre }}</div>
-                                        <div class="text-danger fw-black mt-1" style="font-size: 0.7rem; letter-spacing: 0.5px;"><i class="bi bi-x-octagon-fill me-1"></i> RECHAZADO</div>
-                                    </div>
-                                    <a href="{% url 'eliminar_equipo' equipo.id %}" class="btn-circle-action btn-delete shadow-sm flex-shrink-0" onclick="return confirm('¿Borrar permanentemente?');"><i class="bi bi-trash3-fill"></i></a>
-                                </div>
-                                {% endif %}
-
-                            </div>
-                        {% endfor %}
                     </div>
                 </div>
                 {% endfor %}
-
-                {% if equipos.has_other_pages %}
-                <div class="d-flex justify-content-center mt-4 mb-2">
-                    <nav aria-label="Navegación de páginas">
-                        <ul class="pagination pagination-sm m-0 shadow-sm" style="gap: 8px;">
-                            
-                            {% if equipos.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ equipos.previous_page_number }}" style="padding: 8px 16px;">
-                                        <i class="bi bi-chevron-left"></i> Anterior
-                                    </a>
-                                </li>
-                            {% endif %}
-
-                            {% for num in equipos.paginator.page_range %}
-                                {% if equipos.number == num %}
-                                    <li class="page-item active">
-                                        <span class="page-link rounded-pill border-0 fw-black text-white shadow-sm" style="background: linear-gradient(135deg, #10B981, #059669); padding: 8px 16px;">
-                                            {{ num }}
-                                        </span>
-                                    </li>
-                                {% elif num > equipos.number|add:'-3' and num < equipos.number|add:'3' %}
-                                    <li class="page-item">
-                                        <a class="page-link rounded-pill border border-slate-200 text-slate-600 fw-bold bg-white transition-all hover-primary" href="?page={{ num }}" style="padding: 8px 16px;">
-                                            {{ num }}
-                                        </a>
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-
-                            {% if equipos.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ equipos.next_page_number }}" style="padding: 8px 16px;">
-                                        Siguiente <i class="bi bi-chevron-right"></i>
-                                    </a>
-                                </li>
-                            {% endif %}
-
-                        </ul>
-                    </nav>
-                </div>
-                {% endif %}
-                {% endif %}
-        </div>
+            </div>
+        {% endif %} 
     </div>
 </div>
 
+<!-- jQuery y Select2 JS para el Buscador de Usuarios -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Aplicar clase limpia a los inputs generados por Django
-        const inputs = document.querySelectorAll('form input[type="text"], form input[type="number"], form input[type="file"], form select, form textarea');
+        // 1. Aplicar clase de diseño a los inputs de texto normales
+        const inputs = document.querySelectorAll('form input[type="text"], form input[type="number"], form input[type="file"], form textarea');
         inputs.forEach(input => {
             if (!input.classList.contains('form-check-input')) {
                 input.classList.add('clean-input');
             }
+        });
+
+        // 2. Activar Select2 (Buscador) en todos los "select" (Dirigente, Torneo, etc)
+        $('select').select2({
+            width: '100%',
+            placeholder: "Buscar y seleccionar...",
+            allowClear: true
         });
     });
 </script>

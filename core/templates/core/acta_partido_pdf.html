@@ -386,6 +386,9 @@
     <table class="signatures-container" style="border: none;">
         <tr style="background: none;">
             <td class="signature-cell" style="border: none; height: 60px;">
+                {% if partido.firma_local_base64 %}
+                    <img src="{{ partido.firma_local_base64 }}" width="150" height="60" alt="Firma Local"><br>
+                {% endif %}
                 <div class="signature-line">
                     Capitán / DT Local<br>
                     <span style="font-weight: normal; font-size: 8pt; text-transform: none;">{{ partido.equipo_local.nombre }}</span>
@@ -395,6 +398,9 @@
                 </div>
             </td>
             <td class="signature-cell" style="border: none; height: 60px;">
+                {% if partido.firma_visita_base64 %}
+                    <img src="{{ partido.firma_visita_base64 }}" width="150" height="60" alt="Firma Visita"><br>
+                {% endif %}
                 <div class="signature-line">
                     Capitán / DT Visita<br>
                     <span style="font-weight: normal; font-size: 8pt; text-transform: none;">{{ partido.equipo_visita.nombre }}</span>

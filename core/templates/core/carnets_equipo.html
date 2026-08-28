@@ -3,274 +3,336 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Carnets | {{ equipo.nombre }} | NEXUS SPORTOPS</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Fuentes premium y deportivas -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,800;0,900;1,700;1,900&family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <style>
         :root {
-            --color-cat: {{ color_categoria }}; /* Color dinámico de la categoría */
-            --brand-primary: #4F46E5;
+            /* Color base: Usa el de la categoría o un ámbar/dorado cálido por defecto */
+            --color-cat: {{ color_categoria|default:'#f59e0b' }};
+            
+            /* Colores cálidos y menos concentrados */
+            --bg-grad-1: #3d3835; 
+            --bg-grad-2: #24201e; 
         }
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #F3F6F8;
+            background-color: #e2e8f0;
             margin: 0;
-            padding: 0;
-            color: #0F172A;
-            -webkit-font-smoothing: antialiased;
+            padding: 30px;
         }
 
-        /* =========================================================
-           VISTA DE PANTALLA (SCREEN MODE) - ESTÉTICA NEXUS
-           ========================================================= */
-        @media screen {
-            /* Luces de ambiente */
-            .ambient-glow {
-                position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
-                background: 
-                    radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.08) 0%, transparent 40%),
-                    radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.08) 0%, transparent 40%);
-                z-index: -1; pointer-events: none;
-            }
+        .btn-imprimir {
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+            width: 280px; margin: 0 auto 30px auto;
+            background: linear-gradient(135deg, var(--color-cat) 0%, #d97706 100%); 
+            color: #fff; border: none; padding: 15px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.1rem; font-weight: 900; border-radius: 10px;
+            cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+            text-transform: uppercase; transition: all 0.3s ease;
+        }
+        .btn-imprimir:hover { transform: translateY(-3px); filter: brightness(1.1); }
 
-            /* Cabecera de Acción en Pantalla */
-            .screen-header {
-                background: rgba(255, 255, 255, 0.85);
-                backdrop-filter: blur(20px);
-                border-bottom: 1px solid #E2E8F0;
-                padding: 15px 20px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                position: sticky;
-                top: 0;
-                z-index: 100;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-            }
-
-            .header-info h1 {
-                font-family: 'Outfit', sans-serif;
-                font-weight: 900; font-size: 1.5rem; margin: 0;
-                letter-spacing: -0.02em; color: #0F172A;
-            }
-            .header-info p { margin: 0; font-size: 0.85rem; color: #64748B; font-weight: 600; }
-
-            .btn-imprimir {
-                background: linear-gradient(135deg, var(--brand-primary), #0EA5E9);
-                color: white; border: none; padding: 12px 24px;
-                font-size: 0.95rem; font-weight: 700; border-radius: 50px;
-                cursor: pointer; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
-                transition: all 0.3s ease;
-                display: flex; align-items: center; gap: 8px;
-            }
-            .btn-imprimir:hover {
-                transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
-            }
-
-            /* Contenedor tipo Hoja para vista en PC/Móvil */
-            .hoja-impresion {
-                display: flex; flex-wrap: wrap; gap: 20px;
-                justify-content: center; max-width: 21cm; margin: 40px auto;
-                padding: 20px;
-            }
-
-            /* Hover de los carnets solo en pantalla */
-            .carnet {
-                transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
-                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
-            }
-            .carnet:hover {
-                transform: translateY(-8px) scale(1.02);
-                box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15) !important;
-            }
-
-            /* Adaptación Móvil de la Barra Superior */
-            @media (max-width: 600px) {
-                .screen-header { flex-direction: column; text-align: center; gap: 15px; padding: 20px; }
-                .btn-imprimir { width: 100%; justify-content: center; padding: 15px; }
-                .hoja-impresion { margin: 20px auto; padding: 10px; }
-            }
+        .hoja-impresion {
+            display: flex; flex-wrap: wrap; gap: 20px;
+            justify-content: center; max-width: 21cm; margin: 0 auto;
         }
 
-        /* =========================================================
-           DISEÑO DEL CARNET FÍSICO (TAMAÑO CR80 ESTÁNDAR)
-           Estas medidas JAMÁS deben cambiar para que impriman bien.
-           ========================================================= */
+        /* --- CONTENEDOR PRINCIPAL DEL CARNET --- */
         .carnet {
-            width: 5.4cm; height: 8.6cm;
-            background-color: #FFFFFF;
+            width: 8.6cm; 
+            height: 5.3cm; 
+            background: linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2));
             border-radius: 10px;
+            position: relative;
             overflow: hidden;
+            display: flex; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4), inset 0 0 10px rgba(255,255,255,0.05);
+            page-break-inside: avoid;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        /* --- MARCA DE AGUA DEL DORSAL --- */
+        .numero-watermark {
+            position: absolute;
+            right: -5px; bottom: 8px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 155px; font-weight: 900; font-style: italic;
+            color: rgba(255, 255, 255, 0.12); 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            line-height: 0.75; z-index: 1; pointer-events: none;
+        }
+
+        /* --- BARRA INFERIOR OBLIGATORIA (Letra más grande) --- */
+        .cinta-cancha {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 18px;
+            background: var(--color-cat); color: #000;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 8px; box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 900; font-size: 8px; letter-spacing: 1.5px;
+            z-index: 50; box-shadow: 0 -2px 8px rgba(0,0,0,0.5);
+        }
+        .cinta-cancha .dev-credit { font-size: 5.5px; font-weight: 700; letter-spacing: 0.2px; opacity: 0.75; }
+
+        /* --- ESCUDO DORSAL FLOTANTE --- */
+        .dorsal-badge {
+            position: absolute;
+            top: 0; left: 0;
+            background: var(--color-cat); color: #000;
+            padding: 3px 10px 5px 10px;
+            border-radius: 0 0 10px 0; 
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 40; box-shadow: 2px 2px 8px rgba(0,0,0,0.6);
+        }
+        .dorsal-badge .label {
+            font-family: 'Inter', sans-serif; font-size: 5.5px;
+            font-weight: 800; text-transform: uppercase; margin-bottom: -2px;
+        }
+        .dorsal-badge .numero {
+            font-family: 'Montserrat', sans-serif; font-size: 20px;
+            font-weight: 900; line-height: 1;
+        }
+
+        /* --- COLUMNA IZQUIERDA: FOTO --- */
+        .col-left {
+            width: 32%; 
+            padding: 10px 8px 20px 12px; 
+            z-index: 10;
             position: relative;
-            page-break-inside: avoid; /* Evita que el carnet se corte a la mitad de la hoja */
-            border: 1px solid #CBD5E1; /* Borde guía para recortar */
-            box-sizing: border-box;
-        }
-
-        /* Cabecera Diagonal */
-        .carnet-header {
-            background-color: var(--color-cat);
-            height: 3cm;
-            clip-path: polygon(0 0, 100% 0, 100% 75%, 0% 100%);
-            position: relative;
-        }
-
-        .torneo-title {
-            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-            color: #FFFFFF; font-family: 'Outfit', sans-serif; font-size: 8px; 
-            font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; 
-            white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
-
-        .logos-top {
-            display: flex; justify-content: space-between;
-            padding: 10px 12px; position: absolute; top: 0; width: 100%; box-sizing: border-box;
-        }
-
-        .logo-img {
-            height: 28px; width: 28px; object-fit: contain;
-            background: #FFFFFF; border-radius: 50%; padding: 2px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
-
-        /* Foto del Jugador flotando */
-        .foto-container {
-            position: absolute; top: 1.3cm; left: 50%; transform: translateX(-50%);
-            width: 3.4cm; height: 3.4cm;
-            border-radius: 50%; border: 3px solid #FFFFFF;
-            background: #F1F5F9; overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 10;
-        }
-        .foto-container img { width: 100%; height: 100%; object-fit: cover; }
-        .foto-placeholder { font-size: 35px; display: flex; align-items: center; justify-content: center; height: 100%; color: #94A3B8; }
-
-        /* Información del Jugador */
-        .carnet-body {
-            padding-top: 1.9cm; text-align: center; px-1;
+            display: flex; 
+            align-items: center; 
         }
         
-        .jugador-nombre {
-            font-family: 'Outfit', sans-serif; font-weight: 900;
-            font-size: 13px; color: #0F172A; margin: 0; text-transform: uppercase;
-            line-height: 1.1; padding: 0 6px; letter-spacing: -0.5px;
-        }
-        
-        .jugador-cedula {
-            font-size: 9px; color: #64748B; margin: 5px 0 8px 0; font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-        
-        .equipo-nombre {
-            font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 11px; 
-            color: var(--color-cat); margin: 0; text-transform: uppercase;
-        }
-
-        /* Pie del Carnet */
-        .carnet-footer {
-            position: absolute; bottom: 0; width: 100%;
-            background: #0F172A; color: #FFFFFF; display: flex;
-            align-items: center; justify-content: space-between;
-            height: 24px; padding: 0 12px; box-sizing: border-box;
-        }
-
-        .cat-badge { font-size: 9px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
-        
-        /* Dorsal Flotante */
-        .dorsal {
-            background: var(--color-cat); color: #FFFFFF; font-family: 'Outfit', sans-serif;
-            font-size: 14px; font-weight: 900; height: 28px; width: 28px;
+        .foto-box {
+            width: 100%;
+            aspect-ratio: 3 / 4; 
+            height: auto;
+            background: #1a1715;
+            border: 2px solid var(--color-cat); 
+            border-radius: 6px;
+            padding: 3px; 
+            box-shadow: 0 5px 12px rgba(0,0,0,0.6);
             display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; position: absolute; right: 10px; bottom: 10px;
-            border: 2px solid #FFFFFF; box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+            overflow: hidden; /* Asegura que la foto no se salga del borde curvo */
+        }
+        .foto-box img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; /* MAGIA AQUÍ: Rellena TODO el espacio disponible sin dejar bordes negros */
+            object-position: center; /* Asegura que el centro de la foto (rostro) no se recorte */
+            border-radius: 3px; 
+        }
+        .foto-placeholder { font-size: 40px; color: rgba(255,255,255,0.15); }
+
+        /* --- COLUMNA DERECHA: LOGOS COMBINADOS Y DATOS --- */
+        .col-right {
+            width: 68%; 
+            padding: 10px 12px 20px 8px; 
+            z-index: 10;
+            display: flex; flex-direction: column;
+            justify-content: center;
         }
 
-        /* =========================================================
-           VISTA DE IMPRESIÓN (PRINT MODE) - MODO ESTRICTO
-           ========================================================= */
-        @media print {
-            body { background-color: #FFFFFF !important; margin: 0; padding: 0; }
-            .ambient-glow, .screen-header { display: none !important; } /* Oculta adornos y botones */
-            
-            .hoja-impresion { 
-                margin: 0 !important; padding: 0 !important; gap: 2px !important; 
-                justify-content: flex-start !important; 
-            }
-            
-            .carnet {
-                box-shadow: none !important; /* Quita sombras al imprimir para ahorrar tinta */
-                border: 1px solid #CBD5E1 !important; /* Borde fino para recorte */
-                transform: none !important;
-            }
+        /* CABECERA DE LOGOS COMBINADOS */
+        .header-logos {
+            display: flex; align-items: center; gap: 6px;
+            margin-bottom: 8px; padding-bottom: 6px;
+            border-bottom: 1.5px solid var(--color-cat);
+        }
+        .logo-equipo-header {
+            width: 38px; height: 38px; object-fit: contain; 
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.7));
+        }
+        .fallback-escudo {
+            width: 38px; height: 38px; background: var(--color-cat); 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 18px; color: #000;
+        }
+        .nombre-equipo-header {
+            color: #fff; font-family: 'Montserrat', sans-serif;
+            font-size: 10px; 
+            font-weight: 900; line-height: 1.1;
+            text-transform: uppercase; flex-grow: 1; text-align: left;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        .logo-sistema-header {
+            height: 50px; max-width: 90px; object-fit: contain; 
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.7));
+        }
+        .fallback-sistema {
+            display: flex; align-items: center; color: #fff; font-family: 'Montserrat', sans-serif; 
+            font-weight: 900; font-style: italic; font-size: 10px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
 
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
+        .titulos {
+            width: 100%; text-align: left;
+            margin-bottom: 8px;
+        }
+        .titulos h1 {
+            font-family: 'Montserrat', sans-serif; 
+            font-size: 13.5px; 
+            font-weight: 900; font-style: italic; color: #fff; margin: 0;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+        .titulos h2 {
+            font-family: 'Montserrat', sans-serif; 
+            font-size: 8.5px; 
+            font-weight: 700; color: var(--color-cat); margin: 3px 0 0 0;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        /* --- LISTA DE DATOS --- */
+        .datos-lista {
+            display: flex; flex-direction: column; gap: 6px; 
+            width: 100%; justify-content: center;
+        }
+        
+        /* Ocultar Dorsal y Equipo de la lista */
+        .datos-lista .dato-item:nth-child(1),
+        .datos-lista .dato-item:nth-child(4) { display: none !important; }
+        
+        .dato-item { display: flex; align-items: center; }
+        
+        .dato-icon {
+            color: var(--color-cat); font-size: 11px; width: 14px;
+            text-align: center; margin-right: 6px;
+        }
+        
+        .dato-label {
+            color: rgba(255,255,255,0.7); font-family: 'Inter', sans-serif;
+            font-size: 8px; 
+            font-weight: 700; width: 55px; margin-right: 4px;
+        }
+        
+        .dato-valor {
+            color: #fff; 
+            font-size: 10.5px; 
+            font-weight: 800;
+            text-transform: uppercase; flex-grow: 1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        /* Hueco del Lanyard */
+        .lanyard-hole {
+            position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+            width: 12px; height: 3px; background: #fff; border-radius: 3px;
+            z-index: 60; box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        @media print {
+            body { background-color: white !important; margin: 0; padding: 0; }
+            .btn-imprimir { display: none !important; }
+            .hoja-impresion { gap: 5px; justify-content: flex-start; }
+            .lanyard-hole { background-color: white !important; box-shadow: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 </head>
 <body>
 
-    <div class="ambient-glow"></div>
-
-    <div class="screen-header">
-        <div class="header-info">
-            <h1>NEXUS SPORTOPS</h1>
-            <p>Generador de Carnets CR80: {{ equipo.nombre }}</p>
-        </div>
-        <button class="btn-imprimir" onclick="window.print()">
-            <i class="bi bi-printer-fill fs-5"></i> Imprimir Carnets
-        </button>
-    </div>
+    <button class="btn-imprimir" onclick="window.print()">
+        <i class="bi bi-printer-fill"></i> Imprimir Carnets
+    </button>
 
     <div class="hoja-impresion">
         {% for jugador in jugadores %}
         <div class="carnet">
             
-            <div class="carnet-header">
-                <div class="torneo-title">{{ equipo.torneo.nombre|truncatechars:25 }}</div>
-                <div class="logos-top">
-                    <img src="{{ config_global.logo_sistema.url|default:'' }}" class="logo-img" onerror="this.style.display='none'">    
-                    {% if equipo.escudo %}
-                        <img src="{{ equipo.escudo.url }}" class="logo-img">
+            <div class="lanyard-hole"></div>
+            
+            <!-- MARCA DE AGUA DEL DORSAL -->
+            <div class="numero-watermark">{{ jugador.dorsal|default:"S/N" }}</div>
+            
+            <!-- CINTA INFERIOR -->
+            <div class="cinta-cancha">
+                <span>{{ equipo.torneo.complejo.nombre|default:"NEXUS SPORTOPS"|upper }} {% now "Y" %}</span>
+                <span class="dev-credit">Dev: Deyvi Rivera</span>
+            </div>
+
+            <!-- ESCUDO FLOTANTE DEL DORSAL -->
+            <div class="dorsal-badge">
+                <span class="label">Nº</span>
+                <span class="numero">{{ jugador.dorsal|default:"S/N" }}</span>
+            </div>
+            
+            <!-- COLUMNA IZQUIERDA: FOTO PROPORCIONADA QUE RELLENA TODO EL MARCO -->
+            <div class="col-left">
+                <div class="foto-box">
+                    {% if jugador.foto %}
+                        <img src="{{ jugador.foto.url }}" alt="Foto">
                     {% else %}
-                        <div class="logo-img d-flex align-items-center justify-content-center" style="background:#F8FAFC;">
-                            <i class="bi bi-shield-fill text-muted opacity-25" style="font-size: 14px;"></i>
-                        </div>
+                        <div class="foto-placeholder"><i class="bi bi-person-fill"></i></div>
                     {% endif %}
                 </div>
             </div>
 
-            <div class="foto-container">
-                {% if jugador.foto %}
-                    <img src="{{ jugador.foto.url }}" alt="Foto">
-                {% else %}
-                    <div class="foto-placeholder"><i class="bi bi-person-fill"></i></div>
-                {% endif %}
-            </div>
+            <!-- COLUMNA DERECHA: LOGOS, TÍTULOS Y DATOS -->
+            <div class="col-right">
+                
+                <div class="header-logos">
+                    {% if equipo.escudo %}
+                        <img src="{{ equipo.escudo.url }}" class="logo-equipo-header" alt="Escudo">
+                    {% else %}
+                        <div class="fallback-escudo"><i class="bi bi-shield-fill"></i></div>
+                    {% endif %}
+                    
+                    <div class="nombre-equipo-header">{{ equipo.nombre }}</div>
 
-            <div class="carnet-body">
-                <p class="jugador-nombre">{{ jugador.nombres }}</p>
-                <p class="jugador-cedula">ID: {{ jugador.cedula|default:"0000000000" }}</p>
-                <p class="equipo-nombre">{{ equipo.nombre }}</p>
-            </div>
+                    {% if equipo.torneo.complejo.logo %}
+                        <img src="{{ equipo.torneo.complejo.logo.url }}" class="logo-sistema-header" alt="Logo">
+                    {% else %}
+                        <div class="fallback-sistema">
+                            <i class="bi bi-trophy-fill" style="color:var(--color-cat); margin-right:4px;"></i> {{ equipo.torneo.complejo.nombre|default:"NEXUS" }}
+                        </div>
+                    {% endif %}
+                </div>
 
-            <div class="carnet-footer">
-                <span class="cat-badge">{{ nombre_categoria }}</span>
+                <div class="titulos">
+                    <h1>CARNET OFICIAL</h1>
+                    <h2>TORNEO {{ equipo.torneo.nombre }}</h2>
+                </div>
+
+                <div class="datos-lista">
+                    <!-- Dorsal (Oculto en CSS) -->
+                    <div class="dato-item">
+                        <i class="bi bi-person-vcard-fill dato-icon"></i>
+                        <span class="dato-label">DORSAL:</span>
+                        <span class="dato-valor">{{ jugador.dorsal|default:"S/N" }}</span>
+                    </div>
+                    
+                    <!-- Cédula -->
+                    <div class="dato-item">
+                        <i class="bi bi-upc-scan dato-icon"></i>
+                        <span class="dato-label">CÉDULA:</span>
+                        <span class="dato-valor">{{ jugador.cedula }}</span>
+                    </div>
+                    
+                    <!-- Nombres y Apellidos Completos -->
+                    <div class="dato-item">
+                        <i class="bi bi-person-fill dato-icon"></i>
+                        <span class="dato-label">NOMBRES:</span>
+                        <span class="dato-valor">{{ jugador.nombres }} {{ jugador.apellidos|default:"" }}</span>
+                    </div>
+                    
+                    <!-- Equipo (Oculto en CSS) -->
+                    <div class="dato-item" style="border-bottom: none;">
+                        <i class="bi bi-shield-check dato-icon"></i>
+                        <span class="dato-label">EQUIPO:</span>
+                        <span class="dato-valor">{{ equipo.nombre }}</span>
+                    </div>
+                </div>
+
             </div>
-            
-            <div class="dorsal">{{ jugador.dorsal|default:"-" }}</div>
         </div>
-        
         {% empty %}
-        <div style="text-align:center; width: 100%; padding: 50px 20px;">
-            <i class="bi bi-person-vcard text-muted opacity-25 d-block mb-3" style="font-size: 4rem;"></i>
-            <h3 style="color: #0F172A; font-family: 'Outfit', sans-serif;">Plantilla Vacía</h3>
-            <p style="color: #64748B;">No hay jugadores activos en este equipo para imprimir carnets.</p>
+        <div style="text-align:center; width: 100%; padding-top: 50px;">
+            <h3 style="color: #64748b; font-family: 'Inter', sans-serif;">No hay jugadores activos en este equipo para imprimir.</h3>
         </div>
         {% endfor %}
     </div>

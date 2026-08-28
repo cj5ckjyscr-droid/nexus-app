@@ -1,347 +1,327 @@
 {% extends 'core/base.html' %}
-{% load static %}
 
 {% block title %}Gestión de Torneos | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* =========================================================
-       ESTÉTICA FEY - GESTIÓN DE TORNEOS (LIGHT MODE)
-       ========================================================= */
-    .ambient-glow {
-        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
-        background: 
-            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
-            radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
-        z-index: -1; pointer-events: none;
+    /* ==========================================
+       ESTILOS PREMIUM iOS - GESTIÓN DE TORNEOS
+       ========================================== */
+    :root {
+        --ios-bg: #F2F2F7;
+        --ios-surface: #FFFFFF;
+        --ios-separator: rgba(60, 60, 67, 0.15);
+        --text-main: #1C1C1E;
+        --text-muted: #8E8E93;
+        
+        --apple-blue: #007AFF;
+        --apple-green: #34C759;
+        --apple-red: #FF3B30;
+        --apple-orange: #FF9500;
+        --apple-gray: #8E8E93;
     }
 
-    .fey-title {
-        font-family: 'Outfit', sans-serif; font-weight: 900;
-        font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; color: #0F172A;
-    }
+    body { background-color: var(--ios-bg); font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: var(--text-main); }
 
-    /* Panel de Formulario Flotante */
-    .fey-form-panel {
-        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
-        border: 1px solid #E2E8F0; border-radius: 24px; padding: 24px;
-        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.03);
-        position: sticky; top: 100px; z-index: 10; transition: all 0.3s ease;
+    /* ==========================================
+       BOTÓN Y PANEL DE FORMULARIO (COLAPSABLE)
+       ========================================== */
+    .btn-ios-toggle {
+        background: var(--ios-surface); border-radius: 16px; padding: 16px 20px; width: 100%;
+        text-align: left; border: none; font-weight: 700; color: var(--apple-blue);
+        display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
     }
-    .fey-form-panel::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
-        background: linear-gradient(90deg, #94A3B8, #CBD5E1); transition: all 0.3s ease;
-    }
-    .fey-form-panel.edit-mode::before { background: linear-gradient(90deg, var(--brand-primary), #0EA5E9); }
-
-    /* Uso del Plan SaaS Widget */
-    .saas-usage-widget {
-        background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 16px; padding: 16px; margin-bottom: 24px;
-    }
-    .progress-saas { height: 8px; border-radius: 10px; background-color: #E2E8F0; overflow: hidden; }
-
-    /* Auto-styling Inputs Django */
-    .fey-form-panel input[type="text"], .fey-form-panel input[type="number"], .fey-form-panel input[type="date"], .fey-form-panel select {
-        background-color: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
-        border-radius: 12px !important; padding: 12px 16px !important;
-        font-weight: 600 !important; color: #0F172A !important;
-        transition: all 0.3s ease !important; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.01) !important;
-    }
-    .fey-form-panel input:focus, .fey-form-panel select:focus {
-        border-color: var(--brand-primary) !important; background-color: #FFFFFF !important;
-        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none !important;
-    }
-    .form-label-pro { font-size: 0.75rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-
-    /* Switches (Interruptores iOS) */
-    .fey-switch-container {
-        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px;
-        padding: 16px; display: flex; justify-content: space-between; align-items: center;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.01); transition: all 0.3s ease;
-    }
-    .fey-switch-container:focus-within { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
-    .form-switch .form-check-input {
-        width: 3rem; height: 1.5rem; cursor: pointer;
-        background-color: #CBD5E1; border-color: #CBD5E1;
-        transition: background-position .15s ease-in-out; margin: 0;
-    }
-    .form-switch .form-check-input:checked { background-color: var(--brand-primary); border-color: var(--brand-primary); }
-
-    /* Tarjetas de Torneos */
-    .tournament-card {
-        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 20px;
-        padding: 24px; position: relative; overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        display: flex; flex-direction: column; height: 100%;
-    }
-    .tournament-card:hover {
-        transform: translateY(-5px); box-shadow: 0 15px 30px rgba(15, 23, 42, 0.08); border-color: var(--brand-primary);
-    }
-    .tournament-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 5px; background: var(--brand-primary); }
+    .btn-ios-toggle:active { transform: scale(0.98); background: #E5E5EA; }
     
-    .tournament-card.inactive { opacity: 0.85; filter: grayscale(100%); }
-    .tournament-card.inactive::before { background: #94A3B8; }
-    .tournament-card.inactive:hover { opacity: 1; filter: grayscale(0%); border-color: #CBD5E1; }
-
-    /* Widgets Internos de Stats */
-    .stat-widget {
-        background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;
-        padding: 10px 8px; text-align: center; flex: 1;
+    .ios-panel-oculto {
+        background: var(--ios-surface); border-radius: 20px; padding: 24px; margin-top: 12px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.06); border: 1px solid rgba(0, 122, 255, 0.1);
     }
-    .stat-val { font-size: 1.1rem; font-weight: 900; color: #0F172A; font-family: 'Outfit', sans-serif; line-height: 1; margin-bottom: 4px; }
-    .stat-label { font-size: 0.65rem; color: #64748B; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* Cabecera de Categorías */
-    .cat-divider {
-        display: flex; align-items: center; margin: 2rem 0 1.5rem 0;
+    /* Inputs estilo iOS */
+    .ios-input-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+    .ios-input {
+        width: 100%; padding: 12px 16px; border-radius: 12px; border: none;
+        background: #7676801F; color: var(--text-main); font-size: 0.95rem; font-weight: 500;
     }
-    .cat-divider span {
-        background: #0F172A; color: #FFFFFF; padding: 6px 16px; border-radius: 50px;
-        font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
-        display: flex; align-items: center; gap: 8px;
+    .ios-input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--apple-blue); background: #7676802E; }
+
+    /* Switch (Interruptores iOS) */
+    .ios-switch-container {
+        background: #7676800D; border-radius: 14px; padding: 16px;
+        display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
     }
-    .cat-divider::after { content: ''; flex-grow: 1; height: 1px; background: dashed 1px #CBD5E1; margin-left: 15px; }
+    .form-switch .form-check-input { width: 3rem; height: 1.5rem; cursor: pointer; background-color: #E5E5EA; border-color: transparent; }
+    .form-switch .form-check-input:checked { background-color: var(--apple-green); border-color: var(--apple-green); }
 
-    /* Botones Circulares */
-    .btn-circle-action {
-        width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
-        border: 1px solid transparent; transition: all 0.2s; text-decoration: none; font-size: 0.9rem;
+    /* Botones de acción formulario */
+    .btn-ios-submit {
+        background: var(--apple-blue); color: white; border: none; border-radius: 14px;
+        padding: 14px; font-weight: 700; width: 100%; margin-top: 10px; transition: transform 0.1s;
     }
-    .btn-circle-action:hover { transform: translateY(-2px); }
-    .btn-edit { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
-    .btn-delete { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
-
-    /* Animación */
-    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-
-    /* Estilos de Hover para Paginación */
-    .hover-primary:hover { color: #10B981 !important; border-color: #10B981 !important; }
-
-    @media (max-width: 991px) {
-        .fey-form-panel { position: static; margin-bottom: 30px; }
+    .btn-ios-submit:active { transform: scale(0.97); }
+    .btn-ios-cancel {
+        background: transparent; color: var(--apple-red); border: none; font-weight: 600; width: 100%; padding: 12px; margin-top: 5px;
     }
-    @media (max-width: 576px) {
-        .fey-form-panel, .tournament-card { padding: 20px; border-radius: 20px; }
-        .stat-widget { padding: 8px 4px; }
-        .stat-val { font-size: 1rem; }
-        .stat-label { font-size: 0.6rem; }
+
+    /* ==========================================
+       LISTA DE TORNEOS (INSET GROUPED)
+       ========================================== */
+    .ios-inset-group { background: var(--ios-surface); border-radius: 20px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+    
+    .cat-header {
+        background: #F9F9FB; padding: 12px 20px; font-size: 0.75rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
+        border-bottom: 1px solid var(--ios-separator);
+    }
+
+    .tournament-row {
+        padding: 16px 20px; border-bottom: 1px solid var(--ios-separator);
+        display: flex; flex-direction: column; gap: 12px; background: var(--ios-surface); transition: background 0.2s;
+    }
+    .tournament-row:last-child { border-bottom: none; }
+    .tournament-row.inactive { opacity: 0.6; filter: grayscale(50%); background: #F9F9FB; }
+    .tournament-row.inactive:hover { opacity: 1; filter: grayscale(0%); }
+
+    /* Etiquetas iOS */
+    .ios-tag { font-size: 0.65rem; padding: 4px 8px; border-radius: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tag-green { background: rgba(52, 199, 89, 0.15); color: var(--apple-green); }
+    .tag-gray { background: rgba(142, 142, 147, 0.15); color: var(--text-main); }
+    .tag-blue { background: rgba(0, 122, 255, 0.15); color: var(--apple-blue); }
+    .tag-red { background: rgba(255, 59, 48, 0.15); color: var(--apple-red); }
+
+    /* Stats Box compacta */
+    .ios-stats-box {
+        display: flex; gap: 15px; background: #F9F9FB; padding: 10px 14px; border-radius: 12px; margin-top: 5px; border: 1px solid rgba(0,0,0,0.03);
+    }
+    .tournament-row.inactive .ios-stats-box { background: var(--ios-surface); }
+    
+    .stat-item { display: flex; flex-direction: column; }
+    .stat-val { font-size: 0.95rem; font-weight: 800; color: var(--text-main); }
+    .stat-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
+
+    /* Botones de acción en fila */
+    .row-actions { display: flex; gap: 8px; }
+    .btn-circle-ios {
+        width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        text-decoration: none; transition: transform 0.1s; font-size: 1.1rem;
+    }
+    .btn-circle-ios:active { transform: scale(0.9); }
+    
+    .btn-finish-ios { background: rgba(255, 149, 0, 0.15); color: var(--apple-orange); } /* Naranja para archivar */
+    .btn-open-ios { background: rgba(52, 199, 89, 0.15); color: var(--apple-green); } /* Verde para reabrir */
+    .btn-edit-ios { background: rgba(0, 122, 255, 0.1); color: var(--apple-blue); }
+    .btn-delete-ios { background: rgba(255, 59, 48, 0.1); color: var(--apple-red); }
+
+    @media (min-width: 768px) {
+        .tournament-row { flex-direction: row; justify-content: space-between; align-items: center; }
+        .tournament-info { width: 70%; }
+        .tournament-controls { width: 30%; display: flex; flex-direction: column; align-items: flex-end; }
+    }
+    @media (max-width: 767px) {
+        .tournament-controls { border-top: 1px dashed var(--ios-separator); padding-top: 12px; display: flex; justify-content: space-between; align-items: center; }
     }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="ambient-glow"></div>
+<div class="container-fluid px-2 animate__animated animate__fadeIn pb-5">
 
-<div class="container-fluid px-0 pb-5">
-    
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom reveal-up">
-        <div class="mb-3 mb-md-0">
-            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 mb-2 rounded-pill fw-bold">
-                <i class="bi bi-shield-check me-1"></i> Panel de Administración
-            </span>
-            <h2 class="fey-title m-0">Gestión de Torneos</h2>
-            <p class="text-muted small m-0 fw-medium mt-1">Crea nuevos campeonatos, asigna precios y habilita inscripciones.</p>
-        </div>
-        
+    <!-- CABECERA -->
+    <div class="mb-4 mt-3 px-1 d-flex justify-content-between align-items-center">
         <div>
-            <div class="bg-white border rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center">
-                <i class="bi bi-trophy-fill text-warning me-2"></i>
-                <span class="fw-bold text-dark text-uppercase small" style="letter-spacing: 0.5px;">{{ torneos.paginator.count|default:"0" }} Campeonatos Totales</span>
+            <h3 class="fw-black text-dark mb-0">Gestión de Torneos</h3>
+            <span class="text-muted small">Configura las competencias de tu complejo</span>
+        </div>
+        <span class="badge bg-secondary bg-opacity-10 text-muted rounded-pill fs-6 px-3 py-2">{{ torneos.paginator.count }}</span>
+    </div>
+
+    <!-- PANEL DE FORMULARIO COLAPSABLE -->
+    <div class="mb-4">
+        <button class="btn-ios-toggle shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#panelFormulario" aria-expanded="{% if editando %}true{% else %}false{% endif %}">
+            <span>
+                <i class="bi {% if editando %}bi-pencil-fill{% else %}bi-plus-circle-fill{% endif %} me-2"></i> 
+                {% if editando %}Editando Torneo: {{ torneo_edit.nombre }}{% else %}Añadir Nuevo Torneo{% endif %}
+            </span>
+            <i class="bi bi-chevron-down text-muted"></i>
+        </button>
+
+        <div class="collapse {% if editando %}show{% endif %}" id="panelFormulario">
+            <div class="ios-panel-oculto">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Cupo de tu plan</span>
+                            <span class="small fw-black {% if actuales >= limite %}text-danger{% else %}text-success{% endif %}">{{ actuales }} / {{ limite }} Torneos</span>
+                        </div>
+                        <div class="progress" style="height: 6px; border-radius: 4px;">
+                            <div class="progress-bar {% if actuales >= limite %}bg-danger{% else %}bg-success{% endif %}" role="progressbar" style="width: {% widthratio actuales limite 100 %}%;"></div>
+                        </div>
+                        {% if not puede_crear %}
+                            <div class="text-danger small fw-bold mt-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>Límite alcanzado. Finaliza un torneo viejo o mejora tu plan.</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row g-3">
+                        {% for field in form %}
+                            {% if field.field.widget.input_type == 'checkbox' %}
+                                <div class="col-12 col-md-6 mt-3">
+                                    <div class="ios-switch-container">
+                                        <div>
+                                            <label class="form-check-label fw-bold text-dark d-block m-0" for="{{ field.id_for_label }}" style="font-size: 0.85rem;">{{ field.label }}</label>
+                                            {% if field.help_text %}<small class="text-muted d-block lh-sm mt-1" style="font-size: 0.7rem;">{{ field.help_text }}</small>{% endif %}
+                                        </div>
+                                        <div class="form-check form-switch m-0 p-0 ps-3">
+                                            {{ field }}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="col-12 col-md-6">
+                                    <label class="ios-input-label">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.help_text %}<div class="text-muted mt-1" style="font-size: 0.7rem;">{{ field.help_text }}</div>{% endif %}
+                                    {% if field.errors %}<div class="text-danger mt-1 fw-bold" style="font-size: 0.75rem;">{{ field.errors.0 }}</div>{% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="row mt-4 pt-3 border-top">
+                        <div class="col-12 col-md-4 ms-auto">
+                            <button type="submit" class="btn-ios-submit" {% if not editando and not puede_crear %}disabled{% endif %}>
+                                {% if editando %}Guardar Cambios{% else %}Crear Torneo{% endif %}
+                            </button>
+                            {% if editando %}
+                                <a href="{% url 'gestionar_torneos' %}" class="btn-ios-cancel d-block text-center text-decoration-none">Cancelar Edición</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <div class="row g-4">
-        
-        <div class="col-lg-4 col-xl-4 reveal-up" style="animation-delay: 0.1s;">
-            <div class="fey-form-panel {% if editando %}edit-mode{% endif %}">
-                
-                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; background: {% if editando %}#EFF6FF; color: var(--brand-primary);{% else %}#F1F5F9; color: #0F172A;{% endif %}; border: 1px solid #E2E8F0;">
-                        <i class="bi {% if editando %}bi-pencil-fill{% else %}bi-plus-lg{% endif %} fs-5"></i>
-                    </div>
-                    <div>
-                        <h5 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">{% if editando %}Editar Torneo{% else %}Nuevo Torneo{% endif %}</h5>
-                        <p class="text-muted small m-0 fw-medium">{% if editando %}{{ torneo_edit.nombre }}{% else %}Configura el campeonato{% endif %}</p>
-                    </div>
-                </div>
-                
-                {% if not editando %}
-                <div class="saas-usage-widget">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small fw-bold text-slate-600 text-uppercase" style="letter-spacing: 0.5px;"><i class="bi bi-rocket-takeoff-fill me-1"></i> Tu Plan SaaS</span>
-                        <span class="small fw-black {% if actuales >= limite %}text-danger{% else %}text-success{% endif %}">{{ actuales }} / {{ limite }} Torneos</span>
-                    </div>
-                    <div class="progress-saas">
-                        <div class="progress-bar {% if actuales >= limite %}bg-danger{% else %}bg-success{% endif %}" role="progressbar" style="width: {% widthratio actuales limite 100 %}%; height: 100%;"></div>
-                    </div>
-                    {% if not puede_crear %}
-                        <div class="mt-3 text-danger small fw-bold d-flex align-items-start">
-                            <i class="bi bi-lock-fill me-2 fs-6"></i> Has alcanzado el límite. Para crear uno nuevo, marca un torneo antiguo como inactivo o mejora tu plan.
-                        </div>
-                    {% endif %}
-                </div>
-                {% endif %}
+    <!-- LISTA DE TORNEOS (INSET GROUPED) -->
+    <h5 class="fw-bold text-dark mb-3 px-2">Torneos Registrados</h5>
 
-                <form method="post" class="m-0">
-                    {% csrf_token %}
-                    <div class="d-flex flex-column gap-3">
-                        {% for field in form %}
-                            {% if field.field.widget.input_type == 'checkbox' %}
-                                <div class="fey-switch-container form-switch mb-1">
-                                    <div>
-                                        <label class="form-check-label fw-bold text-dark d-block m-0" for="{{ field.id_for_label }}" style="font-size: 0.9rem;">{{ field.label }}</label>
-                                        {% if field.help_text %}<span class="text-muted d-block mt-1" style="font-size: 0.75rem; line-height: 1.3;">{{ field.help_text }}</span>{% endif %}
-                                    </div>
-                                    <div class="ms-3">{{ field }}</div>
-                                </div>
+    {% if torneos %}
+        {% regroup torneos by categoria as categorias_agrupadas %}
+
+        {% for cat in categorias_agrupadas %}
+            <div class="ios-inset-group">
+                <!-- Cabecera Categoría -->
+                <div class="cat-header">
+                    <i class="bi bi-bookmark-star-fill text-warning me-2"></i>{{ cat.grouper.nombre|default:"Categoría General" }}
+                </div>
+
+                <!-- Filas de Torneos -->
+                {% for t in cat.list %}
+                <div class="tournament-row {% if not t.activo %}inactive{% endif %}">
+                    <div class="tournament-info">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <!-- Estado General -->
+                            {% if t.activo %}
+                                <span class="ios-tag tag-green">En Curso</span>
                             {% else %}
-                                <div>
-                                    <label class="form-label-pro">{{ field.label }}</label>
-                                    {{ field }}
-                                    {% if field.help_text %}<div class="text-muted mt-2 fw-medium" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1 opacity-50"></i>{{ field.help_text }}</div>{% endif %}
-                                    {% if field.errors %}
-                                        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-2 mt-2 text-danger small fw-bold d-flex align-items-center shadow-sm">
-                                            <i class="bi bi-exclamation-circle-fill me-2"></i> {{ field.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                </div>
+                                <span class="ios-tag tag-gray">Finalizado</span>
                             {% endif %}
-                        {% endfor %}
-                    </div>
 
-                    <div class="d-flex flex-column gap-2 mt-4 pt-3 border-top">
-                        <button type="submit" class="btn w-100 rounded-pill py-3 fw-bold shadow-sm" style="background-color: {% if editando %}var(--brand-primary){% else %}#0F172A{% endif %}; color: #FFFFFF; font-size: 0.95rem;" {% if not editando and not puede_crear %}disabled{% endif %}>
-                            <i class="bi {% if editando %}bi-save2{% else %}bi-check2-circle{% endif %} me-1"></i> {% if editando %}Guardar Cambios{% else %}Crear Torneo{% endif %}
-                        </button>
-                        {% if editando %}
-                            <a href="{% url 'gestionar_torneos' %}" class="btn btn-light w-100 rounded-pill py-2 fw-bold text-muted border">Cancelar Edición</a>
-                        {% endif %}
-                    </div>
-                </form>
-                
-            </div> </div>
+                            <!-- Estado Inscripción -->
+                            {% if t.inscripcion_abierta %}
+                                <span class="ios-tag tag-blue">Insc. Abiertas</span>
+                            {% else %}
+                                <span class="ios-tag tag-red">Insc. Cerradas</span>
+                            {% endif %}
 
-        <div class="col-lg-8 col-xl-8 reveal-up" style="animation-delay: 0.2s;">
-            {% if not torneos %}
-                <div class="text-center py-5 bg-white border border-dashed rounded-4 shadow-sm">
-                    <i class="bi bi-trophy text-muted opacity-25 d-block mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Sin torneos registrados</h5>
-                    <p class="text-muted small m-0">Crea el primer campeonato para empezar a recibir equipos.</p>
-                </div>
-            {% else %}
-                {% regroup torneos by categoria as categorias_agrupadas %}
-
-                {% for cat in categorias_agrupadas %}
-                    <div class="cat-divider">
-                        <span><i class="bi bi-tags-fill text-warning"></i> {{ cat.grouper.nombre|default:"SIN ASIGNAR" }}</span>
-                    </div>
-
-                    <div class="row g-4">
-                        {% for t in cat.list %}
-                        <div class="col-md-6 col-xl-6">
-                            <div class="tournament-card {% if not t.activo %}inactive{% endif %}">
-                                
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div class="text-slate-500 fw-bold" style="font-size: 0.75rem;">
-                                        <i class="bi bi-calendar2-check me-1"></i> Inició: {{ t.fecha_inicio|date:"d M Y" }}
-                                    </div>
-                                    <div class="d-flex gap-2">
-                                        <a href="{% url 'editar_torneo' t.id %}" class="btn-circle-action btn-edit" title="Editar Torneo">
-                                            <i class="bi bi-pencil-fill"></i>
-                                        </a>
-                                        <a href="{% url 'eliminar_torneo' t.id %}" class="btn-circle-action btn-delete" title="Eliminar Torneo" onclick="return confirm('¡ADVERTENCIA!\n\n¿Seguro de eliminar el torneo \'{{ t.nombre }}\'? Se borrará todo lo relacionado a él.');">
-                                            <i class="bi bi-trash3-fill"></i>
-                                        </a>
-                                    </div>
-                                </div>
-
-                                <h4 class="fw-black text-dark mb-3 text-truncate" style="font-family: 'Outfit', sans-serif;" title="{{ t.nombre }}">
-                                    {{ t.nombre }}
-                                </h4>
-
-                                <div class="d-flex flex-wrap gap-2 mb-4">
-                                    {% if t.activo %}
-                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-3 fw-bold"><i class="bi bi-play-circle-fill me-1"></i>EN CURSO</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 rounded-3 fw-bold"><i class="bi bi-stop-circle-fill me-1"></i>FINALIZADO</span>
-                                    {% endif %}
-
-                                    {% if t.inscripcion_abierta %}
-                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-3 fw-bold"><i class="bi bi-door-open-fill me-1"></i>INSCRIPCIONES ABIERTAS</span>
-                                    {% else %}
-                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 rounded-3 fw-bold"><i class="bi bi-door-closed-fill me-1"></i>INSCRIPCIONES CERRADAS</span>
-                                    {% endif %}
-                                </div>
-
-                                <div class="d-flex gap-2 mt-auto">
-                                    <div class="stat-widget">
-                                        <div class="stat-val text-primary">
-                                            {% if t.cobro_por_jugador %}${{ t.costo_inscripcion_jugador }}{% else %}${{ t.costo_inscripcion }}{% endif %}
-                                        </div>
-                                        <div class="stat-label">{% if t.cobro_por_jugador %}INSC / JUG{% else %}INSCRIP.{% endif %}</div>
-                                    </div>
-                                    <div class="stat-widget">
-                                        <div class="stat-val text-warning">${{ t.costo_amarilla }}</div>
-                                        <div class="stat-label">TA (🟨)</div>
-                                    </div>
-                                    <div class="stat-widget">
-                                        <div class="stat-val text-danger">${{ t.costo_roja }}</div>
-                                        <div class="stat-label">TR (🟥)</div>
-                                    </div>
-                                </div>
-
+                            <span class="text-muted ms-2" style="font-size: 0.7rem;"><i class="bi bi-calendar me-1"></i>{{ t.fecha_inicio|date:"d M Y" }}</span>
+                        </div>
+                        
+                        <h5 class="fw-bold text-dark mb-1">{{ t.nombre }}</h5>
+                        
+                        <!-- Costos Compactos -->
+                        <div class="ios-stats-box">
+                            <div class="stat-item pe-3 border-end">
+                                <span class="stat-val">{% if t.cobro_por_jugador %}${{ t.costo_inscripcion_jugador }}{% else %}${{ t.costo_inscripcion }}{% endif %}</span>
+                                <span class="stat-label">{% if t.cobro_por_jugador %}Insc/Jugador{% else %}Inscripción{% endif %}</span>
+                            </div>
+                            <div class="stat-item pe-3 border-end">
+                                <span class="stat-val">${{ t.costo_amarilla }}</span>
+                                <span class="stat-label">T. Amarilla</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-val">${{ t.costo_roja }}</span>
+                                <span class="stat-label">T. Roja</span>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
-                {% endfor %}
 
-                {% if torneos.has_other_pages %}
-                <div class="d-flex justify-content-center mt-5 mb-2">
-                    <nav aria-label="Navegación de páginas">
-                        <ul class="pagination pagination-sm m-0 shadow-sm" style="gap: 8px;">
+                    <div class="tournament-controls">
+                        <span class="text-muted fw-bold small d-md-none">Acciones:</span>
+                        <div class="row-actions">
                             
-                            {% if torneos.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ torneos.previous_page_number }}" style="padding: 8px 16px;">
-                                        <i class="bi bi-chevron-left"></i> Anterior
-                                    </a>
-                                </li>
+                            <!-- BOTÓN DE ARCHIVAR / REABRIR -->
+                            {% if t.activo %}
+                                <a href="{% url 'cambiar_estado_torneo' t.id %}" class="btn-circle-ios btn-finish-ios" title="Finalizar y Archivar Torneo" onclick="return confirm('¿Seguro que deseas FINALIZAR este torneo?\n\nPasará al historial y se cerrarán las inscripciones automáticamente.');">
+                                    <i class="bi bi-archive-fill"></i>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'cambiar_estado_torneo' t.id %}" class="btn-circle-ios btn-open-ios" title="Reabrir Torneo" onclick="return confirm('¿Deseas REABRIR este torneo y pasarlo a estado Activo?');">
+                                    <i class="bi bi-box-arrow-up"></i>
+                                </a>
                             {% endif %}
 
-                            {% for num in torneos.paginator.page_range %}
-                                {% if torneos.number == num %}
-                                    <li class="page-item active">
-                                        <span class="page-link rounded-pill border-0 fw-black text-white shadow-sm" style="background: linear-gradient(135deg, #10B981, #059669); padding: 8px 16px;">
-                                            {{ num }}
-                                        </span>
-                                    </li>
-                                {% elif num > torneos.number|add:'-3' and num < torneos.number|add:'3' %}
-                                    <li class="page-item">
-                                        <a class="page-link rounded-pill border border-slate-200 text-slate-600 fw-bold bg-white transition-all hover-primary" href="?page={{ num }}" style="padding: 8px 16px;">
-                                            {{ num }}
-                                        </a>
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-
-                            {% if torneos.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link rounded-pill border border-slate-200 text-slate-700 fw-bold bg-white transition-all hover-primary" href="?page={{ torneos.next_page_number }}" style="padding: 8px 16px;">
-                                        Siguiente <i class="bi bi-chevron-right"></i>
-                                    </a>
-                                </li>
-                            {% endif %}
-
-                        </ul>
-                    </nav>
+                            <!-- BOTONES EDITAR Y ELIMINAR -->
+                            <a href="{% url 'editar_torneo' t.id %}" class="btn-circle-ios btn-edit-ios" title="Editar Torneo">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <a href="{% url 'eliminar_torneo' t.id %}" class="btn-circle-ios btn-delete-ios" title="Eliminar Definitivamente" onclick="return confirm('¡PELIGRO!\n\n¿Seguro que deseas ELIMINAR COMPLETAMENTE el torneo \'{{ t.nombre }}\'? Esto borrará sus datos permanentemente.');">
+                                <i class="bi bi-trash3-fill"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                {% endif %}
-                {% endif %}
-        </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
 
-    </div>
+    {% else %}
+        <div class="text-center py-5 rounded-4 bg-white shadow-sm border">
+            <i class="bi bi-trophy fs-1 d-block mb-3 text-muted opacity-50"></i>
+            <h5 class="fw-bold text-dark">Sin torneos registrados</h5>
+            <p class="text-muted small mb-0">Usa el botón superior para crear el primero.</p>
+        </div>
+    {% endif %}
+
+    {% if torneos.has_other_pages %}
+    <nav class="d-flex justify-content-center mt-4">
+        <ul class="pagination">
+            {% if torneos.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ torneos.previous_page_number }}">&laquo;</a></li>
+            {% endif %}
+            {% for num in torneos.paginator.page_range %}
+                <li class="page-item {% if torneos.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% endfor %}
+            {% if torneos.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ torneos.next_page_number }}">&raquo;</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('form input[type="text"], form input[type="number"], form input[type="date"], form select');
+        inputs.forEach(input => {
+            if (!input.classList.contains('form-check-input')) {
+                input.classList.add('ios-input');
+            }
+        });
+    });
+</script>
 {% endblock %}

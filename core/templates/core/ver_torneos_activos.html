@@ -5,273 +5,306 @@
 
 {% block extra_css %}
 <style>
-    /* =========================================================
-       ESTÉTICA FEY - COMPETENCIAS Y TORNEOS (ALTO CONTRASTE)
-       ========================================================= */
-    .ambient-glow {
-        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
-        background: 
-            radial-gradient(circle at 15% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
-            radial-gradient(circle at 85% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
-        z-index: -1; pointer-events: none;
+    /* ==========================================
+       ESTILOS PREMIUM iOS - INSCRIPCIONES
+       ========================================== */
+    :root {
+        --ios-bg: #F2F2F7;
+        --ios-surface: #FFFFFF;
+        --ios-separator: rgba(60, 60, 67, 0.15);
+        --text-main: #1C1C1E;
+        --text-muted: #8E8E93;
+        
+        --apple-blue: #007AFF;
+        --apple-green: #34C759;
+        --apple-dark: #1C1C1E;
     }
 
-    .fey-title {
-        font-family: 'Outfit', sans-serif; font-weight: 900;
-        font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -0.03em; color: #0F172A; line-height: 1.1;
+    body { background-color: var(--ios-bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text-main); }
+
+    /* ==========================================
+       CABECERA HERO
+       ========================================== */
+    .hero-section { text-align: center; margin: 2rem 0 2.5rem 0; }
+    .hero-subtitle { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--apple-green); margin-bottom: 8px; }
+    .hero-title { font-size: 2.5rem; font-weight: 900; letter-spacing: -1px; color: var(--apple-dark); line-height: 1.1; margin-bottom: 10px; }
+
+    /* ==========================================
+       ACORDEÓN DE CATEGORÍAS (ESTILO iOS)
+       ========================================== */
+    .ios-accordion-group { margin-bottom: 30px; }
+    .ios-accordion-group .accordion-item {
+        background: transparent; border: none; margin-bottom: 25px;
+    }
+    
+    .ios-accordion-group .accordion-button {
+        background: var(--ios-surface); border-radius: 20px !important; border: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03); padding: 18px 24px; color: var(--text-main);
+        font-weight: 800; font-size: 1.1rem; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .ios-accordion-group .accordion-button:not(.collapsed) {
+        border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.05); border-bottom: 1px solid var(--ios-separator);
+    }
+    .ios-accordion-group .accordion-button:focus { box-shadow: none; }
+    
+    .ios-accordion-group .accordion-body {
+        background: var(--ios-surface); border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
+        padding: 24px; box-shadow: 0 10px 24px rgba(0,0,0,0.03);
     }
 
-    /* Section Headers */
-    .section-header {
-        display: flex; align-items: center; padding-bottom: 12px; margin-bottom: 24px;
-        border-bottom: 2px solid #CBD5E1; margin-top: 30px;
+    /* ==========================================
+       TARJETAS DE TORNEO (DISPONIBLES)
+       ========================================== */
+    .ios-tournament-card {
+        background: var(--ios-surface); border-radius: 24px; border: 1px solid var(--ios-separator);
+        overflow: hidden; display: flex; flex-direction: column; height: 100%; transition: transform 0.2s;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02);
     }
-    .section-header h4 { font-family: 'Outfit', sans-serif; font-weight: 900; color: #0F172A; margin: 0; letter-spacing: -0.5px; }
+    .ios-tournament-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.06); }
 
-    /* Acordeones de Alto Contraste */
-    .accordion-item {
-        background: #FFFFFF; border: 1px solid #94A3B8 !important; border-radius: 20px !important;
-        margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    .card-ios-header { padding: 24px 24px 16px 24px; border-bottom: 1px dashed var(--ios-separator); }
+    .ios-badge-date { background: rgba(52, 199, 89, 0.1); color: #248A3D; font-weight: 800; font-size: 0.7rem; padding: 6px 12px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    .card-ios-body { padding: 20px 24px; flex-grow: 1; }
+    
+    /* Caja de Precio (Suscripción iOS Style) */
+    .ios-price-box {
+        background: #F9F9FB; border-radius: 16px; padding: 16px; margin-bottom: 20px;
+        display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(0,0,0,0.03);
     }
-    .accordion-button {
-        background: #F8FAFC !important; color: #0F172A !important; font-family: 'Outfit', sans-serif;
-        font-weight: 900; font-size: 1.15rem; padding: 20px 24px; border: none !important; box-shadow: none !important;
+    .ios-price-box span { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); letter-spacing: 0.5px; }
+    .ios-price-amount { font-size: 1.8rem; font-weight: 900; color: var(--apple-dark); line-height: 1; }
+    .ios-price-sub { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-left: 4px; }
+
+    .ios-features { list-style: none; padding: 0; margin: 0; }
+    .ios-features li { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+    .ios-features i { color: var(--apple-green); font-size: 1.1rem; }
+
+    .card-ios-footer { padding: 0 24px 24px 24px; background: transparent; }
+    
+    .btn-ios-primary {
+        background: var(--apple-green); color: white; border: none; border-radius: 14px; padding: 14px; width: 100%;
+        font-weight: 800; font-size: 0.95rem; transition: background 0.2s, transform 0.1s;
+        display: flex; justify-content: center; align-items: center; gap: 8px;
     }
-    .accordion-button:not(.collapsed) {
-        background: #FFFFFF !important; border-bottom: 3px solid var(--brand-primary) !important;
+    .btn-ios-primary:active { transform: scale(0.97); background: #28a745; }
+    
+    .btn-ios-secondary {
+        background: var(--ios-bg); color: var(--apple-dark); border: none; border-radius: 14px; padding: 12px; width: 100%;
+        font-weight: 700; font-size: 0.85rem; margin-top: 10px; transition: background 0.2s;
     }
-    .accordion-body { padding: 24px; background: #F1F5F9; }
+    .btn-ios-secondary:active { background: #E5E5EA; }
 
-    /* Tarjetas de Torneo (Tournament Cards) */
-    .tournament-card {
-        background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 20px;
-        padding: 0; box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04); transition: all 0.3s ease;
-        display: flex; flex-direction: column; height: 100%; overflow: hidden;
+    /* ==========================================
+       LISTA COMPACTA DE TORNEOS INSCRITOS
+       ========================================== */
+    .enrolled-group-container:empty { display: none; } /* Oculta si no hay torneos inscritos */
+    .enrolled-group-container { margin-top: 25px; padding-top: 20px; border-top: 2px dashed var(--ios-separator); }
+    
+    .enrolled-list { background: var(--ios-surface); border: 1px solid var(--ios-separator); border-radius: 16px; overflow: hidden; }
+    .enrolled-item {
+        padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid var(--ios-separator); background: #F9F9FB;
     }
-    .tournament-card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08); border-color: #94A3B8; }
+    .enrolled-item:last-child { border-bottom: none; }
+    
+    .enrolled-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(52, 199, 89, 0.15); color: var(--apple-green); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
 
-    .tc-header { padding: 24px; border-bottom: 1px dashed #CBD5E1; }
-    .tc-body { padding: 24px; flex-grow: 1; background: #F8FAFC; }
-    .tc-footer { padding: 20px 24px; background: #FFFFFF; border-top: 1px dashed #CBD5E1; }
-
-    /* Listas de Beneficios */
-    .benefit-list { list-style: none; padding: 0; margin: 0; }
-    .benefit-list li { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; color: #475569; font-weight: 700; font-size: 0.9rem; }
-    .benefit-list li:last-child { margin-bottom: 0; }
-    .benefit-list i { color: #10B981; font-size: 1.2rem; }
-
-    /* Botones de Acción */
-    .btn-join-pro {
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white;
-        font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1rem; padding: 14px; 
-        border-radius: 12px; border: none; width: 100%; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); 
-        transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: center; align-items: center;
-    }
-    .btn-join-pro:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4); color: white; }
-
-    .btn-renew-pro {
-        background: #0F172A; color: white; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.9rem; 
-        padding: 12px; border-radius: 12px; border: none; width: 100%; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
-        transition: all 0.2s ease; display: flex; justify-content: center; align-items: center;
-    }
-    .btn-renew-pro:hover { background: #1E293B; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); color: white; }
-
-    .btn-disabled-pro {
-        background: #F1F5F9; color: #64748B; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.95rem; 
-        padding: 14px; border-radius: 12px; border: 2px solid #CBD5E1; width: 100%; cursor: not-allowed;
-        display: flex; justify-content: center; align-items: center;
-    }
-
-    /* Historial */
+    /* ==========================================
+       HISTORIAL DE CAMPEONATOS (GRISEADOS)
+       ========================================== */
     .history-card {
-        background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 16px; padding: 24px;
-        text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); transition: all 0.2s ease; height: 100%;
+        background: var(--ios-bg); border-radius: 20px; padding: 24px; text-align: center;
+        border: 1px solid var(--ios-separator); display: flex; flex-direction: column; justify-content: space-between;
     }
-    .history-card:hover { border-color: #94A3B8; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05); }
-
-    .btn-history {
-        background: #F8FAFC; color: #0F172A; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.85rem; 
-        padding: 10px 20px; border-radius: 10px; border: 2px solid #94A3B8; text-decoration: none; transition: all 0.2s ease;
-    }
-    .btn-history:hover { background: #E2E8F0; border-color: #475569; }
-
-    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+    .history-card .history-icon { font-size: 2.5rem; color: var(--text-muted); opacity: 0.5; margin-bottom: 10px; }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="ambient-glow"></div>
-
-<div class="container py-4 pb-5">
+<div class="container-fluid px-2 px-md-4 animate__animated animate__fadeIn pb-5">
     
-    <div class="text-center mb-5 reveal-up">
-        <div class="badge bg-slate-100 text-dark border border-secondary px-3 py-2 mb-3 rounded-pill fw-black shadow-sm" style="font-size: 0.75rem; letter-spacing: 1px;">
-            <i class="bi bi-trophy-fill text-success me-1"></i> COMPETENCIAS
-        </div>
-        <h2 class="fey-title mb-2">Únete al Campeonato</h2>
-        <p class="text-slate-600 fw-bold m-0" style="font-size: 1.05rem;">Elige el torneo y registra a tu equipo para competir por la gloria.</p>
+    <!-- CABECERA PRINCIPAL -->
+    <div class="hero-section">
+        <div class="hero-subtitle"><i class="bi bi-trophy-fill me-1"></i> Competencias</div>
+        <h1 class="hero-title">Únete al Campeonato</h1>
+        <p class="text-muted fs-6 fw-medium px-3">Elige tu categoría y registra a tu equipo para competir.</p>
     </div>
 
+    <!-- SECCIÓN: INSCRIPCIONES ABIERTAS -->
     {% if torneos_activos %}
-        <div class="reveal-up" style="animation-delay: 0.1s;">
-            <div class="section-header">
-                <i class="bi bi-play-circle-fill text-success fs-3 me-2"></i>
-                <h4>Inscripciones Abiertas</h4>
-            </div>
+        <div class="d-flex align-items-center mb-3 ms-2">
+            <h5 class="fw-black m-0 text-dark">Categorías Disponibles</h5>
+        </div>
 
-            {% regroup torneos_activos by categoria as torneos_por_categoria %}
-            <div class="accordion" id="accordionCategorias">
-                {% for grupo in torneos_por_categoria %}
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="headingCat{{ forloop.counter }}">
-                        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCat{{ forloop.counter }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapseCat{{ forloop.counter }}">
-                            <i class="bi bi-tags-fill me-3 text-primary"></i> 
-                            CATEGORÍA: {{ grupo.grouper.nombre|default:"GENERAL"|upper }}
-                            <span class="badge bg-dark text-white ms-auto rounded-pill px-3 py-2 shadow-sm" style="font-size: 0.8rem;">{{ grupo.list|length }} Torneos</span>
-                        </button>
-                    </h2>
-                    
-                    <div id="collapseCat{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="headingCat{{ forloop.counter }}">
-                        <div class="accordion-body">
-                            <div class="row g-4 justify-content-center">
-                                {% for t in grupo.list %}
+        {% regroup torneos_activos by categoria as torneos_por_categoria %}
+        <div class="accordion ios-accordion-group" id="accordionCategorias">
+            {% for grupo in torneos_por_categoria %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingCat{{ forloop.counter }}">
+                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCat{{ forloop.counter }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+                        <div class="d-flex align-items-center w-100">
+                            <i class="bi bi-bookmark-star-fill text-success fs-4 me-3"></i> 
+                            <span class="flex-grow-1">{{ grupo.grouper.nombre|default:"General"|upper }}</span>
+                            <span class="badge bg-secondary bg-opacity-10 text-muted rounded-pill ms-2" style="font-size: 0.8rem;">{{ grupo.list|length }}</span>
+                        </div>
+                    </button>
+                </h2>
+                
+                <div id="collapseCat{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#accordionCategorias">
+                    <div class="accordion-body">
+                        
+                        <!-- 1. TORNEOS DISPONIBLES PARA INSCRIBIRSE (Tarjetas Grandes) -->
+                        <div class="row g-4 justify-content-center">
+                            {% for t in grupo.list %}
+                                <!-- Solo muestra si NO está inscrito -->
+                                {% if not user.is_authenticated or t.id not in mis_torneos_ids %}
                                 <div class="col-md-6 col-lg-4">
-                                    <div class="tournament-card">
-                                        
-                                        <div class="tc-header">
-                                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill fw-bold shadow-sm" style="font-size: 0.75rem;">
-                                                    <i class="bi bi-calendar-event me-1"></i> Inicio: {{ t.fecha_inicio|date:"d M Y" }}
-                                                </span>
-                                                {% if t.categoria %}
-                                                    <span class="badge bg-dark text-white border border-secondary px-3 py-2 rounded-pill fw-bold shadow-sm" style="font-size: 0.7rem;">
-                                                        {{ t.categoria.nombre|upper }}
-                                                    </span>
-                                                {% endif %}
+                                    <div class="ios-tournament-card">
+                                        <div class="card-ios-header">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <span class="ios-badge-date">INICIA: {{ t.fecha_inicio|date:"d M" }}</span>
                                             </div>
-                                            <h3 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; line-height: 1.1;">{{ t.nombre }}</h3>
-                                            <p class="text-slate-500 small fw-bold mt-2 m-0"><i class="bi bi-person-vcard-fill me-1"></i> Org: {{ t.organizador.first_name }} {{ t.organizador.last_name }}</p>
+                                            <h4 class="fw-black mb-1" style="color: var(--apple-dark); font-size: 1.3rem;">{{ t.nombre }}</h4>
+                                            <div class="text-muted small fw-medium"><i class="bi bi-person-fill me-1"></i> Org: {{ t.organizador.first_name }} {{ t.organizador.last_name }}</div>
                                         </div>
 
-                                        <div class="tc-body">
-                                            <div class="bg-white border border-secondary rounded-4 p-3 mb-4 shadow-sm d-flex justify-content-between align-items-center">
-                                                <span class="small fw-black text-slate-500" style="letter-spacing: 0.5px;">PRECIO</span>
-                                                <div class="text-end">
-                                                    <span class="fw-black text-success" style="font-family: 'Outfit', sans-serif; font-size: 1.8rem; line-height: 1; letter-spacing: -1px;">
-                                                        {% if t.cobro_por_jugador %}
-                                                            ${{ t.costo_inscripcion_jugador|intcomma }}<span class="text-slate-500" style="font-size: 0.8rem;">/jug</span>
-                                                        {% else %}
-                                                            ${{ t.costo_inscripcion|intcomma }}
-                                                        {% endif %}
-                                                    </span>
+                                        <div class="card-ios-body">
+                                            <div class="ios-price-box">
+                                                <span>INSCRIPCIÓN</span>
+                                                <div class="ios-price-amount">
+                                                    {% if t.cobro_por_jugador %}
+                                                        ${{ t.costo_inscripcion_jugador|intcomma }}<span class="ios-price-sub">/jugador</span>
+                                                    {% else %}
+                                                        ${{ t.costo_inscripcion|intcomma }}
+                                                    {% endif %}
                                                 </div>
                                             </div>
 
-                                            <ul class="benefit-list">
-                                                <li><i class="bi bi-check-circle-fill"></i> Cupos limitados por categoría</li>
-                                                <li><i class="bi bi-cash-coin"></i> Premios en efectivo al Campeón</li>
-                                                <li><i class="bi bi-shield-check"></i> Arbitraje profesional</li>
+                                            <ul class="ios-features">
+                                                <li><i class="bi bi-check-circle-fill"></i> Cupos limitados</li>
+                                                <li><i class="bi bi-check-circle-fill"></i> Premios en efectivo</li>
+                                                <li><i class="bi bi-check-circle-fill"></i> Arbitraje profesional</li>
                                             </ul>
                                         </div>
 
-                                        <div class="tc-footer">
-                                            {% if user.is_authenticated and t.id in mis_torneos_ids %}
-                                                <div class="btn-disabled-pro">
-                                                    <i class="bi bi-clock-history me-2"></i> YA ESTÁS INSCRITO
-                                                </div>
-                                                <div class="text-center mt-2">
-                                                    <small class="text-slate-500 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-info-circle-fill me-1 text-primary"></i> Revisa el estado en tu panel</small>
-                                                </div>
+                                        <div class="card-ios-footer">
+                                            {% if t.inscripcion_abierta %}
+                                                <a href="{% url 'solicitar_inscripcion' t.id %}" class="btn-ios-primary text-decoration-none">
+                                                    Inscribir Equipo <i class="bi bi-arrow-right-short fs-5"></i>
+                                                </a>
+                                                {% if request.user.is_authenticated and request.user.perfil.rol_principal == 'DIR' %}
+                                                    <a href="{% url 'importar_equipo_existente' t.id %}" class="btn-ios-secondary text-decoration-none d-block text-center">
+                                                        <i class="bi bi-arrow-repeat me-1"></i> Renovar Equipo
+                                                    </a>
+                                                {% endif %}
                                             {% else %}
-                                                <div class="d-grid gap-2">
-                                                    {% if t.inscripcion_abierta %}
-                                                        <a href="{% url 'solicitar_inscripcion' t.id %}" class="btn-join-pro">
-                                                            NUEVO EQUIPO <i class="bi bi-arrow-right-circle-fill ms-2 fs-5"></i>
-                                                        </a>
-                                                        {% if request.user.is_authenticated and request.user.perfil.rol == 'DIR' %}
-                                                            <a href="{% url 'importar_equipo_existente' t.id %}" class="btn-renew-pro">
-                                                                <i class="bi bi-arrow-repeat me-2"></i> Renovar Equipo Pasado
-                                                            </a>
-                                                        {% endif %}
-                                                    {% else %}
-                                                        <div class="btn-disabled-pro">
-                                                            <i class="bi bi-lock-fill me-2"></i> INSCRIPCIONES CERRADAS
-                                                        </div>
-                                                    {% endif %}
-                                                </div>
+                                                <button class="btn-ios-secondary w-100" disabled style="opacity: 0.6;">
+                                                    <i class="bi bi-lock-fill me-1"></i> Inscripciones Cerradas
+                                                </button>
                                             {% endif %}
                                         </div>
-
                                     </div>
                                 </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <!-- 2. TORNEOS YA INSCRITOS (Agrupados y Compactos) -->
+                        <div class="enrolled-group-container">
+                            <!-- El título solo se mostrará si hay elementos dentro de la lista gracias a CSS y lógica -->
+                            <h6 class="fw-bold text-muted small text-uppercase mb-3 ps-1">Tus Torneos Actuales en esta Categoría</h6>
+                            <div class="enrolled-list">
+                                {% for t in grupo.list %}
+                                    <!-- Solo muestra si SÍ está inscrito -->
+                                    {% if user.is_authenticated and t.id in mis_torneos_ids %}
+                                    <div class="enrolled-item">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="enrolled-icon"><i class="bi bi-check-lg"></i></div>
+                                            <div>
+                                                <h6 class="fw-bold text-dark m-0">{{ t.nombre }}</h6>
+                                                <div class="text-muted" style="font-size: 0.75rem;">Ya participas en este torneo</div>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 fw-bold">Inscrito</span>
+                                    </div>
+                                    {% endif %}
                                 {% endfor %}
                             </div>
                         </div>
+                        
                     </div>
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
     {% else %}
-        <div class="text-center py-5 my-4 reveal-up" style="animation-delay: 0.1s;">
-            <div class="bg-white border border-secondary rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm mb-4" style="width: 100px; height: 100px;">
-                <i class="bi bi-calendar-x text-slate-400" style="font-size: 3rem;"></i>
-            </div>
-            <h4 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">No hay torneos activos</h4>
-            <p class="text-slate-600 fw-bold m-0 mt-2">En este momento no hay inscripciones abiertas.<br>¡Vuelve pronto!</p>
+        <div class="text-center py-5 my-4 bg-white rounded-4 shadow-sm border">
+            <i class="bi bi-calendar-x text-muted mb-3 d-block" style="font-size: 3rem; opacity: 0.3;"></i>
+            <h4 class="fw-black text-dark">No hay torneos activos</h4>
+            <p class="text-muted mb-0 fw-medium">En este momento no hay inscripciones abiertas.<br>¡Vuelve pronto!</p>
         </div>
     {% endif %}
 
+    <!-- SECCIÓN: HISTORIAL DE CAMPEONATOS -->
     {% if torneos_finalizados %}
-        <div class="reveal-up" style="animation-delay: 0.2s;">
-            <div class="section-header mt-5">
-                <i class="bi bi-archive-fill text-slate-500 fs-3 me-2"></i>
-                <h4 class="text-slate-700">Historial de Campeonatos</h4>
-            </div>
+        <div class="d-flex align-items-center mb-3 ms-2 mt-5">
+            <h5 class="fw-black m-0 text-muted">Historial de Campeonatos</h5>
+        </div>
 
-            {% regroup torneos_finalizados by fecha_inicio.year as torneos_por_anio %}
-            <div class="accordion" id="accordionAnios">
-                {% for grupo in torneos_por_anio %}
-                <div class="accordion-item" style="border-color: #CBD5E1 !important;">
-                    <h2 class="accordion-header" id="headingAnio{{ forloop.counter }}">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnio{{ forloop.counter }}" aria-expanded="false" aria-controls="collapseAnio{{ forloop.counter }}" style="background: #F8FAFC !important; color: #475569 !important;">
-                            <i class="bi bi-calendar-check-fill me-3 text-slate-400"></i> AÑO: {{ grupo.grouper }}
-                            <span class="badge bg-white text-slate-700 border border-secondary ms-auto rounded-pill px-3 py-2 shadow-sm" style="font-size: 0.8rem;">{{ grupo.list|length }} Torneos</span>
-                        </button>
-                    </h2>
-                    
-                    <div id="collapseAnio{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="headingAnio{{ forloop.counter }}">
-                        <div class="accordion-body bg-slate-50">
-                            <div class="row g-4 justify-content-center">
-                                {% for t in grupo.list %}
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="history-card">
-                                        <div class="mb-3">
-                                            <div class="bg-slate-100 border border-secondary rounded-circle d-inline-flex justify-content-center align-items-center" style="width: 60px; height: 60px;">
-                                                <i class="bi bi-trophy-fill text-slate-400 fs-3"></i>
-                                            </div>
-                                        </div>
-                                        {% if t.categoria %}
-                                            <span class="badge bg-white text-slate-600 border border-secondary rounded-pill px-2 py-1 mb-2 shadow-sm" style="font-size: 0.65rem;">{{ t.categoria.nombre|upper }}</span>
-                                        {% endif %}
-                                        <h5 class="fw-black text-dark mb-1" style="font-family: 'Outfit', sans-serif;">{{ t.nombre }}</h5>
-                                        <p class="small text-slate-500 fw-bold mb-4">Finalizado en: {{ t.fecha_inicio|date:"Y" }}</p>
-                                        
-                                        <a href="{% url 'reporte_estadisticas' t.id %}" class="btn-history">
-                                            VER RESULTADOS <i class="bi bi-bar-chart-fill ms-1"></i>
-                                        </a>
+        {% regroup torneos_finalizados by fecha_inicio.year as torneos_por_anio %}
+        <div class="accordion ios-accordion-group" id="accordionAnios">
+            {% for grupo in torneos_por_anio %}
+            <div class="accordion-item" style="opacity: 0.85;">
+                <h2 class="accordion-header" id="headingAnio{{ forloop.counter }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnio{{ forloop.counter }}" style="background: var(--ios-bg) !important;">
+                        <div class="d-flex align-items-center w-100">
+                            <i class="bi bi-clock-history text-secondary fs-4 me-3"></i> 
+                            <span class="flex-grow-1 text-secondary">Temporada {{ grupo.grouper }}</span>
+                            <span class="badge bg-secondary rounded-pill ms-2">{{ grupo.list|length }}</span>
+                        </div>
+                    </button>
+                </h2>
+                
+                <div id="collapseAnio{{ forloop.counter }}" class="accordion-collapse collapse" data-bs-parent="#accordionAnios">
+                    <div class="accordion-body bg-transparent px-0 pt-4 pb-0 border-0 shadow-none">
+                        <div class="row g-3 justify-content-center">
+                            {% for t in grupo.list %}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="history-card h-100">
+                                    <div>
+                                        <i class="bi bi-trophy-fill history-icon"></i>
+                                        <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ t.nombre }}</h6>
+                                        <div class="text-muted" style="font-size: 0.7rem;">{{ t.categoria.nombre|default:"General"|upper }}</div>
                                     </div>
+                                    <a href="{% url 'tabla_posiciones' t.id %}" class="btn btn-sm btn-outline-secondary rounded-pill fw-bold w-100 mt-3" style="font-size: 0.75rem;">
+                                        Resultados
+                                    </a>
                                 </div>
-                                {% endfor %}
                             </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
     {% endif %}
 
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Script ligero para ocultar los contenedores de "Ya inscritos" si están vacíos
+        // Esto mantiene el diseño limpio sin espacios en blanco innecesarios
+        const enrolledContainers = document.querySelectorAll('.enrolled-group-container');
+        enrolledContainers.forEach(container => {
+            const list = container.querySelector('.enrolled-list');
+            if (list && list.children.length === 0) {
+                container.style.display = 'none';
+            }
+        });
+    });
+</script>
 {% endblock %}

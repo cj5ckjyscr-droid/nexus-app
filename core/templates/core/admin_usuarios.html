@@ -4,246 +4,270 @@
 
 {% block extra_css %}
 <style>
-    /* =========================================================
-       ESTÉTICA FEY - GESTIÓN DE USUARIOS (LIGHT MODE)
-       ========================================================= */
-    .ambient-glow {
-        position: fixed;
-        top: -10%; left: -10%;
-        width: 120vw; height: 120vh;
-        background: 
-            radial-gradient(circle at 80% 20%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
-            radial-gradient(circle at 20% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
-        z-index: -1;
-        pointer-events: none;
+    /* ==========================================
+       ESTILO iOS PREMIUM - MÁXIMO CONTRASTE
+       ========================================== */
+    :root {
+        --ios-bg: #F2F2F7;
+        --ios-surface: #FFFFFF;
+        --ios-border: rgba(0,0,0,0.05);
+        --text-main: #1C1C1E;
+        --text-muted: #48484A;
+        
+        /* Paleta de alto contraste para textos legibles */
+        --ios-blue-bg: #D0E3FF; --ios-blue-text: #003366;
+        --ios-green-bg: #D4EDDA; --ios-green-text: #10401A;
+        --ios-orange-bg: #FFF3CD; --ios-orange-text: #663300;
+        --ios-purple-bg: #E5D5FF; --ios-purple-text: #3B0086;
+        --ios-gray-bg: #E2E3E5; --ios-gray-text: #383D41;
+        --ios-red-bg: #F8D7DA; --ios-red-text: #721C24;
     }
 
-    .fey-title {
-        font-family: 'Outfit', sans-serif;
-        font-weight: 900;
-        font-size: clamp(2rem, 5vw, 3rem);
-        letter-spacing: -0.03em;
-        color: #0F172A;
+    body { background-color: var(--ios-bg); color: var(--text-main); }
+
+    /* --- BARRA DE BÚSQUEDA --- */
+    .ios-search-container {
+        background: var(--ios-surface); border-radius: 16px; padding: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 2px solid var(--ios-border); margin-bottom: 25px;
+    }
+    .ios-search-input {
+        background: #F2F2F7; border: 1px solid #D1D1D6; border-radius: 12px;
+        padding: 12px 15px 12px 40px; font-weight: 800; color: var(--text-main); width: 100%; transition: 0.2s;
+    }
+    .ios-search-input:focus { outline: none; background: #FFFFFF; border-color: #A6C8FF; box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1); }
+    .search-wrapper { position: relative; }
+    .search-wrapper i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 1.1rem; color: var(--text-main); }
+
+    /* --- TABLA MINIMALISTA iOS --- */
+    .card-pro {
+        border: 2px solid var(--ios-border); border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        background: var(--ios-surface); overflow: hidden; margin-bottom: 25px;
+    }
+    .table-ios { margin: 0; width: 100%; }
+    .table-ios th {
+        background: #F9F9FB; color: var(--text-muted); font-size: 0.75rem; font-weight: 900;
+        text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 20px; border-bottom: 1px solid var(--ios-border);
+    }
+    .table-ios td { padding: 16px 20px; border-bottom: 1px solid var(--ios-border); vertical-align: middle; }
+    .table-ios tr:last-child td { border-bottom: none; }
+    .table-ios tbody tr:hover { background: #F9F9FB; }
+
+    /* --- COMPONENTES --- */
+    .avatar-ios {
+        width: 45px; height: 45px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem; font-weight: 900; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.05);
     }
 
-    /* Filas Inteligentes de Usuarios */
-    .user-row {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(20px);
-        border: 1px solid #E2E8F0;
-        border-radius: 20px;
-        padding: 20px 24px;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .user-row:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
-        border-color: #CBD5E1;
-        background: #FFFFFF;
-    }
-
-    /* Select Premium para Roles */
     .select-pro {
-        background-color: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        font-weight: 600;
-        color: #0F172A;
-        padding: 10px 35px 10px 15px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748B' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
+        background: #F2F2F7; border: 1px solid #D1D1D6; border-radius: 10px; padding: 8px 12px;
+        font-weight: 900; font-size: 0.85rem; color: var(--text-main); cursor: pointer; transition: 0.2s;
     }
-    .select-pro:focus {
-        border-color: var(--brand-primary);
-        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-        outline: none;
+    .select-pro:focus { border-color: var(--text-main); outline: none; }
+    
+    .btn-update {
+        background: var(--ios-gray-bg); color: var(--ios-gray-text); border: 1px solid #D1D1D6;
+        border-radius: 10px; font-weight: 900; padding: 8px 14px; transition: 0.2s;
     }
+    .btn-update:hover { background: var(--text-main); color: #FFF; border-color: var(--text-main); }
+    .btn-update:active { transform: scale(0.95); }
 
-    /* Bento Info Cards (Guía de Permisos) */
-    .info-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 20px;
-        padding: 24px;
-        height: 100%;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-        transition: all 0.3s ease;
+    /* --- PAGINACIÓN --- */
+    .ios-pagination { display: flex; justify-content: center; gap: 8px; margin-top: 10px; margin-bottom: 30px; }
+    .ios-page-btn {
+        width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+        border-radius: 12px; font-weight: 900; font-size: 0.95rem; text-decoration: none;
+        background: var(--ios-surface); color: var(--text-main); border: 2px solid var(--ios-border);
+        transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     }
-    .info-card:hover {
-        border-color: #0EA5E9;
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(14, 165, 233, 0.1);
-    }
-    .icon-wrapper {
-        width: 45px; height: 45px;
-        border-radius: 14px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.3rem; margin-bottom: 16px;
-    }
-
-    /* Animaciones */
-    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-
-    /* =========================================================
-       📱 MÓVIL PERFECTO
-       ========================================================= */
-    @media (max-width: 991px) {
-        .user-row { 
-            flex-direction: column; 
-            align-items: flex-start; 
-            gap: 16px; 
-            padding: 20px;
-        }
-        .user-info { width: 100%; border-bottom: 1px dashed #E2E8F0; padding-bottom: 16px; }
-        .user-stats { width: 100%; display: flex; justify-content: space-between; }
-        .user-action { width: 100%; border-top: 1px dashed #E2E8F0; padding-top: 16px; }
-        .user-action form { width: 100%; flex-direction: column; }
-        .select-pro { width: 100%; margin-bottom: 10px; }
-        .btn-update { width: 100%; justify-content: center; }
-    }
+    .ios-page-btn:hover { background: #E5E5EA; }
+    .ios-page-btn.active { background: var(--text-main); color: #FFF; border-color: var(--text-main); }
+    .ios-page-btn.disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="ambient-glow"></div>
-
-<div class="container-fluid px-0 pb-5">
+<div class="container-fluid px-0 animate__animated animate__fadeInUp">
     
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 pb-3 border-bottom reveal-up">
-        <div class="mb-4 mb-md-0">
-            <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-2 mb-2 rounded-pill border border-primary border-opacity-25">
-                <i class="bi bi-shield-lock-fill me-1"></i> Panel de Seguridad NEXUS
+    <!-- CABECERA -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
+        <div class="mb-3 mb-md-0">
+            <span class="badge fw-black px-3 py-2 mb-2 rounded-pill border" style="background: var(--ios-blue-bg); color: var(--ios-blue-text); border-color: #A6C8FF !important;">
+                <i class="bi bi-shield-lock-fill me-1"></i> Panel de Seguridad
             </span>
-            <h2 class="fey-title mb-1">Gestión de Usuarios</h2>
-            <p class="text-muted small m-0 fw-medium">Administra los niveles de acceso y permisos en tu plataforma.</p>
+            <h2 class="fw-black text-dark mb-0" style="letter-spacing: -0.5px;">Gestión de Usuarios</h2>
+            <p class="text-muted small mt-1 mb-0 fw-bold">Administra los niveles de acceso y permisos.</p>
         </div>
         
         <div>
-            <a href="{% url 'crear_usuario' %}" class="btn btn-nexus rounded-pill px-4 py-2 shadow-sm w-100">
+            <a href="{% url 'crear_usuario' %}" class="btn fw-black rounded-pill px-4 py-2 shadow-sm" style="background: var(--ios-blue-bg); color: var(--ios-blue-text); border: 1px solid #A6C8FF; transition: 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                 <i class="bi bi-person-plus-fill me-2"></i>Agregar Usuario
             </a>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            {% for u in usuarios %}
-            <div class="user-row reveal-up" style="animation-delay: 0.{{ forloop.counter|slice:':1' }}s;">
-                
-                <div class="user-info d-flex align-items-center" style="flex: 1; min-width: 250px;">
-                    <div class="text-white fw-black rounded-circle d-inline-flex align-items-center justify-content-center me-3 shadow-sm" style="background: linear-gradient(135deg, #0F172A 0%, #334155 100%); width: 50px; height: 50px; font-size: 1.2rem;">
-                        {{ u.username|slice:":1"|upper }}
-                    </div>
-                    <div>
-                        <div class="fw-black text-dark fs-5" style="font-family: 'Outfit', sans-serif; line-height: 1.1;">{{ u.username }}</div>
-                        <div class="text-muted small fw-medium mt-1">
-                            <i class="bi bi-envelope-at me-1 opacity-75"></i>{{ u.email|default:"Sin correo" }}
-                        </div>
-                    </div>
-                </div>
+    <!-- 🔍 BUSCADOR -->
+    <div class="ios-search-container">
+        <form method="GET" class="search-wrapper m-0">
+            <i class="bi bi-search"></i>
+            <input type="text" name="q" value="{{ query }}" class="ios-search-input" placeholder="Buscar por usuario, nombre, apellido o correo..." autocomplete="off">
+            <button type="submit" class="d-none"></button>
+        </form>
+    </div>
 
-                <div class="user-stats d-flex align-items-center gap-3" style="flex: 1;">
-                    <div class="d-flex flex-column gap-2">
-                        {% if u.perfil.rol == 'ORG' %}
-                            <span class="badge bg-dark px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-gear-wide-connected me-1"></i> Organizador</span>
-                        {% elif u.perfil.rol == 'DIR' %}
-                            <span class="badge bg-primary text-white border border-primary px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-person-badge me-1"></i> Dirigente</span>
-                        {% elif u.perfil.rol == 'VOC' %}
-                            <span class="badge bg-warning text-dark border border-warning px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-clipboard-data me-1"></i> Vocal Mesa</span>
-                        {% else %}
-                            <span class="badge bg-slate-50 text-slate-600 border px-3 py-1 rounded-pill shadow-sm"><i class="bi bi-person me-1"></i> Aficionado</span>
-                        {% endif %}
-
-                        <div class="d-flex align-items-center gap-2">
-                            {% if u.is_active %}
-                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill" style="font-size: 0.65rem;"><i class="bi bi-check-circle-fill me-1"></i> Activo</span>
-                            {% else %}
-                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 rounded-pill" style="font-size: 0.65rem;"><i class="bi bi-x-circle-fill me-1"></i> Inactivo</span>
-                            {% endif %}
-                            <span class="text-muted fw-medium" style="font-size: 0.65rem;">
-                                <i class="bi bi-calendar3 me-1 opacity-50"></i> {{ u.date_joined|date:"d M, Y" }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="user-action d-flex justify-content-lg-end mt-3 mt-lg-0" style="flex: 1;">
-                    <form method="post" action="{% url 'admin_gestion_usuarios' %}" class="d-flex align-items-center gap-2 m-0 w-100 justify-content-lg-end">
-                        {% csrf_token %}
-                        <input type="hidden" name="perfil_id" value="{{ u.perfil.id }}">
-                        
-                        <select name="nuevo_rol" class="select-pro shadow-sm">
-                            <option value="ORG" {% if u.perfil.rol == 'ORG' %}selected{% endif %}>Organizador</option>
-                            <option value="DIR" {% if u.perfil.rol == 'DIR' %}selected{% endif %}>Dirigente</option>
-                            <option value="VOC" {% if u.perfil.rol == 'VOC' %}selected{% endif %}>Vocal Mesa</option>
-                            <option value="FAN" {% if u.perfil.rol == 'FAN' %}selected{% endif %}>Aficionado</option>
-                        </select>
-                        
-                        <button type="submit" class="btn btn-dark fw-bold px-3 shadow-sm btn-update rounded-3" title="Guardar Nuevo Rol" onclick="return confirm('¿Confirmas el cambio de permisos para @{{ u.username }}?');">
-                            <i class="bi bi-arrow-repeat"></i> <span class="d-lg-none ms-1">Actualizar</span>
-                        </button>
-                    </form>
-                </div>
-
+    <!-- 📋 TABLA PRINCIPAL -->
+    <div class="card card-pro">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table-ios" style="white-space: nowrap;">
+                    <thead>
+                        <tr>
+                            <th class="ps-4 py-3">Datos del Usuario</th>
+                            <th>Contacto</th>
+                            <th>Permisos</th>
+                            <th>Estado</th>
+                            <th>Registro</th>
+                            <th class="text-end pe-4" style="min-width: 230px;">Administrar Rol</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <!-- 1. Datos -->
+                            <td class="ps-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-ios me-3" style="
+                                        {% if u.perfil.rol == 'ORG' %}background: var(--ios-purple-bg); color: var(--ios-purple-text);
+                                        {% elif u.perfil.rol == 'VOC' %}background: var(--ios-orange-bg); color: var(--ios-orange-text);
+                                        {% elif u.perfil.rol == 'DIR' %}background: var(--ios-blue-bg); color: var(--ios-blue-text);
+                                        {% else %}background: var(--ios-gray-bg); color: var(--ios-gray-text);{% endif %}">
+                                        {{ u.username|slice:":1"|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-black text-dark fs-6">{{ u.username }}</div>
+                                        <small class="fw-bold" style="color: var(--text-muted);">{{ u.get_full_name|default:"Sin nombre registrado" }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- 2. Contacto -->
+                            <td>
+                                <div class="small fw-bold" style="color: var(--text-muted);">
+                                    <i class="bi bi-envelope-at me-1"></i>{{ u.email|default:"Sin correo" }}
+                                </div>
+                            </td>
+                            
+                            <!-- 3. Permisos Actuales -->
+                            <td>
+                                {% if u.perfil.rol == 'ORG' %}
+                                    <span class="badge px-3 py-2 rounded-pill fw-black border" style="background: var(--ios-purple-bg); color: var(--ios-purple-text); border-color: #B4A6FF !important;"><i class="bi bi-gear-wide-connected me-1"></i> Organizador</span>
+                                {% elif u.perfil.rol == 'DIR' %}
+                                    <span class="badge px-3 py-2 rounded-pill fw-black border" style="background: var(--ios-blue-bg); color: var(--ios-blue-text); border-color: #A6C8FF !important;"><i class="bi bi-person-badge me-1"></i> Dirigente</span>
+                                {% elif u.perfil.rol == 'VOC' %}
+                                    <span class="badge px-3 py-2 rounded-pill fw-black border" style="background: var(--ios-orange-bg); color: var(--ios-orange-text); border-color: #FFEEBA !important;"><i class="bi bi-clipboard-data me-1"></i> Vocal Mesa</span>
+                                {% else %}
+                                    <span class="badge px-3 py-2 rounded-pill fw-black border" style="background: var(--ios-gray-bg); color: var(--ios-gray-text); border-color: #D6D8DB !important;"><i class="bi bi-person me-1"></i> Aficionado</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- 4. Estado -->
+                            <td>
+                                {% if u.is_active %}
+                                    <span class="badge px-3 py-2 rounded-pill fw-black border" style="background: var(--ios-green-bg); color: var(--ios-green-text); border-color: #C3E6CB !important;"><i class="bi bi-check-circle-fill me-1"></i> Activo</span>
+                                {% else %}
+                                    <span class="badge px-3 py-2 rounded-pill fw-black border" style="background: var(--ios-red-bg); color: var(--ios-red-text); border-color: #F5C6CB !important;"><i class="bi bi-x-circle-fill me-1"></i> Inactivo</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- 5. Registro -->
+                            <td class="small fw-bold" style="color: var(--text-muted);">
+                                <i class="bi bi-calendar3 me-1"></i> {{ u.date_joined|date:"d M, Y" }}
+                            </td>
+                            
+                            <!-- 6. Formulario para cambiar Rol -->
+                            <td class="text-end pe-4">
+                                <form method="post" action="{% url 'admin_gestion_usuarios' %}" class="d-flex justify-content-end gap-2 m-0 align-items-center">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="perfil_id" value="{{ u.perfil.id }}">
+                                    
+                                    <select name="nuevo_rol" class="select-pro">
+                                        <option value="ORG" {% if u.perfil.rol == 'ORG' %}selected{% endif %}>Organizador</option>
+                                        <option value="DIR" {% if u.perfil.rol == 'DIR' %}selected{% endif %}>Dirigente</option>
+                                        <option value="VOC" {% if u.perfil.rol == 'VOC' %}selected{% endif %}>Vocal Mesa</option>
+                                        <option value="FAN" {% if u.perfil.rol == 'FAN' %}selected{% endif %}>Aficionado</option>
+                                    </select>
+                                    
+                                    <button type="submit" class="btn-update" title="Guardar Nuevo Rol" onclick="return confirm('¿Confirmas el cambio de permisos para el usuario @{{ u.username }}?');">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Guardar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="bi bi-search d-block mb-3" style="font-size: 3rem; color: #D1D1D6;"></i>
+                                <h5 class="fw-black text-dark mb-1">Sin resultados</h5>
+                                <p class="small fw-bold" style="color: var(--text-muted);">No se encontraron usuarios con esos datos.</p>
+                                {% if query %}
+                                    <a href="{% url 'admin_gestion_usuarios' %}" class="btn btn-sm btn-outline-dark fw-bold mt-2 rounded-pill px-3">Ver Todos</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% empty %}
-            <div class="user-row justify-content-center text-center py-5 reveal-up" style="border-style: dashed; background: transparent; box-shadow: none;">
-                <div>
-                    <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow-sm border" style="width: 80px; height: 80px;">
-                        <i class="bi bi-people text-muted opacity-50" style="font-size: 2.5rem;"></i>
-                    </div>
-                    <h5 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">No hay usuarios registrados</h5>
-                    <p class="text-muted small m-0">Eres el único usuario en el sistema NEXUS.</p>
-                </div>
-            </div>
-            {% endfor %}
         </div>
     </div>
+
+    <!-- 🔢 PAGINACIÓN -->
+    {% if usuarios.has_other_pages %}
+    <div class="ios-pagination">
+        {% if usuarios.has_previous %}
+            <a href="?page={{ usuarios.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="ios-page-btn"><i class="bi bi-chevron-left"></i></a>
+        {% else %}
+            <span class="ios-page-btn disabled"><i class="bi bi-chevron-left"></i></span>
+        {% endif %}
+
+        {% for i in usuarios.paginator.page_range %}
+            {% if usuarios.number == i %}
+                <span class="ios-page-btn active">{{ i }}</span>
+            {% else %}
+                {% if i > usuarios.number|add:"-3" and i < usuarios.number|add:"3" %}
+                    <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}" class="ios-page-btn">{{ i }}</a>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        {% if usuarios.has_next %}
+            <a href="?page={{ usuarios.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="ios-page-btn"><i class="bi bi-chevron-right"></i></a>
+        {% else %}
+            <span class="ios-page-btn disabled"><i class="bi bi-chevron-right"></i></span>
+        {% endif %}
+    </div>
+    {% endif %}
     
-    <div class="mt-5 pt-4 border-top reveal-up" style="animation-delay: 0.3s;">
-        <div class="mb-4 d-flex align-items-center">
-            <i class="bi bi-info-circle-fill fs-4 text-primary me-2"></i>
-            <h4 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">Guía de Permisos NEXUS</h4>
-        </div>
-        
-        <div class="row g-4">
+    <!-- 📚 GUÍA DE PERMISOS -->
+    <div class="card-pro p-4 mt-4" style="background: #E5F0FF; border-color: #CCE0FF !important;">
+        <h6 class="fw-black mb-3" style="color: var(--ios-blue-text);">
+            <i class="bi bi-info-circle-fill me-2"></i>Guía de Permisos del Sistema
+        </h6>
+        <div class="row g-3">
             <div class="col-md-6 col-lg-3">
-                <div class="info-card">
-                    <div class="icon-wrapper bg-dark text-white shadow-sm"><i class="bi bi-gear-wide-connected"></i></div>
-                    <h6 class="fw-bold text-dark mb-2">Organizador</h6>
-                    <p class="text-muted small m-0">Acceso total. Crea torneos, cobra deudas, inscribe equipos y edita toda la información del complejo.</p>
-                </div>
+                <span class="badge rounded-pill fw-black mb-2 px-3 border" style="background: var(--ios-purple-bg); color: var(--ios-purple-text); border-color: #B4A6FF !important;"><i class="bi bi-gear-wide-connected"></i> Organizador</span>
+                <p class="small fw-bold m-0" style="color: var(--ios-blue-text);">Acceso total. Crea torneos, cobra deudas y edita toda la información.</p>
             </div>
             <div class="col-md-6 col-lg-3">
-                <div class="info-card">
-                    <div class="icon-wrapper bg-primary bg-opacity-10 text-primary"><i class="bi bi-person-badge"></i></div>
-                    <h6 class="fw-bold text-dark mb-2">Dirigente</h6>
-                    <p class="text-muted small m-0">Puede inscribir a su propio equipo en torneos, subir carnets de jugadores y gestionar su plantilla.</p>
-                </div>
+                <span class="badge rounded-pill fw-black mb-2 px-3 border" style="background: var(--ios-blue-bg); color: var(--ios-blue-text); border-color: #A6C8FF !important;"><i class="bi bi-person-badge"></i> Dirigente</span>
+                <p class="small fw-bold m-0" style="color: var(--ios-blue-text);">Puede inscribir a su propio equipo, fichar jugadores y gestionar su club.</p>
             </div>
             <div class="col-md-6 col-lg-3">
-                <div class="info-card">
-                    <div class="icon-wrapper bg-warning bg-opacity-10 text-warning"><i class="bi bi-clipboard-data"></i></div>
-                    <h6 class="fw-bold text-dark mb-2">Vocal de Mesa</h6>
-                    <p class="text-muted small m-0">Acceso a la "Mesa de Control" para pitar partidos en vivo, anotar goles y tarjetas desde el celular.</p>
-                </div>
+                <span class="badge rounded-pill fw-black mb-2 px-3 border" style="background: var(--ios-orange-bg); color: var(--ios-orange-text); border-color: #FFEEBA !important;"><i class="bi bi-clipboard-data"></i> Vocal Mesa</span>
+                <p class="small fw-bold m-0" style="color: var(--ios-blue-text);">Acceso a la "Mesa de Control" para pitar partidos, anotar goles y tarjetas.</p>
             </div>
             <div class="col-md-6 col-lg-3">
-                <div class="info-card">
-                    <div class="icon-wrapper bg-slate-50 text-slate-600 border"><i class="bi bi-person"></i></div>
-                    <h6 class="fw-bold text-dark mb-2">Aficionado</h6>
-                    <p class="text-muted small m-0">Usuario básico. Puede ver estadísticas públicas, goleadores y horarios. Sin privilegios de edición.</p>
-                </div>
+                <span class="badge rounded-pill fw-black mb-2 px-3 border" style="background: var(--ios-gray-bg); color: var(--ios-gray-text); border-color: #D6D8DB !important;"><i class="bi bi-person"></i> Aficionado</span>
+                <p class="small fw-bold m-0" style="color: var(--ios-blue-text);">Usuario básico. Solo puede reservar canchas y ver estadísticas públicas.</p>
             </div>
         </div>
     </div>
