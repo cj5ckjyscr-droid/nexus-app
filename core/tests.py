@@ -963,3 +963,50 @@ class PruebaDirigenteEquipoTest(TestCase):
         response = self.client.get(f"/prueba/dirigente/{self.equipo_ajeno.id}/")
 
         self.assertEqual(response.status_code, 404)
+
+
+class PruebaAgregarJugadorTest(TestCase):
+    def setUp(self):
+        self.usuario = User.objects.create_user("tester21", password="pass12345")
+        self.complejo_demo = crear_entorno_prueba(self.usuario)
+        self.mi_equipo = Equipo.objects.filter(torneo__complejo=self.complejo_demo).first()
+
+        self.otro_usuario = User.objects.create_user("tester22", password="pass12345")
+        self.otro_complejo = crear_entorno_prueba(self.otro_usuario)
+        self.equipo_ajeno = Equipo.objects.filter(torneo__complejo=self.otro_complejo).first()
+
+    def test_puede_agregar_un_jugador_a_su_propio_equipo_demo(self):
+        self.client.login(username="tester21", password="pass12345")
+        jugadores_antes = self.mi_equipo.jugadores.count()
+
+        response = self.client.post(f"/prueba/dirigente/{self.mi_equipo.id}/agregar-jugador/", {
+            "equipo": self.mi_equipo.id,
+            "nombres": "Jugador Nuevo Demo",
+            "dorsal": "99",
+            "cedula": "1710000033",
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.mi_equipo.jugadores.count(), jugadores_antes + 1)
+
+    def test_no_puede_agregar_jugador_a_equipo_de_otro_usuario_de_prueba(self):
+        self.client.login(username="tester21", password="pass12345")
+        jugadores_antes_ajeno = self.equipo_ajeno.jugadores.count()
+
+        response = self.client.get(f"/prueba/dirigente/{self.equipo_ajeno.id}/agregar-jugador/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self.equipo_ajeno.jugadores.count(), jugadores_antes_ajeno)
+
+    def test_no_puede_inyectar_el_jugador_en_el_equipo_ajeno_via_post(self):
+        self.client.login(username="tester21", password="pass12345")
+        jugadores_antes_ajeno = self.equipo_ajeno.jugadores.count()
+
+        self.client.post(f"/prueba/dirigente/{self.mi_equipo.id}/agregar-jugador/", {
+            "equipo": self.equipo_ajeno.id,
+            "nombres": "Intruso",
+            "dorsal": "98",
+            "cedula": "1710000041",
+        })
+
+        self.assertEqual(self.equipo_ajeno.jugadores.count(), jugadores_antes_ajeno)

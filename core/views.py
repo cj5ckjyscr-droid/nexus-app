@@ -3573,3 +3573,24 @@ def prueba_ver_como_dirigente(request, equipo_id):
         'deudas': deudas,
         'total_deuda': total_deuda,
     })
+
+
+@login_required
+@user_passes_test(es_dueno_de_entorno_prueba)
+def prueba_agregar_jugador(request, equipo_id):
+    mi_complejo_demo = obtener_mi_complejo_demo(request.user)
+    equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo_demo)
+    equipos_del_entorno = Equipo.objects.filter(torneo__complejo=mi_complejo_demo)
+
+    if request.method == 'POST':
+        form = JugadorForm(request.POST, request.FILES)
+        form.fields['equipo'].queryset = equipos_del_entorno
+        if form.is_valid():
+            jugador = form.save()
+            messages.success(request, f"✅ {jugador.nombres} agregado a {jugador.equipo.nombre}.")
+            return redirect('prueba_ver_como_dirigente', equipo_id=jugador.equipo.id)
+    else:
+        form = JugadorForm(initial={'equipo': equipo})
+        form.fields['equipo'].queryset = equipos_del_entorno
+
+    return render(request, 'core/prueba_agregar_jugador.html', {'form': form, 'equipo': equipo})
