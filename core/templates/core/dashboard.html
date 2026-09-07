@@ -213,7 +213,7 @@
 
 
 
-    {% if user.is_authenticated and user.perfil.rol_principal == 'ORG' and deudas %}
+    {% if user.is_authenticated and rol_nav_efectivo == 'ORG' and deudas %}
     <div class="col-12 mb-3 px-1">
         <div class="alert alert-compact d-flex align-items-center justify-content-between m-0">
             <div class="d-flex align-items-center">
@@ -272,7 +272,7 @@
 <div class="container-fluid px-2 mb-4 animate__animated animate__fadeInUp">
     <div class="d-flex justify-content-between align-items-center mb-3 px-1">
         <h5 class="fw-bold m-0 text-dark"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Cartelera Oficial</h5>
-        {% if user.is_authenticated and user.perfil.rol_principal == 'ORG' %}
+        {% if user.is_authenticated and rol_nav_efectivo == 'ORG' %}
         <a href="{% url 'generar_horarios_imagen' %}" target="_blank" class="btn btn-sm rounded-pill fw-bold text-white shadow-sm" style="background: linear-gradient(135deg, #1B5E3A, #2E8B57);">
             <i class="bi bi-image-fill me-1"></i> Generar Imagen
         </a>
@@ -326,18 +326,18 @@
 <!-- ==========================================
      PANELES SEGÚN ROL
      ========================================== -->
-{% if user.is_authenticated and not user.perfil.rol_principal == 'ORG' and not user.perfil.rol_principal == 'VOC' %}
+{% if user.is_authenticated and not rol_nav_efectivo == 'ORG' and not rol_nav_efectivo == 'VOC' %}
 <div class="container-fluid px-2 mb-4 animate__animated animate__fadeInUp">
     <h6 class="fw-bold text-muted text-uppercase small mb-3 ps-1">Mi Panel</h6>
     <div class="admin-grid">
-        {% if user.perfil.rol_principal == 'DIR' %}<a href="{% url 'gestionar_jugadores' %}" class="admin-btn"><i class="bi bi-shield-shaded text-success"></i><span>Mi Equipo</span></a>{% endif %}
+        {% if rol_nav_efectivo == 'DIR' %}<a href="{% url 'gestionar_jugadores' %}" class="admin-btn"><i class="bi bi-shield-shaded text-success"></i><span>Mi Equipo</span></a>{% endif %}
         <a href="{% url 'ver_torneos_activos' %}" class="admin-btn"><i class="bi bi-trophy text-warning"></i><span>Inscribirse</span></a>
-        {% if user.perfil.rol_principal == 'DIR' %}<a href="{% url 'mis_finanzas_equipo' %}" class="admin-btn"><i class="bi bi-wallet2 text-danger"></i><span>Finanzas</span></a>{% endif %}
+        {% if rol_nav_efectivo == 'DIR' %}<a href="{% url 'mis_finanzas_equipo' %}" class="admin-btn"><i class="bi bi-wallet2 text-danger"></i><span>Finanzas</span></a>{% endif %}
     </div>
 </div>
 {% endif %}
 
-{% if user.is_authenticated and user.perfil.rol_principal == 'VOC' %}
+{% if user.is_authenticated and rol_nav_efectivo == 'VOC' %}
 <!-- Panel Vocal Omitido visualmente aquí para brevedad, PERO SE MANTIENE EL CÓDIGO -->
 <div class="container-fluid px-2 animate__animated animate__fadeInUp mb-4">
     <div class="d-flex align-items-center justify-content-between mb-3 ps-1">
@@ -374,7 +374,7 @@
 </div>
 {% endif %}
 
-{% if user.is_authenticated and user.perfil.rol_principal == 'ORG' %}
+{% if user.is_authenticated and rol_nav_efectivo == 'ORG' %}
 <div class="container-fluid px-2 animate__animated animate__fadeInUp mb-4">
     {% if equipos_pendientes.count > 0 %}
     <h6 class="fw-bold text-danger mb-3 ps-1"><i class="bi bi-bell me-2"></i>Pendientes de Acción</h6>
@@ -411,7 +411,7 @@
 
 <!-- OTROS MODALES (Deudas, etc. Se mantienen igual) -->
 <!-- ... [Tus modales de deudas se mantienen aquí abajo, no los quité para no romper la lógica] ... -->
-{% if user.is_authenticated and user.perfil.rol_principal == 'ORG' and deudas %}
+{% if user.is_authenticated and rol_nav_efectivo == 'ORG' and deudas %}
 <div class="modal fade" id="modalDeudasOrg" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 shadow-lg bg-light">
@@ -453,7 +453,7 @@
 </div>
 {% endif %}
 
-{% if user.is_authenticated and user.perfil.rol_principal == 'DIR' and tengo_deudas %}
+{% if user.is_authenticated and rol_nav_efectivo == 'DIR' and tengo_deudas %}
 <div class="modal fade" id="modalDeudasDir" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 shadow-lg bg-white">

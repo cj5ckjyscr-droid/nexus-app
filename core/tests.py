@@ -1339,3 +1339,35 @@ class GestionarJugadoresConEquipoSimuladoTest(TestCase):
         response = self.client.get(f"/jugadores/?equipo={otro_equipo.id}")
 
         self.assertEqual(response.context["equipo_obj"], otro_equipo)
+
+
+class RolNavEfectivoContextProcessorTest(TestCase):
+    def test_usuario_normal_sin_simulacion_tiene_el_mismo_rol_de_siempre(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan Nav", precio_mensual=Decimal("10.00"))
+        organizador = User.objects.create_user("navctx1", password="pass12345")
+        ComplejoDeportivo.objects.create(
+            nombre="Cancha Nav", slug="cancha-nav", organizador=organizador, plan=plan,
+        )
+        self.client.login(username="navctx1", password="pass12345")
+
+        response = self.client.get("/dashboard/")
+
+        self.assertEqual(response.context["rol_nav_efectivo"], "ORG")
+        self.assertContains(response, "Gestor Administrativo")
+
+    def test_usuario_de_prueba_con_equipo_simulado_activo_ve_el_panel_real_de_dirigente(self):
+        usuario = User.objects.create_user("navctx2", password="pass12345")
+        complejo = crear_entorno_prueba(usuario)
+        mi_equipo = Equipo.objects.filter(torneo__complejo=complejo).first()
+        self.client.login(username="navctx2", password="pass12345")
+        session = self.client.session
+        session['equipo_simulado_id'] = mi_equipo.id
+        session.save()
+
+        response = self.client.get("/dashboard/")
+
+        self.assertEqual(response.context["rol_nav_efectivo"], "DIR")
+        self.assertContains(response, 'href="/jugadores/"')
+        self.assertContains(response, 'href="/mis-finanzas-equipo/"')
+        self.assertNotContains(response, "Gestor Administrativo")
+        self.assertNotContains(response, 'href="/equipos/"')
