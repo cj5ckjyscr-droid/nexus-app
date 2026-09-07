@@ -1302,3 +1302,40 @@ class DashboardConEquipoSimuladoTest(TestCase):
         response = self.client.get("/dashboard/")
 
         self.assertEqual(response.context["mi_rol_principal"], "ORG")
+
+
+class GestionarJugadoresConEquipoSimuladoTest(TestCase):
+    def setUp(self):
+        self.usuario = User.objects.create_user("fichsim1", password="pass12345")
+        self.complejo = crear_entorno_prueba(self.usuario)
+        self.mi_equipo = Equipo.objects.filter(torneo__complejo=self.complejo).order_by('id').first()
+        self.client.login(username="fichsim1", password="pass12345")
+        session = self.client.session
+        session['equipo_simulado_id'] = self.mi_equipo.id
+        session.save()
+
+    def test_sin_parametro_equipo_en_la_url_usa_el_equipo_simulado_por_defecto(self):
+        response = self.client.get("/jugadores/")
+
+        self.assertEqual(response.context["equipo_obj"], self.mi_equipo)
+        self.assertTrue(response.context["es_dirigente"])
+
+    def test_puede_fichar_un_jugador_nuevo_en_el_equipo_simulado(self):
+        jugadores_antes = self.mi_equipo.jugadores.count()
+
+        response = self.client.post("/jugadores/", {
+            "equipo": self.mi_equipo.id,
+            "nombres": "Jugador De Prueba Fichado",
+            "dorsal": "88",
+            "cedula": "1700000001",
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.mi_equipo.jugadores.count(), jugadores_antes + 1)
+
+    def test_puede_cambiar_a_otro_de_sus_seis_equipos_demo_con_el_selector_real(self):
+        otro_equipo = Equipo.objects.filter(torneo__complejo=self.complejo).exclude(id=self.mi_equipo.id).first()
+
+        response = self.client.get(f"/jugadores/?equipo={otro_equipo.id}")
+
+        self.assertEqual(response.context["equipo_obj"], otro_equipo)

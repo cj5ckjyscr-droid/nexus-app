@@ -412,6 +412,9 @@ def eliminar_equipo(request, equipo_id):
 @login_required
 def gestionar_jugadores(request):
     rol_principal = obtener_rol_principal(request.user)
+    equipo_simulado = obtener_equipo_simulado(request)
+    if equipo_simulado:
+        rol_principal = 'DIR'
     puede_fichar = True
     query = request.GET.get('q', '').strip()
 
@@ -422,7 +425,7 @@ def gestionar_jugadores(request):
             return redirect('ver_torneos_activos')
 
         equipos_activos = mis_equipos.filter(torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
-        equipo_id = request.GET.get('equipo')
+        equipo_id = request.GET.get('equipo') or (equipo_simulado.id if equipo_simulado else None)
         mi_equipo = mis_equipos.filter(id=equipo_id).first() if equipo_id else (equipos_activos.first() or mis_equipos.first())
         
         mi_complejo = mi_equipo.torneo.complejo # 🔥 AISLAMIENTO AÑADIDO
