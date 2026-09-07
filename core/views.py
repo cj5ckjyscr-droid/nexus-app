@@ -38,7 +38,7 @@ from .models import (
 )
 
 from .utils import validar_cedula_ecuador, consultar_sri
-from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba, NOMBRE_PLAN_DEMO
+from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba, obtener_equipo_simulado, NOMBRE_PLAN_DEMO
 
 # =========================================================
 # --- FUNCIONES DE CONTROL DE ACCESO (PERMISOS CONTEXTUALES) ---
@@ -102,6 +102,9 @@ def dashboard(request):
     
     if request.user.is_authenticated:
         rol = obtener_rol_principal(request.user)
+        equipo_simulado = obtener_equipo_simulado(request)
+        if equipo_simulado:
+            rol = 'DIR'
         ctx['mi_rol_principal'] = rol # Pasamos el rol a la plantilla
 
         if rol == 'ORG':
@@ -141,7 +144,7 @@ def dashboard(request):
         elif rol == 'DIR':
             mis_equipos = Equipo.objects.filter(dirigente=request.user)
             if mis_equipos.exists():
-                ctx['mi_equipo'] = mis_equipos.first() 
+                ctx['mi_equipo'] = equipo_simulado or mis_equipos.first() 
                 mis_deudas = Sancion.objects.filter(equipo__in=mis_equipos, pagada=False).exclude(descripcion__icontains='Inscripci').select_related('partido', 'jugador').order_by('-partido__fecha_hora', '-id')
                 
                 if mis_deudas.exists():

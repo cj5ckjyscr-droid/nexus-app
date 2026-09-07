@@ -1277,3 +1277,28 @@ class ObtenerEquipoSimuladoTest(TestCase):
         request = self._request_con_sesion(usuario, equipo_id=equipo_con_dirigente_prestado.id)
 
         self.assertIsNone(obtener_equipo_simulado(request))
+
+
+class DashboardConEquipoSimuladoTest(TestCase):
+    def test_dashboard_trata_al_organizador_demo_como_dirigente_del_equipo_elegido(self):
+        usuario = User.objects.create_user("dashsim1", password="pass12345")
+        complejo = crear_entorno_prueba(usuario)
+        mi_equipo = Equipo.objects.filter(torneo__complejo=complejo).order_by('id').first()
+        self.client.login(username="dashsim1", password="pass12345")
+        session = self.client.session
+        session['equipo_simulado_id'] = mi_equipo.id
+        session.save()
+
+        response = self.client.get("/dashboard/")
+
+        self.assertEqual(response.context["mi_rol_principal"], "DIR")
+        self.assertEqual(response.context["mi_equipo"], mi_equipo)
+
+    def test_sin_equipo_simulado_el_organizador_demo_sigue_viendo_su_propio_panel_org(self):
+        usuario = User.objects.create_user("dashsim2", password="pass12345")
+        crear_entorno_prueba(usuario)
+        self.client.login(username="dashsim2", password="pass12345")
+
+        response = self.client.get("/dashboard/")
+
+        self.assertEqual(response.context["mi_rol_principal"], "ORG")
