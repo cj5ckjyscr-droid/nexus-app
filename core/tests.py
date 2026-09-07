@@ -927,96 +927,6 @@ class BannerModoPruebaTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
-class PruebaDirigenteEquipoTest(TestCase):
-    def setUp(self):
-        self.usuario = User.objects.create_user("tester19", password="pass12345")
-        self.complejo_demo = crear_entorno_prueba(self.usuario)
-        self.mi_equipo = Equipo.objects.filter(torneo__complejo=self.complejo_demo).first()
-
-        plan = PlanSuscripcion.objects.create(nombre="Plan S", precio_mensual=Decimal("10.00"))
-        self.otro_usuario = User.objects.create_user("tester20", password="pass12345")
-        self.otro_complejo = crear_entorno_prueba(self.otro_usuario)
-        self.equipo_ajeno = Equipo.objects.filter(torneo__complejo=self.otro_complejo).first()
-
-    def test_usuario_sin_entorno_de_prueba_no_puede_entrar(self):
-        User.objects.create_user("sin_prueba", password="pass12345")
-        self.client.login(username="sin_prueba", password="pass12345")
-
-        response = self.client.get("/prueba/dirigente/")
-
-        self.assertNotEqual(response.status_code, 200)
-
-    def test_selector_muestra_los_seis_equipos_del_propio_entorno(self):
-        self.client.login(username="tester19", password="pass12345")
-
-        response = self.client.get("/prueba/dirigente/")
-
-        self.assertEqual(len(response.context["equipos"]), 6)
-
-    def test_puede_ver_el_detalle_de_su_propio_equipo(self):
-        self.client.login(username="tester19", password="pass12345")
-
-        response = self.client.get(f"/prueba/dirigente/{self.mi_equipo.id}/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["equipo"], self.mi_equipo)
-        self.assertEqual(len(response.context["jugadores"]), 6)
-
-    def test_no_puede_ver_el_equipo_de_otro_usuario_de_prueba(self):
-        self.client.login(username="tester19", password="pass12345")
-
-        response = self.client.get(f"/prueba/dirigente/{self.equipo_ajeno.id}/")
-
-        self.assertEqual(response.status_code, 404)
-
-
-class PruebaAgregarJugadorTest(TestCase):
-    def setUp(self):
-        self.usuario = User.objects.create_user("tester21", password="pass12345")
-        self.complejo_demo = crear_entorno_prueba(self.usuario)
-        self.mi_equipo = Equipo.objects.filter(torneo__complejo=self.complejo_demo).first()
-
-        self.otro_usuario = User.objects.create_user("tester22", password="pass12345")
-        self.otro_complejo = crear_entorno_prueba(self.otro_usuario)
-        self.equipo_ajeno = Equipo.objects.filter(torneo__complejo=self.otro_complejo).first()
-
-    def test_puede_agregar_un_jugador_a_su_propio_equipo_demo(self):
-        self.client.login(username="tester21", password="pass12345")
-        jugadores_antes = self.mi_equipo.jugadores.count()
-
-        response = self.client.post(f"/prueba/dirigente/{self.mi_equipo.id}/agregar-jugador/", {
-            "equipo": self.mi_equipo.id,
-            "nombres": "Jugador Nuevo Demo",
-            "dorsal": "99",
-            "cedula": "1710000033",
-        })
-
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(self.mi_equipo.jugadores.count(), jugadores_antes + 1)
-
-    def test_no_puede_agregar_jugador_a_equipo_de_otro_usuario_de_prueba(self):
-        self.client.login(username="tester21", password="pass12345")
-        jugadores_antes_ajeno = self.equipo_ajeno.jugadores.count()
-
-        response = self.client.get(f"/prueba/dirigente/{self.equipo_ajeno.id}/agregar-jugador/")
-
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(self.equipo_ajeno.jugadores.count(), jugadores_antes_ajeno)
-
-    def test_no_puede_inyectar_el_jugador_en_el_equipo_ajeno_via_post(self):
-        self.client.login(username="tester21", password="pass12345")
-        jugadores_antes_ajeno = self.equipo_ajeno.jugadores.count()
-
-        self.client.post(f"/prueba/dirigente/{self.mi_equipo.id}/agregar-jugador/", {
-            "equipo": self.equipo_ajeno.id,
-            "nombres": "Intruso",
-            "dorsal": "98",
-            "cedula": "1710000041",
-        })
-
-        self.assertEqual(self.equipo_ajeno.jugadores.count(), jugadores_antes_ajeno)
-
-
 class PreciosPublicosExcluyePlanDemoTest(TestCase):
     def test_el_plan_demo_no_aparece_en_la_pagina_publica_de_precios(self):
         PlanSuscripcion.objects.create(nombre="Plan Básico", precio_mensual=Decimal("10.00"))
@@ -1434,3 +1344,50 @@ class SelectorDirigenteRediseniadoTest(TestCase):
         self.assertContains(response, un_equipo.nombre)
         self.assertContains(response, f'action="/prueba/dirigente/activar/{un_equipo.id}/"')
         self.assertContains(response, "Entrar como Dirigente")
+
+
+class ModoDirigenteSimuladoFlujoCompletoTest(TestCase):
+    def setUp(self):
+        self.usuario = User.objects.create_user("flujo1", password="pass12345")
+        self.complejo_demo = crear_entorno_prueba(self.usuario)
+        self.mi_equipo = Equipo.objects.filter(torneo__complejo=self.complejo_demo).order_by('id').first()
+        self.client.login(username="flujo1", password="pass12345")
+
+    def test_flujo_completo_activar_fichar_y_salir(self):
+        # 1. Activa el modo Dirigente para su primer equipo demo.
+        self.client.post(f"/prueba/dirigente/activar/{self.mi_equipo.id}/")
+
+        # 2. El dashboard real ya lo trata como Dirigente de ese equipo.
+        dash = self.client.get("/dashboard/")
+        self.assertEqual(dash.context["mi_rol_principal"], "DIR")
+
+        # 3. Ficha un jugador nuevo desde la pantalla real de Dirigente.
+        jugadores_antes = self.mi_equipo.jugadores.count()
+        ficha = self.client.post("/jugadores/", {
+            "equipo": self.mi_equipo.id,
+            "nombres": "Jugador Fichado En Flujo",
+            "dorsal": "91",
+            "cedula": "1710000090",
+        })
+        self.assertEqual(ficha.status_code, 302)
+        self.assertEqual(self.mi_equipo.jugadores.count(), jugadores_antes + 1)
+
+        # 4. Sale del modo Dirigente y vuelve a ver su panel de Organizador.
+        self.client.post("/prueba/dirigente/salir/")
+        dash_final = self.client.get("/dashboard/")
+        self.assertEqual(dash_final.context["mi_rol_principal"], "ORG")
+
+    def test_revocar_el_rol_de_prueba_con_el_modo_activo_no_rompe_el_dashboard(self):
+        self.client.post(f"/prueba/dirigente/activar/{self.mi_equipo.id}/")
+
+        eliminar_entorno_prueba(self.usuario)
+
+        response = self.client.get("/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["mi_rol_principal"], "FAN")
+
+    def test_las_urls_de_las_vistas_paralelas_eliminadas_ya_no_existen(self):
+        from django.urls import NoReverseMatch, reverse
+        with self.assertRaises(NoReverseMatch):
+            reverse('prueba_ver_como_dirigente', args=[self.mi_equipo.id])

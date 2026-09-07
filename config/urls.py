@@ -128,8 +128,6 @@ urlpatterns = [
     path('prueba/dirigente/', views.prueba_seleccionar_equipo, name='prueba_seleccionar_equipo'),
     path('prueba/dirigente/activar/<int:equipo_id>/', views.prueba_activar_dirigente, name='prueba_activar_dirigente'),
     path('prueba/dirigente/salir/', views.prueba_salir_modo_dirigente, name='prueba_salir_modo_dirigente'),
-    path('prueba/dirigente/<int:equipo_id>/', views.prueba_ver_como_dirigente, name='prueba_ver_como_dirigente'),
-    path('prueba/dirigente/<int:equipo_id>/agregar-jugador/', views.prueba_agregar_jugador, name='prueba_agregar_jugador'),
 
     path('precios/', views.precios_publicos, name='precios_publicos'),
 
