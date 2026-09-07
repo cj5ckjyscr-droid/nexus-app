@@ -3247,7 +3247,7 @@ def dashboard_saas(request):
         return redirect('dashboard')
 
     # 🔥 OPTIMIZACIÓN: select_related para evitar que la DB se trabe
-    canchas_list = ComplejoDeportivo.objects.select_related('organizador', 'plan').all().order_by('fecha_vencimiento')
+    canchas_list = ComplejoDeportivo.objects.select_related('organizador', 'plan').filter(es_demo=False).order_by('fecha_vencimiento')
     
     # --- PAGINACIÓN DE CANCHAS ---
     paginator_canchas = Paginator(canchas_list, 8) # Mostrará 8 canchas por página

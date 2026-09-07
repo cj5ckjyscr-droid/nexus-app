@@ -873,3 +873,22 @@ class GestionarRolesPruebaTest(TestCase):
 
         filas = {fila["usuario"]: fila for fila in response.context["filas"]}
         self.assertTrue(filas[self.candidato]["tiene_prueba"])
+
+
+class DashboardSaasExcluyeDemoTest(TestCase):
+    def test_canchas_demo_no_aparecen_en_el_control_saas(self):
+        superadmin = User.objects.create_superuser("elsuper2", password="pass12345")
+        usuario_demo = User.objects.create_user("candidato2", password="pass12345")
+        plan = PlanSuscripcion.objects.create(nombre="Plan U", precio_mensual=Decimal("10.00"))
+        organizador_real = User.objects.create_user("dueno_real5", password="pass12345")
+        cancha_real = ComplejoDeportivo.objects.create(
+            nombre="Cancha Real 5", slug="cancha-real-5", organizador=organizador_real, plan=plan,
+        )
+        cancha_demo = crear_entorno_prueba(usuario_demo)
+
+        self.client.login(username="elsuper2", password="pass12345")
+        response = self.client.get("/nexus-admin/")
+
+        canchas_mostradas = [c.id for c in response.context["canchas"]]
+        self.assertIn(cancha_real.id, canchas_mostradas)
+        self.assertNotIn(cancha_demo.id, canchas_mostradas)
