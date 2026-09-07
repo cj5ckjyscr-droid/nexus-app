@@ -3560,6 +3560,26 @@ def prueba_seleccionar_equipo(request):
 
 @login_required
 @user_passes_test(es_dueno_de_entorno_prueba)
+def prueba_activar_dirigente(request, equipo_id):
+    mi_complejo_demo = obtener_mi_complejo_demo(request.user)
+    equipo = get_object_or_404(
+        Equipo, id=equipo_id, dirigente=request.user, torneo__complejo=mi_complejo_demo,
+    )
+    if request.method == 'POST':
+        request.session['equipo_simulado_id'] = equipo.id
+        messages.success(request, f"🧪 Ahora estás viendo el sistema como el Dirigente de {equipo.nombre}.")
+    return redirect('dashboard')
+
+
+@login_required
+def prueba_salir_modo_dirigente(request):
+    if request.method == 'POST':
+        request.session.pop('equipo_simulado_id', None)
+    return redirect('dashboard')
+
+
+@login_required
+@user_passes_test(es_dueno_de_entorno_prueba)
 def prueba_ver_como_dirigente(request, equipo_id):
     mi_complejo_demo = obtener_mi_complejo_demo(request.user)
     equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo_demo)

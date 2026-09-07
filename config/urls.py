@@ -126,6 +126,8 @@ urlpatterns = [
     path('nexus-admin/pagos/', views.registrar_pago_saas, name='registrar_pago_saas'),
     path('nexus-admin/pruebas/', views.gestionar_roles_prueba, name='gestionar_roles_prueba'),
     path('prueba/dirigente/', views.prueba_seleccionar_equipo, name='prueba_seleccionar_equipo'),
+    path('prueba/dirigente/activar/<int:equipo_id>/', views.prueba_activar_dirigente, name='prueba_activar_dirigente'),
+    path('prueba/dirigente/salir/', views.prueba_salir_modo_dirigente, name='prueba_salir_modo_dirigente'),
     path('prueba/dirigente/<int:equipo_id>/', views.prueba_ver_como_dirigente, name='prueba_ver_como_dirigente'),
     path('prueba/dirigente/<int:equipo_id>/agregar-jugador/', views.prueba_agregar_jugador, name='prueba_agregar_jugador'),
 

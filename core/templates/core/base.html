@@ -545,8 +545,14 @@
     </nav>
 
     {% if es_entorno_prueba %}
-    <div class="bg-warning bg-opacity-25 border-bottom border-warning text-center py-2 fw-bold small">
-        🧪 Estás en un entorno de PRUEBA — nada de lo que hagas aquí afecta datos reales.
+    <div class="bg-warning bg-opacity-25 border-bottom border-warning text-center py-2 fw-bold small d-flex align-items-center justify-content-center gap-3 flex-wrap">
+        <span>🧪 Estás en un entorno de PRUEBA — nada de lo que hagas aquí afecta datos reales.</span>
+        {% if rol_nav_efectivo == 'DIR' %}
+        <form method="post" action="{% url 'prueba_salir_modo_dirigente' %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-dark rounded-pill fw-bold py-0 px-2">Salir del modo Dirigente</button>
+        </form>
+        {% endif %}
     </div>
     {% endif %}
 

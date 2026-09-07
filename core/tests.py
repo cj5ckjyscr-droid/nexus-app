@@ -1371,3 +1371,52 @@ class RolNavEfectivoContextProcessorTest(TestCase):
         self.assertContains(response, 'href="/mis-finanzas-equipo/"')
         self.assertNotContains(response, "Gestor Administrativo")
         self.assertNotContains(response, 'href="/equipos/"')
+
+
+class ActivarYSalirModoDirigenteTest(TestCase):
+    def setUp(self):
+        self.usuario = User.objects.create_user("activar1", password="pass12345")
+        self.complejo = crear_entorno_prueba(self.usuario)
+        self.mi_equipo = Equipo.objects.filter(torneo__complejo=self.complejo).order_by('id').first()
+        self.client.login(username="activar1", password="pass12345")
+
+    def test_activar_redirige_al_dashboard_y_este_muestra_el_panel_real_de_dirigente(self):
+        response = self.client.post(f"/prueba/dirigente/activar/{self.mi_equipo.id}/", follow=True)
+
+        self.assertRedirects(response, "/dashboard/")
+        self.assertEqual(response.context["mi_rol_principal"], "DIR")
+        self.assertEqual(response.context["mi_equipo"], self.mi_equipo)
+
+    def test_no_puede_activar_un_equipo_que_no_es_suyo(self):
+        otro_usuario = User.objects.create_user("activar2", password="pass12345")
+        otro_complejo = crear_entorno_prueba(otro_usuario)
+        equipo_ajeno = Equipo.objects.filter(torneo__complejo=otro_complejo).first()
+
+        response = self.client.post(f"/prueba/dirigente/activar/{equipo_ajeno.id}/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_un_usuario_sin_rol_de_prueba_no_puede_activar_nada(self):
+        self.client.logout()
+        User.objects.create_user("activar3", password="pass12345")
+        self.client.login(username="activar3", password="pass12345")
+
+        response = self.client.post(f"/prueba/dirigente/activar/{self.mi_equipo.id}/")
+
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_salir_del_modo_dirigente_vuelve_a_la_vista_de_organizador(self):
+        self.client.post(f"/prueba/dirigente/activar/{self.mi_equipo.id}/")
+
+        response = self.client.post("/prueba/dirigente/salir/", follow=True)
+
+        self.assertEqual(response.context["mi_rol_principal"], "ORG")
+
+    def test_el_banner_de_modo_prueba_muestra_el_boton_salir_solo_si_esta_activo(self):
+        response_antes = self.client.get("/dashboard/")
+        self.assertNotContains(response_antes, "Salir del modo Dirigente")
+
+        self.client.post(f"/prueba/dirigente/activar/{self.mi_equipo.id}/")
+        response_activo = self.client.get("/dashboard/")
+
+        self.assertContains(response_activo, "Salir del modo Dirigente")
