@@ -198,3 +198,20 @@ def eliminar_entorno_prueba(usuario):
     todo lo que dependía de esa cancha. Idempotente: si no tiene entorno
     de prueba, no hace nada."""
     ComplejoDeportivo.objects.filter(organizador=usuario, es_demo=True).delete()
+
+
+def obtener_equipo_simulado(request):
+    """Devuelve el Equipo que el usuario está "simulando" dirigir dentro de
+    su propio entorno de prueba, o None. Revalida SIEMPRE contra la base de
+    datos — nunca confía ciegamente en request.session — así que si el
+    Super Admin le revoca el Rol de Prueba a mitad de sesión, la siguiente
+    llamada deja de encontrar el equipo automáticamente."""
+    equipo_id = request.session.get('equipo_simulado_id')
+    if not equipo_id:
+        return None
+    return Equipo.objects.filter(
+        id=equipo_id,
+        dirigente=request.user,
+        torneo__complejo__organizador=request.user,
+        torneo__complejo__es_demo=True,
+    ).select_related('torneo__complejo').first()

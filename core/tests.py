@@ -4,8 +4,9 @@ from unittest.mock import patch
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.contrib.sessions.backends.db import SessionStore
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 
 from .models import (
@@ -621,7 +622,7 @@ class ComplejoDeportivoEsDemoTest(TestCase):
 
 from .services.pruebas import (
     NOMBRE_PLAN_DEMO, crear_entorno_prueba, eliminar_entorno_prueba,
-    obtener_o_crear_plan_demo,
+    obtener_equipo_simulado, obtener_o_crear_plan_demo,
 )
 
 
@@ -1200,3 +1201,66 @@ class SiembraDemoNombresRealistasTest(TestCase):
             self.assertNotIn("Demo", nombre)
             self.assertNotIn("Jugador ", nombre)
             self.assertEqual(len(nombre.split()), 2)
+
+
+class ObtenerEquipoSimuladoTest(TestCase):
+    def _request_con_sesion(self, usuario, equipo_id=None):
+        request = RequestFactory().get('/')
+        request.user = usuario
+        request.session = SessionStore()
+        if equipo_id is not None:
+            request.session['equipo_simulado_id'] = equipo_id
+        return request
+
+    def test_sin_nada_en_sesion_devuelve_none(self):
+        usuario = User.objects.create_user("simulador1", password="pass12345")
+
+        request = self._request_con_sesion(usuario)
+
+        self.assertIsNone(obtener_equipo_simulado(request))
+
+    def test_devuelve_el_equipo_si_es_dirigente_de_su_propia_cancha_demo(self):
+        usuario = User.objects.create_user("simulador2", password="pass12345")
+        complejo = crear_entorno_prueba(usuario)
+        mi_equipo = Equipo.objects.filter(torneo__complejo=complejo).first()
+
+        request = self._request_con_sesion(usuario, equipo_id=mi_equipo.id)
+
+        self.assertEqual(obtener_equipo_simulado(request), mi_equipo)
+
+    def test_no_confia_en_un_equipo_de_otro_usuario_de_prueba(self):
+        usuario = User.objects.create_user("simulador3", password="pass12345")
+        crear_entorno_prueba(usuario)
+        otro_usuario = User.objects.create_user("simulador4", password="pass12345")
+        otro_complejo = crear_entorno_prueba(otro_usuario)
+        equipo_ajeno = Equipo.objects.filter(torneo__complejo=otro_complejo).first()
+
+        request = self._request_con_sesion(usuario, equipo_id=equipo_ajeno.id)
+
+        self.assertIsNone(obtener_equipo_simulado(request))
+
+    def test_no_confia_en_un_equipo_de_una_cancha_real(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan RS", precio_mensual=Decimal("10.00"))
+        usuario = User.objects.create_user("simulador5", password="pass12345")
+        complejo_real = ComplejoDeportivo.objects.create(
+            nombre="Cancha Real RS", slug="cancha-real-rs", organizador=usuario, plan=plan,
+        )
+        torneo_real = Torneo.objects.create(complejo=complejo_real, nombre="Torneo Real RS", organizador=usuario)
+        equipo_real = Equipo.objects.create(
+            torneo=torneo_real, dirigente=usuario, nombre="Equipo Real RS", estado_inscripcion="APROBADO",
+        )
+
+        request = self._request_con_sesion(usuario, equipo_id=equipo_real.id)
+
+        self.assertIsNone(obtener_equipo_simulado(request))
+
+    def test_deja_de_encontrar_el_equipo_si_le_revocan_el_rol_de_prueba_a_mitad_de_sesion(self):
+        usuario = User.objects.create_user("simulador6", password="pass12345")
+        complejo = crear_entorno_prueba(usuario)
+        mi_equipo = Equipo.objects.filter(torneo__complejo=complejo).first()
+        request = self._request_con_sesion(usuario, equipo_id=mi_equipo.id)
+        self.assertIsNotNone(obtener_equipo_simulado(request))
+
+        eliminar_entorno_prueba(usuario)
+
+        self.assertIsNone(obtener_equipo_simulado(request))
