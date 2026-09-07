@@ -1420,3 +1420,17 @@ class ActivarYSalirModoDirigenteTest(TestCase):
         response_activo = self.client.get("/dashboard/")
 
         self.assertContains(response_activo, "Salir del modo Dirigente")
+
+
+class SelectorDirigenteRediseniadoTest(TestCase):
+    def test_cada_tarjeta_de_equipo_tiene_boton_para_entrar_como_dirigente(self):
+        usuario = User.objects.create_user("selector1", password="pass12345")
+        complejo = crear_entorno_prueba(usuario)
+        un_equipo = Equipo.objects.filter(torneo__complejo=complejo).first()
+        self.client.login(username="selector1", password="pass12345")
+
+        response = self.client.get("/prueba/dirigente/")
+
+        self.assertContains(response, un_equipo.nombre)
+        self.assertContains(response, f'action="/prueba/dirigente/activar/{un_equipo.id}/"')
+        self.assertContains(response, "Entrar como Dirigente")
