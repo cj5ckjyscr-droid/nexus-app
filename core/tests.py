@@ -892,3 +892,31 @@ class DashboardSaasExcluyeDemoTest(TestCase):
         canchas_mostradas = [c.id for c in response.context["canchas"]]
         self.assertIn(cancha_real.id, canchas_mostradas)
         self.assertNotIn(cancha_demo.id, canchas_mostradas)
+
+
+class BannerModoPruebaTest(TestCase):
+    def test_usuario_de_prueba_ve_el_banner(self):
+        usuario = User.objects.create_user("tester18", password="pass12345")
+        crear_entorno_prueba(usuario)
+        self.client.login(username="tester18", password="pass12345")
+
+        response = self.client.get("/dashboard/")
+
+        self.assertTrue(response.context["es_entorno_prueba"])
+        self.assertContains(response, "PRUEBA")
+
+    def test_usuario_normal_no_ve_el_banner(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan T", precio_mensual=Decimal("10.00"))
+        organizador = User.objects.create_user("dueno_real6", password="pass12345")
+        ComplejoDeportivo.objects.create(
+            nombre="Cancha Real 6", slug="cancha-real-6", organizador=organizador, plan=plan,
+        )
+        self.client.login(username="dueno_real6", password="pass12345")
+
+        response = self.client.get("/dashboard/")
+
+        self.assertFalse(response.context["es_entorno_prueba"])
+
+    def test_anonimo_no_revienta(self):
+        response = self.client.get("/login/")
+        self.assertEqual(response.status_code, 200)

@@ -541,6 +541,12 @@
         </div>
     </nav>
 
+    {% if es_entorno_prueba %}
+    <div class="bg-warning bg-opacity-25 border-bottom border-warning text-center py-2 fw-bold small">
+        🧪 Estás en un entorno de PRUEBA — nada de lo que hagas aquí afecta datos reales.
+    </div>
+    {% endif %}
+
     {% if messages %}
     <div class="toast-container position-fixed end-0 p-3" style="top: 80px; z-index: 1090;">
         {% for message in messages %}
