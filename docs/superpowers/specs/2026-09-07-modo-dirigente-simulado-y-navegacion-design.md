@@ -173,9 +173,18 @@ cualquier usuario sin equipo simulado, `rol_nav_efectivo` es idéntico al
 valor que ya devolvía `user.perfil.rol_principal` — cero cambio de
 comportamiento fuera de este flujo.
 
-`dashboard.html` mantiene sus condicionales existentes tal cual (ya reciben
-`mi_rol_principal`/el rol calculado por la vista `dashboard()`, que ya
-queda corregido por el punto 2).
+**Corrección importante tras revisar el código:** `dashboard.html` **no**
+usa el `mi_rol_principal` que la vista `dashboard()` ya calcula en su
+contexto — es una variable muerta. Las 9 secciones de `dashboard.html` que
+deciden qué mostrar (alerta de cobros ORG, botón "Generar Imagen", bloque
+"Mi Panel" de Dirigente/Fan, botones "Mi Equipo"/"Finanzas", panel de
+Vocal, "Gestor Administrativo", y los dos modales de deudas) leen
+`user.perfil.rol_principal` **directamente**, igual que `base.html`. Por lo
+tanto las 9 ocurrencias de `user.perfil.rol_principal` en `dashboard.html`
+también se reemplazan por `rol_nav_efectivo`, exactamente igual que en
+`base.html` — si no, el usuario de prueba vería el contenido de
+Organizador en el dashboard aunque `gestionar_jugadores()` ya lo trate como
+Dirigente.
 
 ### 4. Activar / salir del modo simulado
 
