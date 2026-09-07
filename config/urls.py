@@ -124,6 +124,7 @@ urlpatterns = [
     path('nexus-admin/canchas/', views.gestionar_canchas_saas, name='gestionar_canchas_saas'),
     path('nexus-admin/canchas/editar/<int:cancha_id>/', views.editar_cancha_saas, name='editar_cancha_saas'),
     path('nexus-admin/pagos/', views.registrar_pago_saas, name='registrar_pago_saas'),
+    path('nexus-admin/pruebas/', views.gestionar_roles_prueba, name='gestionar_roles_prueba'),
 
     path('precios/', views.precios_publicos, name='precios_publicos'),
 

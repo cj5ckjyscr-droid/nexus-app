@@ -818,3 +818,58 @@ class EliminarEntornoPruebaTest(TestCase):
         self.assertNotEqual(complejo1.id, complejo2.id)
         self.assertEqual(equipo1_ids.intersection(equipo2_ids), set())
         self.assertEqual(Equipo.objects.filter(torneo__complejo=complejo2).count(), 6)
+
+
+class GestionarRolesPruebaTest(TestCase):
+    def setUp(self):
+        self.superadmin = User.objects.create_superuser("elsuper", password="pass12345")
+        self.candidato = User.objects.create_user("candidato1", password="pass12345")
+
+    def test_usuario_normal_no_puede_acceder(self):
+        self.client.login(username="candidato1", password="pass12345")
+        response = self.client.get("/nexus-admin/pruebas/")
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_superadmin_puede_asignar_el_rol(self):
+        self.client.login(username="elsuper", password="pass12345")
+
+        response = self.client.post("/nexus-admin/pruebas/", {
+            "usuario_id": self.candidato.id, "asignar": "1",
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(ComplejoDeportivo.objects.filter(organizador=self.candidato, es_demo=True).exists())
+
+    def test_superadmin_puede_quitar_el_rol(self):
+        crear_entorno_prueba(self.candidato)
+        self.client.login(username="elsuper", password="pass12345")
+
+        response = self.client.post("/nexus-admin/pruebas/", {
+            "usuario_id": self.candidato.id, "quitar": "1",
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ComplejoDeportivo.objects.filter(organizador=self.candidato).exists())
+
+    def test_no_puede_asignar_a_un_organizador_real_via_el_panel(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan V", precio_mensual=Decimal("10.00"))
+        ComplejoDeportivo.objects.create(
+            nombre="Cancha Real 4", slug="cancha-real-4", organizador=self.candidato, plan=plan,
+        )
+        self.client.login(username="elsuper", password="pass12345")
+
+        self.client.post("/nexus-admin/pruebas/", {
+            "usuario_id": self.candidato.id, "asignar": "1",
+        })
+
+        self.assertEqual(ComplejoDeportivo.objects.filter(organizador=self.candidato).count(), 1)
+        self.assertFalse(ComplejoDeportivo.objects.filter(organizador=self.candidato, es_demo=True).exists())
+
+    def test_la_lista_muestra_el_estado_de_cada_usuario(self):
+        crear_entorno_prueba(self.candidato)
+        self.client.login(username="elsuper", password="pass12345")
+
+        response = self.client.get("/nexus-admin/pruebas/")
+
+        filas = {fila["usuario"]: fila for fila in response.context["filas"]}
+        self.assertTrue(filas[self.candidato]["tiene_prueba"])

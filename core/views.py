@@ -38,6 +38,7 @@ from .models import (
 )
 
 from .utils import validar_cedula_ecuador, consultar_sri
+from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba
 
 # =========================================================
 # --- FUNCIONES DE CONTROL DE ACCESO (PERMISOS CONTEXTUALES) ---
@@ -3489,3 +3490,39 @@ def automatizacion_diaria_saas(request):
 
     resultado = "\n".join(log_acciones)
     return HttpResponse(f"REVISIÓN COMPLETADA EXITOSAMENTE:\n{resultado}", content_type="text/plain")
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def gestionar_roles_prueba(request):
+    if request.method == 'POST':
+        usuario = get_object_or_404(User, id=request.POST.get('usuario_id'))
+        if 'asignar' in request.POST:
+            try:
+                crear_entorno_prueba(usuario)
+                messages.success(request, f"✅ Rol de Prueba asignado a {usuario.username}. Su entorno de demostración ya está listo.")
+            except ValueError as e:
+                messages.error(request, f"⛔ {e}")
+        elif 'quitar' in request.POST:
+            eliminar_entorno_prueba(usuario)
+            messages.success(request, f"🗑️ Rol de Prueba retirado de {usuario.username}. Todos sus datos de prueba fueron eliminados.")
+        return redirect('gestionar_roles_prueba')
+
+    usuarios_reales_ids = set(
+        ComplejoDeportivo.objects.filter(es_demo=False).values_list('organizador_id', flat=True)
+    )
+    demos_por_usuario = {
+        c.organizador_id: c
+        for c in ComplejoDeportivo.objects.filter(es_demo=True)
+    }
+
+    filas = []
+    for usuario in User.objects.exclude(is_superuser=True).order_by('username'):
+        filas.append({
+            'usuario': usuario,
+            'tiene_prueba': usuario.id in demos_por_usuario,
+            'complejo_demo': demos_por_usuario.get(usuario.id),
+            'es_organizador_real': usuario.id in usuarios_reales_ids,
+        })
+
+    return render(request, 'core/gestionar_roles_prueba.html', {'filas': filas})

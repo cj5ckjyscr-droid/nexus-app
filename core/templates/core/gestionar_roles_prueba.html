@@ -1,0 +1,68 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Roles de Prueba | NEXUS SaaS{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-black text-dark m-0"><i class="bi bi-flask-fill text-primary me-2"></i>Roles de Prueba</h4>
+    </div>
+
+    <div class="card border-0 rounded-4 shadow-sm">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Estado</th>
+                        <th>Asignado</th>
+                        <th class="text-end">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas %}
+                    <tr>
+                        <td class="fw-bold">{{ fila.usuario.username }}</td>
+                        <td>
+                            {% if fila.tiene_prueba %}
+                                <span class="badge bg-info-subtle text-info-emphasis">🧪 En Prueba</span>
+                            {% elif fila.es_organizador_real %}
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis">Organizador Real</span>
+                            {% else %}
+                                <span class="badge bg-light text-muted">Sin rol</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">
+                            {% if fila.complejo_demo.fecha_asignacion_prueba %}
+                                {{ fila.complejo_demo.fecha_asignacion_prueba|date:"d/m/Y H:i" }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if fila.tiene_prueba %}
+                                <form method="post" onsubmit="return confirm('¿Quitar el Rol de Prueba a {{ fila.usuario.username }}? Se borrarán todos sus datos de prueba.');" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="usuario_id" value="{{ fila.usuario.id }}">
+                                    <button type="submit" name="quitar" value="1" class="btn btn-sm btn-outline-danger rounded-pill">Quitar</button>
+                                </form>
+                            {% elif fila.es_organizador_real %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" disabled title="Ya es dueño de una cancha real">Asignar</button>
+                            {% else %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="usuario_id" value="{{ fila.usuario.id }}">
+                                    <button type="submit" name="asignar" value="1" class="btn btn-sm btn-primary rounded-pill">Asignar</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">No hay usuarios registrados todavía.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

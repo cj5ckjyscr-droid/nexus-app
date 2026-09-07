@@ -497,6 +497,7 @@
                             <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'dashboard_saas' %}">Control SaaS</a></li>
                             <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_canchas_saas' %}">Canchas</a></li>
                             <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_planes_saas' %}">Planes</a></li>
+                            <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_roles_prueba' %}">Roles de Prueba</a></li>
                             
                         {% elif user.perfil.rol_principal == 'ORG' %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Panel</a></li>
