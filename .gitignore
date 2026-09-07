@@ -12,3 +12,4 @@ media/
 .venv/
 .env
 .superpowers/
+.worktrees/
