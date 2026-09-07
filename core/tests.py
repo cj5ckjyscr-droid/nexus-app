@@ -667,3 +667,42 @@ class CrearEntornoPruebaBaseTest(TestCase):
 
         with self.assertRaises(ValueError):
             crear_entorno_prueba(usuario)
+
+
+class CrearEntornoPruebaEquiposYJugadoresTest(TestCase):
+    def test_crea_un_torneo_con_seis_equipos(self):
+        usuario = User.objects.create_user("tester6", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        torneo = Torneo.objects.get(complejo=complejo)
+        self.assertEqual(Equipo.objects.filter(torneo=torneo).count(), 6)
+
+    def test_cada_equipo_tiene_seis_jugadores_con_dorsales_del_uno_al_seis(self):
+        usuario = User.objects.create_user("tester7", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        for equipo in Equipo.objects.filter(torneo__complejo=complejo):
+            dorsales = sorted(equipo.jugadores.values_list("dorsal", flat=True))
+            self.assertEqual(dorsales, [1, 2, 3, 4, 5, 6])
+
+    def test_36_jugadores_con_cedulas_unicas(self):
+        usuario = User.objects.create_user("tester8", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        jugadores = Jugador.objects.filter(equipo__torneo__complejo=complejo)
+        self.assertEqual(jugadores.count(), 36)
+        cedulas = list(jugadores.values_list("cedula", flat=True))
+        self.assertEqual(len(cedulas), len(set(cedulas)))
+
+    def test_equipos_estan_aprobados_y_el_usuario_de_prueba_es_el_dirigente(self):
+        usuario = User.objects.create_user("tester9", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        for equipo in Equipo.objects.filter(torneo__complejo=complejo):
+            self.assertEqual(equipo.estado_inscripcion, "APROBADO")
+            self.assertEqual(equipo.dirigente, usuario)
+            self.assertGreater(equipo.cupos_disponibles, 0)

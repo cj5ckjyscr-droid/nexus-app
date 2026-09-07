@@ -3,7 +3,10 @@ from decimal import Decimal
 from django.utils import timezone
 from django.utils.text import slugify
 
-from ..models import ComplejoDeportivo, PlanSuscripcion, RolComplejo
+from ..models import (
+    Categoria, ComplejoDeportivo, Equipo, Jugador, PlanSuscripcion,
+    RolComplejo, Torneo,
+)
 
 NOMBRE_PLAN_DEMO = "Plan Demo (Prueba)"
 
@@ -27,9 +30,10 @@ def obtener_o_crear_plan_demo():
 
 def crear_entorno_prueba(usuario):
     """Crea una cancha demo (ComplejoDeportivo con es_demo=True), propiedad
-    exclusiva de `usuario`. Lanza ValueError si el usuario ya es dueño de
-    cualquier cancha (real o demo) — ComplejoDeportivo.organizador es
-    OneToOne, así que no puede tener dos."""
+    exclusiva de `usuario`, con un torneo y datos deportivos precargados.
+    Lanza ValueError si el usuario ya es dueño de cualquier cancha (real o
+    demo) — ComplejoDeportivo.organizador es OneToOne, así que no puede
+    tener dos."""
     if ComplejoDeportivo.objects.filter(organizador=usuario).exists():
         raise ValueError(
             f"{usuario.username} ya es dueño de una cancha y no puede recibir el Rol de Prueba."
@@ -50,4 +54,39 @@ def crear_entorno_prueba(usuario):
     )
     RolComplejo.objects.create(usuario=usuario, complejo=complejo, rol="ORG")
 
+    categoria = Categoria.objects.create(complejo=complejo, nombre="Categoría Demo")
+    torneo = Torneo.objects.create(
+        complejo=complejo,
+        nombre="Torneo Demo",
+        organizador=usuario,
+        categoria=categoria,
+        inscripcion_abierta=True,
+    )
+
+    _sembrar_equipos_y_jugadores(torneo, usuario)
+
     return complejo
+
+
+def _sembrar_equipos_y_jugadores(torneo, usuario):
+    equipos = []
+    contador_jugador = 0
+    for i in range(1, 7):
+        equipo = Equipo.objects.create(
+            torneo=torneo,
+            dirigente=usuario,
+            nombre=f"Equipo Demo {i}",
+            estado_inscripcion="APROBADO",
+            pagado=True,
+            cupos_pagados=10,
+        )
+        for dorsal in range(1, 7):
+            contador_jugador += 1
+            Jugador.objects.create(
+                equipo=equipo,
+                nombres=f"Jugador {dorsal} - Equipo {i}",
+                dorsal=dorsal,
+                cedula=f"90{contador_jugador:08d}",
+            )
+        equipos.append(equipo)
+    return equipos
