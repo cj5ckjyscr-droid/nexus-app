@@ -495,10 +495,15 @@
                         
                         {% if user.is_superuser %}
                             <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'dashboard_saas' %}">Control SaaS</a></li>
-                            <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_canchas_saas' %}">Canchas</a></li>
-                            <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_planes_saas' %}">Planes</a></li>
-                            <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'gestionar_roles_prueba' %}">Roles de Prueba</a></li>
-                            
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-primary fw-medium" href="#" data-bs-toggle="dropdown">Panel SaaS</a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_canchas_saas' %}">Canchas</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_planes_saas' %}">Planes</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_roles_prueba' %}">Roles de Prueba</a></li>
+                                </ul>
+                            </li>
+
                         {% elif rol_nav_efectivo == 'ORG' %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Panel</a></li>
                             {% if es_entorno_prueba %}

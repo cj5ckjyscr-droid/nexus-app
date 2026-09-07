@@ -1411,3 +1411,17 @@ class DashboardGestorAdministrativoAgrupadoTest(TestCase):
                      '/jugadores/', '/admin_jugadores/', '/finanzas/',
                      '/finanzas/caja-diaria/', '/medios/', '/admin_usuarios/']:
             self.assertContains(response, f'href="{path}"')
+
+
+class NavSuperAdminAgrupadaTest(TestCase):
+    def test_el_menu_superadmin_agrupa_canchas_planes_y_roles_en_un_dropdown(self):
+        User.objects.create_superuser("navgrupo1", password="pass12345")
+        self.client.login(username="navgrupo1", password="pass12345")
+
+        response = self.client.get("/nexus-admin/")
+
+        self.assertContains(response, "Panel SaaS")
+        self.assertContains(response, 'href="/nexus-admin/canchas/"')
+        self.assertContains(response, 'href="/nexus-admin/planes/"')
+        self.assertContains(response, 'href="/nexus-admin/pruebas/"')
+        self.assertContains(response, 'href="/nexus-admin/"')
