@@ -1264,3 +1264,16 @@ class ObtenerEquipoSimuladoTest(TestCase):
         eliminar_entorno_prueba(usuario)
 
         self.assertIsNone(obtener_equipo_simulado(request))
+
+    def test_no_confia_en_un_equipo_ajeno_aunque_el_usuario_figure_como_dirigente(self):
+        usuario = User.objects.create_user("simulador7", password="pass12345")
+        otro_usuario = User.objects.create_user("simulador8", password="pass12345")
+        complejo_ajeno = crear_entorno_prueba(otro_usuario)
+        torneo_ajeno = Torneo.objects.get(complejo=complejo_ajeno)
+        equipo_con_dirigente_prestado = Equipo.objects.create(
+            torneo=torneo_ajeno, dirigente=usuario, nombre="Equipo Infiltrado", estado_inscripcion="APROBADO",
+        )
+
+        request = self._request_con_sesion(usuario, equipo_id=equipo_con_dirigente_prestado.id)
+
+        self.assertIsNone(obtener_equipo_simulado(request))
