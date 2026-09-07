@@ -11,8 +11,8 @@ from django.utils import timezone
 
 from .models import (
     AbonoSancion, ComplejoDeportivo, Configuracion, DetallePartido, Equipo,
-    FotoGaleria, Jugador, Partido, Pago, PlanSuscripcion, RolComplejo, Sancion,
-    Torneo,
+    FotoGaleria, Jugador, Partido, Pago, Perfil, PlanSuscripcion, RolComplejo,
+    Sancion, Torneo,
 )
 
 
@@ -1251,6 +1251,24 @@ class GestionarJugadoresConEquipoSimuladoTest(TestCase):
         self.assertEqual(response.context["equipo_obj"], otro_equipo)
 
 
+class MisFinanzasEquipoConEquipoSimuladoTest(TestCase):
+    def setUp(self):
+        self.usuario = User.objects.create_user("finsim1", password="pass12345")
+        self.complejo = crear_entorno_prueba(self.usuario)
+        # El equipo simulado NO es el de menor PK, para que el test detecte
+        # si la vista sigue cayendo de vuelta a mis_equipos.first().
+        self.mi_equipo = Equipo.objects.filter(torneo__complejo=self.complejo).order_by('id').last()
+        self.client.login(username="finsim1", password="pass12345")
+        session = self.client.session
+        session['equipo_simulado_id'] = self.mi_equipo.id
+        session.save()
+
+    def test_sin_parametro_equipo_en_la_url_usa_el_equipo_simulado_por_defecto(self):
+        response = self.client.get("/mis-finanzas-equipo/")
+
+        self.assertEqual(response.context["equipo"], self.mi_equipo)
+
+
 class RolNavEfectivoContextProcessorTest(TestCase):
     def test_usuario_normal_sin_simulacion_tiene_el_mismo_rol_de_siempre(self):
         plan = PlanSuscripcion.objects.create(nombre="Plan Nav", precio_mensual=Decimal("10.00"))
@@ -1281,6 +1299,19 @@ class RolNavEfectivoContextProcessorTest(TestCase):
         self.assertContains(response, 'href="/mis-finanzas-equipo/"')
         self.assertNotContains(response, "Gestor Administrativo")
         self.assertNotContains(response, 'href="/equipos/"')
+
+    def test_usuario_sin_fila_perfil_no_rompe_el_context_processor(self):
+        # Antes vivía en templates (silent_variable_failure la tapaba); ahora
+        # que corre en un context processor, un RelatedObjectDoesNotExist sin
+        # capturar tumbaría CADA página con un 500 para este usuario.
+        usuario = User.objects.create_user("navctx3", password="pass12345")
+        usuario.perfil.delete()
+        self.client.login(username="navctx3", password="pass12345")
+
+        response = self.client.get("/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["rol_nav_efectivo"], "FAN")
 
 
 class ActivarYSalirModoDirigenteTest(TestCase):
@@ -1360,6 +1391,10 @@ class ModoDirigenteSimuladoFlujoCompletoTest(TestCase):
         # 2. El dashboard real ya lo trata como Dirigente de ese equipo.
         dash = self.client.get("/dashboard/")
         self.assertEqual(dash.context["mi_rol_principal"], "DIR")
+
+        # 2b. El tile de Finanzas también respeta el equipo simulado.
+        finanzas = self.client.get("/mis-finanzas-equipo/")
+        self.assertEqual(finanzas.context["equipo"], self.mi_equipo)
 
         # 3. Ficha un jugador nuevo desde la pantalla real de Dirigente.
         jugadores_antes = self.mi_equipo.jugadores.count()

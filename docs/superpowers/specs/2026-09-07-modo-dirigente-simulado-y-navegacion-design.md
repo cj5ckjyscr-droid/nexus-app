@@ -88,8 +88,14 @@ muy poco contraste/jerarquía visual.
   equipo legible, cantidad de jugadores, botón de acción claro.
 
 **Explícitamente fuera de alcance:**
-- `mis_finanzas_equipo()` no se modifica — ya funciona para el usuario de
-  prueba sin cambios, porque filtra solo por `dirigente=request.user`.
+- (Corregido tras revisión final) `mis_finanzas_equipo()` sí necesitó el
+  mismo ajuste que `gestionar_jugadores()`: sin `?equipo=` en la URL,
+  usaba `mis_equipos.first()` — el equipo con menor PK entre los 6 del
+  usuario de prueba, no el equipo simulado activo. Ahora, igual que en
+  `gestionar_jugadores()`, hace
+  `equipo_id = request.GET.get('equipo') or (equipo_simulado.id if equipo_simulado else None)`
+  para que el tile "Finanzas" del panel de Dirigente simulado muestre las
+  finanzas del equipo correcto.
 - Ningún cambio de comportamiento para usuarios reales (fuera de una cancha
   `es_demo=True`, `rol_nav_efectivo` y el rol efectivo en las vistas dan
   exactamente el mismo resultado que antes).

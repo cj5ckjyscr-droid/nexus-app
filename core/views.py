@@ -2473,7 +2473,8 @@ def generar_horarios_imagen(request):
 @login_required
 def mis_finanzas_equipo(request):
     mis_equipos = Equipo.objects.filter(dirigente=request.user)
-    equipo_id = request.GET.get('equipo')
+    equipo_simulado = obtener_equipo_simulado(request)
+    equipo_id = request.GET.get('equipo') or (equipo_simulado.id if equipo_simulado else None)
     mi_equipo = mis_equipos.filter(id=equipo_id).first() if equipo_id else mis_equipos.first()
 
     if mi_equipo:

@@ -10,7 +10,8 @@ def configuracion_global(request):
         es_entorno_prueba = ComplejoDeportivo.objects.filter(
             organizador=request.user, es_demo=True
         ).exists()
-        rol_nav_efectivo = request.user.perfil.rol_principal
+        perfil = getattr(request.user, 'perfil', None)
+        rol_nav_efectivo = perfil.rol_principal if perfil else 'FAN'
         if obtener_equipo_simulado(request):
             rol_nav_efectivo = 'DIR'
     return {
