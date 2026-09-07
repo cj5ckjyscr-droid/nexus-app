@@ -501,6 +501,9 @@
                             
                         {% elif user.perfil.rol_principal == 'ORG' %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Panel</a></li>
+                            {% if es_entorno_prueba %}
+                                <li class="nav-item"><a class="nav-link text-warning fw-bold" href="{% url 'prueba_seleccionar_equipo' %}">🧪 Dirigente de Equipo</a></li>
+                            {% endif %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_equipos' %}">Equipos</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_finanzas' %}">Finanzas</a></li>
                             

@@ -920,3 +920,46 @@ class BannerModoPruebaTest(TestCase):
     def test_anonimo_no_revienta(self):
         response = self.client.get("/login/")
         self.assertEqual(response.status_code, 200)
+
+
+class PruebaDirigenteEquipoTest(TestCase):
+    def setUp(self):
+        self.usuario = User.objects.create_user("tester19", password="pass12345")
+        self.complejo_demo = crear_entorno_prueba(self.usuario)
+        self.mi_equipo = Equipo.objects.filter(torneo__complejo=self.complejo_demo).first()
+
+        plan = PlanSuscripcion.objects.create(nombre="Plan S", precio_mensual=Decimal("10.00"))
+        self.otro_usuario = User.objects.create_user("tester20", password="pass12345")
+        self.otro_complejo = crear_entorno_prueba(self.otro_usuario)
+        self.equipo_ajeno = Equipo.objects.filter(torneo__complejo=self.otro_complejo).first()
+
+    def test_usuario_sin_entorno_de_prueba_no_puede_entrar(self):
+        User.objects.create_user("sin_prueba", password="pass12345")
+        self.client.login(username="sin_prueba", password="pass12345")
+
+        response = self.client.get("/prueba/dirigente/")
+
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_selector_muestra_los_seis_equipos_del_propio_entorno(self):
+        self.client.login(username="tester19", password="pass12345")
+
+        response = self.client.get("/prueba/dirigente/")
+
+        self.assertEqual(len(response.context["equipos"]), 6)
+
+    def test_puede_ver_el_detalle_de_su_propio_equipo(self):
+        self.client.login(username="tester19", password="pass12345")
+
+        response = self.client.get(f"/prueba/dirigente/{self.mi_equipo.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["equipo"], self.mi_equipo)
+        self.assertEqual(len(response.context["jugadores"]), 6)
+
+    def test_no_puede_ver_el_equipo_de_otro_usuario_de_prueba(self):
+        self.client.login(username="tester19", password="pass12345")
+
+        response = self.client.get(f"/prueba/dirigente/{self.equipo_ajeno.id}/")
+
+        self.assertEqual(response.status_code, 404)

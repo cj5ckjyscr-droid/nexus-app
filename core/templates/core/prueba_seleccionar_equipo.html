@@ -1,0 +1,23 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Dirigente de Equipo (Demo) | NEXUS{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+    <h4 class="fw-black text-dark mb-4"><i class="bi bi-person-badge-fill text-primary me-2"></i>Simular Dirigente de Equipo</h4>
+    <p class="text-muted mb-4">Elige uno de tus 6 equipos demo para ver cómo lo gestionaría un Dirigente real.</p>
+
+    <div class="row g-3">
+        {% for equipo in equipos %}
+        <div class="col-md-4">
+            <a href="{% url 'prueba_ver_como_dirigente' equipo.id %}" class="text-decoration-none">
+                <div class="card border-0 rounded-4 shadow-sm h-100 p-3">
+                    <h5 class="fw-bold text-dark m-0">{{ equipo.nombre }}</h5>
+                    <p class="text-muted small mb-0">{{ equipo.jugadores.count }} jugadores</p>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

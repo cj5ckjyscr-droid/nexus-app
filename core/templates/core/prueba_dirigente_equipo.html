@@ -1,0 +1,65 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ equipo.nombre }} | Dirigente de Equipo (Demo){% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+    <a href="{% url 'prueba_seleccionar_equipo' %}" class="text-muted small mb-2 d-inline-block"><i class="bi bi-arrow-left"></i> Volver a mis equipos</a>
+    <h4 class="fw-black text-dark mb-4"><i class="bi bi-shield-fill text-primary me-2"></i>{{ equipo.nombre }}</h4>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card border-0 rounded-4 shadow-sm p-3 mb-4">
+                <h6 class="fw-bold text-dark">Plantel</h6>
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for jugador in jugadores %}
+                        <tr>
+                            <td class="fw-bold">#{{ jugador.dorsal }}</td>
+                            <td>{{ jugador.nombres }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card border-0 rounded-4 shadow-sm p-3">
+                <h6 class="fw-bold text-dark">Tarjetas</h6>
+                {% for tarjeta in tarjetas %}
+                <p class="small mb-1">
+                    {% if tarjeta.tipo == 'TA' %}🟨{% else %}🟥{% endif %}
+                    {{ tarjeta.jugador.nombres }} — {{ tarjeta.partido }}
+                </p>
+                {% empty %}
+                <p class="text-muted small mb-0">Sin tarjetas.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 rounded-4 shadow-sm p-3 mb-4">
+                <h6 class="fw-bold text-dark">Próximos Partidos</h6>
+                {% for partido in proximos_partidos %}
+                <p class="small mb-1">{{ partido.equipo_local }} vs {{ partido.equipo_visita }} — {{ partido.fecha_hora|date:"d/m/Y H:i" }}</p>
+                {% empty %}
+                <p class="text-muted small mb-0">Sin partidos programados.</p>
+                {% endfor %}
+            </div>
+
+            <div class="card border-0 rounded-4 shadow-sm p-3 mb-4">
+                <h6 class="fw-bold text-dark">Partidos Jugados</h6>
+                {% for partido in partidos_jugados %}
+                <p class="small mb-1">{{ partido.equipo_local }} {{ partido.goles_local }} - {{ partido.goles_visita }} {{ partido.equipo_visita }}</p>
+                {% empty %}
+                <p class="text-muted small mb-0">Sin partidos jugados todavía.</p>
+                {% endfor %}
+            </div>
+
+            <div class="card border-0 rounded-4 shadow-sm p-3">
+                <h6 class="fw-bold text-dark">Finanzas</h6>
+                <p class="small mb-0">Deuda total: <strong>${{ total_deuda }}</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

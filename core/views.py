@@ -3526,3 +3526,50 @@ def gestionar_roles_prueba(request):
         })
 
     return render(request, 'core/gestionar_roles_prueba.html', {'filas': filas})
+
+
+def es_dueno_de_entorno_prueba(user):
+    if not user.is_authenticated: return False
+    return ComplejoDeportivo.objects.filter(organizador=user, es_demo=True).exists()
+
+
+def obtener_mi_complejo_demo(user):
+    return ComplejoDeportivo.objects.filter(organizador=user, es_demo=True).first()
+
+
+@login_required
+@user_passes_test(es_dueno_de_entorno_prueba)
+def prueba_seleccionar_equipo(request):
+    mi_complejo_demo = obtener_mi_complejo_demo(request.user)
+    equipos = Equipo.objects.filter(torneo__complejo=mi_complejo_demo).order_by('nombre')
+    return render(request, 'core/prueba_seleccionar_equipo.html', {'equipos': equipos})
+
+
+@login_required
+@user_passes_test(es_dueno_de_entorno_prueba)
+def prueba_ver_como_dirigente(request, equipo_id):
+    mi_complejo_demo = obtener_mi_complejo_demo(request.user)
+    equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo_demo)
+
+    jugadores = equipo.jugadores.order_by('dorsal')
+    partidos_jugados = Partido.objects.filter(
+        Q(equipo_local=equipo) | Q(equipo_visita=equipo), estado='JUG'
+    ).order_by('-fecha_hora', '-id')
+    proximos_partidos = Partido.objects.filter(
+        Q(equipo_local=equipo) | Q(equipo_visita=equipo), estado='PROG'
+    ).order_by('fecha_hora')
+    tarjetas = DetallePartido.objects.filter(
+        jugador__equipo=equipo, tipo__in=['TA', 'TR']
+    ).select_related('jugador', 'partido')
+    deudas = Sancion.objects.filter(equipo=equipo, pagada=False)
+    total_deuda = deudas.aggregate(Sum('monto'))['monto__sum'] or 0
+
+    return render(request, 'core/prueba_dirigente_equipo.html', {
+        'equipo': equipo,
+        'jugadores': jugadores,
+        'partidos_jugados': partidos_jugados,
+        'proximos_partidos': proximos_partidos,
+        'tarjetas': tarjetas,
+        'deudas': deudas,
+        'total_deuda': total_deuda,
+    })
