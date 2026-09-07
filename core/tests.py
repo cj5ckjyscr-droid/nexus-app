@@ -1391,3 +1391,23 @@ class ModoDirigenteSimuladoFlujoCompletoTest(TestCase):
         from django.urls import NoReverseMatch, reverse
         with self.assertRaises(NoReverseMatch):
             reverse('prueba_ver_como_dirigente', args=[self.mi_equipo.id])
+
+
+class DashboardGestorAdministrativoAgrupadoTest(TestCase):
+    def test_el_gestor_administrativo_esta_agrupado_en_tres_bloques(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan Grupos", precio_mensual=Decimal("10.00"))
+        organizador = User.objects.create_user("grupos1", password="pass12345")
+        ComplejoDeportivo.objects.create(
+            nombre="Cancha Grupos", slug="cancha-grupos", organizador=organizador, plan=plan,
+        )
+        self.client.login(username="grupos1", password="pass12345")
+
+        response = self.client.get("/dashboard/")
+
+        self.assertContains(response, "Competición")
+        self.assertContains(response, "Fichajes y Cobros")
+        self.assertContains(response, "Cancha y Sistema")
+        for path in ['/configuracion/', '/torneos/', '/equipos/', '/programar/',
+                     '/jugadores/', '/admin_jugadores/', '/finanzas/',
+                     '/finanzas/caja-diaria/', '/medios/', '/admin_usuarios/']:
+            self.assertContains(response, f'href="{path}"')

@@ -393,18 +393,33 @@
     {% endif %}
 
     <h6 class="fw-bold text-muted text-uppercase small mb-3 ps-1">Gestor Administrativo</h6>
-    <!-- ICONOS LINEALES APLICADOS -->
-    <div class="admin-grid">
-        <a href="{% url 'gestionar_configuracion' %}" class="admin-btn"><i class="bi bi-palette" style="color: #ec4899;"></i><span>Ajustes</span></a>
-        <a href="{% url 'gestionar_torneos' %}" class="admin-btn"><i class="bi bi-trophy text-primary"></i><span>Torneos</span></a>
-        <a href="{% url 'gestionar_equipos' %}" class="admin-btn"><i class="bi bi-shield text-info"></i><span>Equipos</span></a>
-        <a href="{% url 'programar_partidos' %}" class="admin-btn"><i class="bi bi-calendar-event text-warning"></i><span>Fixture</span></a>
-        <a href="{% url 'gestionar_jugadores' %}" class="admin-btn"><i class="bi bi-person-plus text-success"></i><span>Fichar</span></a>
-        <a href="{% url 'admin_gestion_jugadores' %}" class="admin-btn"><i class="bi bi-people text-primary"></i><span>Jugadores</span></a>
-        <a href="{% url 'gestionar_finanzas' %}" class="admin-btn"><i class="bi bi-cash-stack text-success"></i><span>Finanzas</span></a>
-        <a href="{% url 'cierre_diario_caja' %}" class="admin-btn"><i class="bi bi-clock-history text-secondary"></i><span>Caja Diaria</span></a>
-        <a href="{% url 'gestionar_medios' %}" class="admin-btn"><i class="bi bi-image text-danger"></i><span>Medios</span></a>
-        <a href="{% url 'admin_gestion_usuarios' %}" class="admin-btn"><i class="bi bi-person-gear text-dark"></i><span>Usuarios</span></a>
+
+    <div class="mb-3">
+        <div class="text-muted fw-bold small mb-2 ps-1">Competición</div>
+        <div class="admin-grid">
+            <a href="{% url 'gestionar_torneos' %}" class="admin-btn"><i class="bi bi-trophy text-primary"></i><span>Torneos</span></a>
+            <a href="{% url 'gestionar_equipos' %}" class="admin-btn"><i class="bi bi-shield text-info"></i><span>Equipos</span></a>
+            <a href="{% url 'programar_partidos' %}" class="admin-btn"><i class="bi bi-calendar-event text-warning"></i><span>Fixture</span></a>
+            <a href="{% url 'admin_gestion_jugadores' %}" class="admin-btn"><i class="bi bi-people text-primary"></i><span>Jugadores</span></a>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <div class="text-muted fw-bold small mb-2 ps-1">Fichajes y Cobros</div>
+        <div class="admin-grid">
+            <a href="{% url 'gestionar_jugadores' %}" class="admin-btn"><i class="bi bi-person-plus text-success"></i><span>Fichar</span></a>
+            <a href="{% url 'gestionar_finanzas' %}" class="admin-btn"><i class="bi bi-cash-stack text-success"></i><span>Finanzas</span></a>
+            <a href="{% url 'cierre_diario_caja' %}" class="admin-btn"><i class="bi bi-clock-history text-secondary"></i><span>Caja Diaria</span></a>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <div class="text-muted fw-bold small mb-2 ps-1">Cancha y Sistema</div>
+        <div class="admin-grid">
+            <a href="{% url 'gestionar_configuracion' %}" class="admin-btn"><i class="bi bi-palette" style="color: #ec4899;"></i><span>Ajustes</span></a>
+            <a href="{% url 'gestionar_medios' %}" class="admin-btn"><i class="bi bi-image text-danger"></i><span>Medios</span></a>
+            <a href="{% url 'admin_gestion_usuarios' %}" class="admin-btn"><i class="bi bi-person-gear text-dark"></i><span>Usuarios</span></a>
+        </div>
     </div>
 </div>
 {% endif %}
