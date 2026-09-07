@@ -618,7 +618,7 @@ class ComplejoDeportivoEsDemoTest(TestCase):
         self.assertEqual(complejo.fecha_asignacion_prueba, ahora)
 
 
-from .services.pruebas import crear_entorno_prueba, obtener_o_crear_plan_demo
+from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba, obtener_o_crear_plan_demo
 
 
 class CrearEntornoPruebaBaseTest(TestCase):
@@ -767,3 +767,54 @@ class CrearEntornoPruebaPartidosTest(TestCase):
 
         goles = DetallePartido.objects.filter(partido__torneo__complejo=complejo, tipo="GOL")
         self.assertGreaterEqual(goles.count(), 4)
+
+
+class EliminarEntornoPruebaTest(TestCase):
+    def test_borra_el_complejo_demo_y_todos_sus_datos(self):
+        usuario = User.objects.create_user("tester15", password="pass12345")
+        complejo = crear_entorno_prueba(usuario)
+        complejo_id = complejo.id
+
+        eliminar_entorno_prueba(usuario)
+
+        self.assertFalse(ComplejoDeportivo.objects.filter(id=complejo_id).exists())
+        self.assertFalse(Torneo.objects.filter(complejo_id=complejo_id).exists())
+        self.assertFalse(Equipo.objects.filter(torneo__complejo_id=complejo_id).exists())
+        self.assertFalse(Jugador.objects.filter(equipo__torneo__complejo_id=complejo_id).exists())
+        self.assertFalse(Partido.objects.filter(torneo__complejo_id=complejo_id).exists())
+        self.assertFalse(Sancion.objects.filter(torneo__complejo_id=complejo_id).exists())
+        self.assertFalse(RolComplejo.objects.filter(complejo_id=complejo_id).exists())
+
+    def test_no_afecta_cancha_real_del_mismo_usuario_si_no_es_demo(self):
+        # Caso defensivo: aunque hoy no debería poder coexistir (organizador
+        # es OneToOne), confirmamos que el filtro es siempre es_demo=True.
+        plan = PlanSuscripcion.objects.create(nombre="Plan W", precio_mensual=Decimal("10.00"))
+        usuario = User.objects.create_user("dueno_real3", password="pass12345")
+        cancha_real = ComplejoDeportivo.objects.create(
+            nombre="Cancha Real 3", slug="cancha-real-3", organizador=usuario, plan=plan,
+            es_demo=False,
+        )
+
+        eliminar_entorno_prueba(usuario)
+
+        self.assertTrue(ComplejoDeportivo.objects.filter(id=cancha_real.id).exists())
+
+    def test_es_idempotente_si_el_usuario_no_tiene_entorno_de_prueba(self):
+        usuario = User.objects.create_user("tester16", password="pass12345")
+
+        eliminar_entorno_prueba(usuario)  # no debe lanzar excepción
+
+        self.assertFalse(ComplejoDeportivo.objects.filter(organizador=usuario).exists())
+
+    def test_reasignar_despues_de_revocar_genera_datos_frescos(self):
+        usuario = User.objects.create_user("tester17", password="pass12345")
+        complejo1 = crear_entorno_prueba(usuario)
+        equipo1_ids = set(Equipo.objects.filter(torneo__complejo=complejo1).values_list("id", flat=True))
+
+        eliminar_entorno_prueba(usuario)
+        complejo2 = crear_entorno_prueba(usuario)
+        equipo2_ids = set(Equipo.objects.filter(torneo__complejo=complejo2).values_list("id", flat=True))
+
+        self.assertNotEqual(complejo1.id, complejo2.id)
+        self.assertEqual(equipo1_ids.intersection(equipo2_ids), set())
+        self.assertEqual(Equipo.objects.filter(torneo__complejo=complejo2).count(), 6)

@@ -170,3 +170,12 @@ def _aplicar_tarjeta(partido, jugador, tipo, monto):
     if tipo == "TR":
         jugador.rojas_directas_acumuladas += 1
         jugador.save(update_fields=["rojas_directas_acumuladas"])
+
+
+def eliminar_entorno_prueba(usuario):
+    """Borra la cancha demo de `usuario`, si la tiene. La cascada ya
+    declarada en el modelo (Torneo, Equipo, Jugador, Partido, Sancion,
+    DetallePartido, RolComplejo, etc.) se encarga de borrar absolutamente
+    todo lo que dependía de esa cancha. Idempotente: si no tiene entorno
+    de prueba, no hace nada."""
+    ComplejoDeportivo.objects.filter(organizador=usuario, es_demo=True).delete()
