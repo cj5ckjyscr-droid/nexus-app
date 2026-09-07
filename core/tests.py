@@ -1159,3 +1159,44 @@ class GestionarCanchasSaasExcluyeDemoTest(TestCase):
         ids_mostrados = [c.id for c in response.context["canchas"]]
         self.assertIn(cancha_real.id, ids_mostrados)
         self.assertNotIn(cancha_demo.id, ids_mostrados)
+
+
+class SiembraDemoNombresRealistasTest(TestCase):
+    def test_el_torneo_y_la_categoria_tienen_nombres_realistas(self):
+        usuario = User.objects.create_user("nombres1", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        torneo = Torneo.objects.get(complejo=complejo)
+        self.assertEqual(torneo.nombre, "Copa Apertura 2026")
+        self.assertEqual(torneo.categoria.nombre, "Segunda Categoría")
+
+    def test_los_seis_equipos_tienen_nombres_de_liga_barrial_no_genericos(self):
+        usuario = User.objects.create_user("nombres2", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        nombres_equipos = list(
+            Equipo.objects.filter(torneo__complejo=complejo).order_by('id').values_list('nombre', flat=True)
+        )
+        self.assertEqual(nombres_equipos, [
+            "Deportivo Chillos", "Atlético Valle", "Real San Rafael",
+            "Juventud Amaguaña", "Unión Sangolquí", "Estrella del Valle",
+        ])
+        for nombre in nombres_equipos:
+            self.assertNotIn("Demo", nombre)
+
+    def test_los_36_jugadores_tienen_nombre_y_apellido_reales_y_unicos(self):
+        usuario = User.objects.create_user("nombres3", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        nombres = list(
+            Jugador.objects.filter(equipo__torneo__complejo=complejo).values_list('nombres', flat=True)
+        )
+        self.assertEqual(len(nombres), 36)
+        self.assertEqual(len(set(nombres)), 36)
+        for nombre in nombres:
+            self.assertNotIn("Demo", nombre)
+            self.assertNotIn("Jugador ", nombre)
+            self.assertEqual(len(nombre.split()), 2)

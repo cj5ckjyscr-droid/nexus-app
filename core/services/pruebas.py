@@ -11,6 +11,20 @@ from ..models import (
 
 NOMBRE_PLAN_DEMO = "Plan Demo (Prueba)"
 
+NOMBRES_EQUIPOS_DEMO = [
+    "Deportivo Chillos", "Atlético Valle", "Real San Rafael",
+    "Juventud Amaguaña", "Unión Sangolquí", "Estrella del Valle",
+]
+
+NOMBRES_JUGADORES_DEMO = [
+    "Carlos Vera", "Andrés Suárez", "Luis Chasi", "Diego Toapanta", "Miguel Quishpe", "José Chicaiza",
+    "Fernando Simbaña", "Pablo Pilamunga", "Iván Cofre", "Marco Salazar", "Esteban Bonilla", "Ricardo Andrade",
+    "Alexander Mora", "Freddy Villacís", "Wilmer Cabezas", "Bryan Pazmiño", "Kevin Rosero", "Cristian Cevallos",
+    "Daniel Naranjo", "Jorge Guamán", "Santiago Tipán", "Xavier Yépez", "Patricio Zambrano", "Vinicio Cárdenas",
+    "Gonzalo Loachamín", "Fabián Puco", "Edwin Sailema", "Byron Guacho", "Franklin Chamorro", "Rodrigo Falconí",
+    "Nelson Espín", "Milton Barreno", "Segundo Tacuri", "Klever Quinatoa", "Washington Segovia", "Hernán Herrera",
+]
+
 
 def obtener_o_crear_plan_demo():
     """Plan de suscripción reservado para canchas demo, con límites
@@ -58,10 +72,10 @@ def crear_entorno_prueba(usuario):
     )
     RolComplejo.objects.create(usuario=usuario, complejo=complejo, rol="ORG")
 
-    categoria = Categoria.objects.create(complejo=complejo, nombre="Categoría Demo")
+    categoria = Categoria.objects.create(complejo=complejo, nombre="Segunda Categoría")
     torneo = Torneo.objects.create(
         complejo=complejo,
-        nombre="Torneo Demo",
+        nombre="Copa Apertura 2026",
         organizador=usuario,
         categoria=categoria,
         inscripcion_abierta=True,
@@ -76,20 +90,21 @@ def crear_entorno_prueba(usuario):
 def _sembrar_equipos_y_jugadores(torneo, usuario):
     equipos = []
     contador_jugador = 0
-    for i in range(1, 7):
+    for i in range(6):
         equipo = Equipo.objects.create(
             torneo=torneo,
             dirigente=usuario,
-            nombre=f"Equipo Demo {i}",
+            nombre=NOMBRES_EQUIPOS_DEMO[i],
             estado_inscripcion="APROBADO",
             pagado=True,
             cupos_pagados=10,
         )
         for dorsal in range(1, 7):
+            nombre_jugador = NOMBRES_JUGADORES_DEMO[contador_jugador]
             contador_jugador += 1
             Jugador.objects.create(
                 equipo=equipo,
-                nombres=f"Jugador {dorsal} - Equipo {i}",
+                nombres=nombre_jugador,
                 dorsal=dorsal,
                 cedula=f"90{contador_jugador:08d}",
             )
