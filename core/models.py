@@ -61,6 +61,8 @@ class ComplejoDeportivo(models.Model):
     fecha_vencimiento = models.DateField(help_text="Fecha máxima de cobertura del pago", null=True, blank=True)
     logo = models.ImageField(upload_to='complejos/logos/', null=True, blank=True)
     telefono_contacto = models.CharField(max_length=15, blank=True, null=True)
+    es_demo = models.BooleanField(default=False, verbose_name="Es entorno de prueba (demo)")
+    fecha_asignacion_prueba = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de asignación del Rol de Prueba")
 
     def esta_al_dia(self):
         if not self.activo:

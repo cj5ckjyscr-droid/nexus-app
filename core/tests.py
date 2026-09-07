@@ -593,3 +593,25 @@ class LoginPorCedulaTest(DosCanchasTestCase):
             "email": "nuevo_fan@example.com",
         })
         self.assertEqual(response.status_code, 302)
+
+
+class ComplejoDeportivoEsDemoTest(TestCase):
+    def test_es_demo_por_defecto_es_false(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan X", precio_mensual=Decimal("10.00"))
+        organizador = User.objects.create_user("dueno_real", password="pass12345")
+        complejo = ComplejoDeportivo.objects.create(
+            nombre="Cancha Real", slug="cancha-real", organizador=organizador, plan=plan,
+        )
+        self.assertFalse(complejo.es_demo)
+        self.assertIsNone(complejo.fecha_asignacion_prueba)
+
+    def test_puede_marcar_como_demo_con_fecha_de_asignacion(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan Y", precio_mensual=Decimal("0.00"))
+        usuario = User.objects.create_user("usuario_demo", password="pass12345")
+        ahora = timezone.now()
+        complejo = ComplejoDeportivo.objects.create(
+            nombre="Cancha Demo", slug="cancha-demo", organizador=usuario, plan=plan,
+            es_demo=True, fecha_asignacion_prueba=ahora,
+        )
+        self.assertTrue(complejo.es_demo)
+        self.assertEqual(complejo.fecha_asignacion_prueba, ahora)
