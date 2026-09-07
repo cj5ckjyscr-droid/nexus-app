@@ -615,3 +615,55 @@ class ComplejoDeportivoEsDemoTest(TestCase):
         )
         self.assertTrue(complejo.es_demo)
         self.assertEqual(complejo.fecha_asignacion_prueba, ahora)
+
+
+from .services.pruebas import crear_entorno_prueba, obtener_o_crear_plan_demo
+
+
+class CrearEntornoPruebaBaseTest(TestCase):
+    def test_crea_complejo_demo_propiedad_del_usuario(self):
+        usuario = User.objects.create_user("tester1", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        self.assertTrue(complejo.es_demo)
+        self.assertEqual(complejo.organizador, usuario)
+        self.assertTrue(complejo.activo)
+        self.assertIsNone(complejo.fecha_vencimiento)
+        self.assertIsNotNone(complejo.fecha_asignacion_prueba)
+        self.assertTrue(RolComplejo.objects.filter(usuario=usuario, complejo=complejo, rol="ORG").exists())
+
+    def test_usa_un_plan_demo_con_limites_generosos(self):
+        usuario = User.objects.create_user("tester2", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        self.assertEqual(complejo.plan.nombre, "Plan Demo (Prueba)")
+        self.assertGreaterEqual(complejo.plan.max_jugadores, 36)
+
+    def test_reutiliza_el_mismo_plan_demo_entre_usuarios(self):
+        usuario1 = User.objects.create_user("tester3", password="pass12345")
+        usuario2 = User.objects.create_user("tester4", password="pass12345")
+
+        complejo1 = crear_entorno_prueba(usuario1)
+        complejo2 = crear_entorno_prueba(usuario2)
+
+        self.assertEqual(complejo1.plan_id, complejo2.plan_id)
+        self.assertEqual(PlanSuscripcion.objects.filter(nombre="Plan Demo (Prueba)").count(), 1)
+
+    def test_no_permite_asignar_a_quien_ya_es_organizador_de_una_cancha_real(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan Z", precio_mensual=Decimal("10.00"))
+        dueno_real = User.objects.create_user("dueno_real2", password="pass12345")
+        ComplejoDeportivo.objects.create(
+            nombre="Cancha Real 2", slug="cancha-real-2", organizador=dueno_real, plan=plan,
+        )
+
+        with self.assertRaises(ValueError):
+            crear_entorno_prueba(dueno_real)
+
+    def test_no_permite_asignar_dos_veces_al_mismo_usuario_sin_revocar(self):
+        usuario = User.objects.create_user("tester5", password="pass12345")
+        crear_entorno_prueba(usuario)
+
+        with self.assertRaises(ValueError):
+            crear_entorno_prueba(usuario)
