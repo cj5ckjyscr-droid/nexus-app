@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -28,12 +29,15 @@ def obtener_o_crear_plan_demo():
     return plan
 
 
+@transaction.atomic
 def crear_entorno_prueba(usuario):
     """Crea una cancha demo (ComplejoDeportivo con es_demo=True), propiedad
     exclusiva de `usuario`, con un torneo y datos deportivos precargados.
     Lanza ValueError si el usuario ya es dueño de cualquier cancha (real o
     demo) — ComplejoDeportivo.organizador es OneToOne, así que no puede
-    tener dos."""
+    tener dos. Toda la siembra corre dentro de una única transacción: si
+    algo falla a mitad de camino (p. ej. una colisión de `nombre` único),
+    no queda un entorno demo a medio construir — se revierte por completo."""
     if ComplejoDeportivo.objects.filter(organizador=usuario).exists():
         raise ValueError(
             f"{usuario.username} ya es dueño de una cancha y no puede recibir el Rol de Prueba."

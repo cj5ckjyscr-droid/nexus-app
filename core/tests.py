@@ -1,5 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
@@ -1044,6 +1045,68 @@ class LandingPrincipalExcluyeDemoTest(TestCase):
         ids_mostrados = [c.id for c in response.context["canchas"]]
         self.assertIn(cancha_real.id, ids_mostrados)
         self.assertNotIn(cancha_demo.id, ids_mostrados)
+
+
+class CrearEntornoPruebaEsAtomicoTest(TestCase):
+    def test_una_falla_a_mitad_de_la_siembra_no_deja_nada_a_medio_crear(self):
+        usuario = User.objects.create_user("tester28", password="pass12345")
+
+        with patch(
+            "core.services.pruebas._sembrar_partidos",
+            side_effect=RuntimeError("fallo simulado a mitad de la siembra"),
+        ):
+            with self.assertRaises(RuntimeError):
+                crear_entorno_prueba(usuario)
+
+        # Como crear_entorno_prueba está envuelta en transaction.atomic,
+        # el fallo revierte TODO: no debe quedar ni el ComplejoDeportivo,
+        # ni el RolComplejo, ni el Torneo/Categoría, ni los equipos ya
+        # sembrados antes del fallo.
+        self.assertFalse(ComplejoDeportivo.objects.filter(organizador=usuario).exists())
+        self.assertFalse(RolComplejo.objects.filter(usuario=usuario).exists())
+        self.assertFalse(Torneo.objects.filter(organizador=usuario).exists())
+        self.assertFalse(Equipo.objects.filter(dirigente=usuario).exists())
+
+    def test_una_colision_de_nombre_no_deja_organizador_a_medio_provisionar(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan Colisión", precio_mensual=Decimal("10.00"))
+        otro_organizador = User.objects.create_user("dueno_real9", password="pass12345")
+        usuario = User.objects.create_user("tester29", password="pass12345")
+        # Una cancha real que por coincidencia tiene el mismo nombre único
+        # que usaría crear_entorno_prueba para este usuario.
+        ComplejoDeportivo.objects.create(
+            nombre=f"Demo - {usuario.username}", slug="colision-slug",
+            organizador=otro_organizador, plan=plan,
+        )
+
+        from django.db import IntegrityError
+        with self.assertRaises(IntegrityError):
+            crear_entorno_prueba(usuario)
+
+        # El usuario no queda "medio organizador": no se le creó nada.
+        self.assertFalse(ComplejoDeportivo.objects.filter(organizador=usuario).exists())
+
+
+class GestionarRolesPruebaColisionDeNombreTest(TestCase):
+    def test_colision_de_nombre_muestra_mensaje_de_error_amigable_y_no_bloquea_reintentos(self):
+        superadmin = User.objects.create_superuser("elsuper5", password="pass12345")
+        plan = PlanSuscripcion.objects.create(nombre="Plan Colisión 2", precio_mensual=Decimal("10.00"))
+        otro_organizador = User.objects.create_user("dueno_real10", password="pass12345")
+        candidato = User.objects.create_user("candidato3", password="pass12345")
+        ComplejoDeportivo.objects.create(
+            nombre=f"Demo - {candidato.username}", slug="colision-slug-2",
+            organizador=otro_organizador, plan=plan,
+        )
+
+        self.client.login(username="elsuper5", password="pass12345")
+        response = self.client.post("/nexus-admin/pruebas/", {
+            "usuario_id": candidato.id, "asignar": "1",
+        }, follow=True)
+
+        mensajes = [str(m) for m in response.context["messages"]]
+        self.assertTrue(any("nombre en conflicto" in m for m in mensajes))
+        # El candidato no quedó a medio provisionar: puede reintentar
+        # (no dispara el ValueError de "ya es organizador").
+        self.assertFalse(ComplejoDeportivo.objects.filter(organizador=candidato).exists())
 
 
 class PortalComplejoBloqueaDemoTest(TestCase):

@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, Http404
 from django.db.models import Count, Q, Sum, F
 from django.template.loader import get_template
-from django.db import transaction 
+from django.db import transaction, IntegrityError
 from xhtml2pdf import pisa 
 from django.contrib.auth.models import User
 from django.utils import timezone  
@@ -3508,6 +3508,8 @@ def gestionar_roles_prueba(request):
                 messages.success(request, f"✅ Rol de Prueba asignado a {usuario.username}. Su entorno de demostración ya está listo.")
             except ValueError as e:
                 messages.error(request, f"⛔ {e}")
+            except IntegrityError:
+                messages.error(request, "⛔ No se pudo crear el entorno de prueba: ya existe una cancha con un nombre en conflicto. Intenta de nuevo o contacta soporte.")
         elif 'quitar' in request.POST:
             eliminar_entorno_prueba(usuario)
             messages.success(request, f"🗑️ Rol de Prueba retirado de {usuario.username}. Todos sus datos de prueba fueron eliminados.")
