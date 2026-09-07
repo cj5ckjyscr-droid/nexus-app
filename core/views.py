@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.db.models import Count, Q, Sum, F
 from django.template.loader import get_template
 from django.db import transaction 
@@ -38,7 +38,7 @@ from .models import (
 )
 
 from .utils import validar_cedula_ecuador, consultar_sri
-from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba
+from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba, NOMBRE_PLAN_DEMO
 
 # =========================================================
 # --- FUNCIONES DE CONTROL DE ACCESO (PERMISOS CONTEXTUALES) ---
@@ -3206,7 +3206,7 @@ def revertir_cobro_sancion(request, sancion_id):
 
 def landing_principal(request):
     """ El inicio global de NEXUS SPORTOPS donde salen todas las canchas """
-    canchas = ComplejoDeportivo.objects.filter(activo=True)
+    canchas = ComplejoDeportivo.objects.filter(activo=True, es_demo=False)
     config = Configuracion.objects.first() # Para sacar tu logo de NEXUS si lo subiste
     
     return render(request, 'core/landing_principal.html', {
@@ -3217,7 +3217,12 @@ def landing_principal(request):
 def portal_complejo(request, slug_complejo):
     """ El inicio específico de CADA CANCHA (Público, sin login) """
     complejo = get_object_or_404(ComplejoDeportivo, slug=slug_complejo)
-    
+
+    # Las canchas demo (entornos de prueba) no son visibles al público: solo
+    # su propio dueño (para probarlas) o un superusuario pueden verlas.
+    if complejo.es_demo and request.user != complejo.organizador and not request.user.is_superuser:
+        raise Http404()
+
     # Si la cancha no pagó, bloqueamos la vista (excepto para ti que eres superadmin)
     if not complejo.esta_al_dia() and not request.user.is_superuser:
         return render(request, 'core/suspendido.html', {'complejo': complejo})
@@ -3306,8 +3311,8 @@ def gestionar_canchas_saas(request):
     if not request.user.is_superuser:
         return redirect('dashboard')
         
-    canchas = ComplejoDeportivo.objects.all().order_by('-id')
-    
+    canchas = ComplejoDeportivo.objects.filter(es_demo=False).order_by('-id')
+
     if request.method == 'POST':
         form = ComplejoDeportivoForm(request.POST, request.FILES)
         if form.is_valid():
@@ -3425,7 +3430,7 @@ def revertir_pago_saas(request, pago_id):
 
 def precios_publicos(request):
     """ Vista pública para mostrar los planes a posibles clientes """
-    planes = PlanSuscripcion.objects.all().order_by('precio_mensual')
+    planes = PlanSuscripcion.objects.exclude(nombre=NOMBRE_PLAN_DEMO).order_by('precio_mensual')
     return render(request, 'core/precios_publicos.html', {'planes': planes})
 
 @login_required

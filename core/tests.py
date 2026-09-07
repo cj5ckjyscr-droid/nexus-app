@@ -618,7 +618,10 @@ class ComplejoDeportivoEsDemoTest(TestCase):
         self.assertEqual(complejo.fecha_asignacion_prueba, ahora)
 
 
-from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba, obtener_o_crear_plan_demo
+from .services.pruebas import (
+    NOMBRE_PLAN_DEMO, crear_entorno_prueba, eliminar_entorno_prueba,
+    obtener_o_crear_plan_demo,
+)
 
 
 class CrearEntornoPruebaBaseTest(TestCase):
@@ -1010,3 +1013,86 @@ class PruebaAgregarJugadorTest(TestCase):
         })
 
         self.assertEqual(self.equipo_ajeno.jugadores.count(), jugadores_antes_ajeno)
+
+
+class PreciosPublicosExcluyePlanDemoTest(TestCase):
+    def test_el_plan_demo_no_aparece_en_la_pagina_publica_de_precios(self):
+        PlanSuscripcion.objects.create(nombre="Plan Básico", precio_mensual=Decimal("10.00"))
+        usuario = User.objects.create_user("tester23", password="pass12345")
+        crear_entorno_prueba(usuario)  # crea (o reutiliza) el Plan Demo (Prueba)
+
+        response = self.client.get("/precios/")
+
+        nombres_planes = [p.nombre for p in response.context["planes"]]
+        self.assertNotIn(NOMBRE_PLAN_DEMO, nombres_planes)
+        self.assertIn("Plan Básico", nombres_planes)
+
+
+class LandingPrincipalExcluyeDemoTest(TestCase):
+    def test_las_canchas_demo_no_aparecen_en_el_landing_publico(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan Real", precio_mensual=Decimal("10.00"))
+        organizador_real = User.objects.create_user("dueno_real7", password="pass12345")
+        cancha_real = ComplejoDeportivo.objects.create(
+            nombre="Cancha Real 7", slug="cancha-real-7", organizador=organizador_real,
+            plan=plan, activo=True,
+        )
+        usuario_demo = User.objects.create_user("tester24", password="pass12345")
+        cancha_demo = crear_entorno_prueba(usuario_demo)
+
+        response = self.client.get("/")
+
+        ids_mostrados = [c.id for c in response.context["canchas"]]
+        self.assertIn(cancha_real.id, ids_mostrados)
+        self.assertNotIn(cancha_demo.id, ids_mostrados)
+
+
+class PortalComplejoBloqueaDemoTest(TestCase):
+    def setUp(self):
+        self.usuario_demo = User.objects.create_user("tester25", password="pass12345")
+        self.complejo_demo = crear_entorno_prueba(self.usuario_demo)
+
+    def test_visitante_anonimo_no_puede_ver_el_portal_de_una_cancha_demo(self):
+        response = self.client.get(f"/cancha/{self.complejo_demo.slug}/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_otro_usuario_logueado_no_puede_ver_el_portal_de_una_cancha_demo_ajena(self):
+        otro = User.objects.create_user("tester26", password="pass12345")
+        self.client.login(username="tester26", password="pass12345")
+
+        response = self.client.get(f"/cancha/{self.complejo_demo.slug}/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_el_dueno_del_entorno_de_prueba_si_puede_ver_su_propio_portal(self):
+        self.client.login(username="tester25", password="pass12345")
+
+        response = self.client.get(f"/cancha/{self.complejo_demo.slug}/")
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_el_superusuario_puede_ver_el_portal_de_cualquier_cancha_demo(self):
+        User.objects.create_superuser("elsuper3", password="pass12345")
+        self.client.login(username="elsuper3", password="pass12345")
+
+        response = self.client.get(f"/cancha/{self.complejo_demo.slug}/")
+
+        self.assertEqual(response.status_code, 200)
+
+
+class GestionarCanchasSaasExcluyeDemoTest(TestCase):
+    def test_las_canchas_demo_no_aparecen_en_gestionar_canchas_saas(self):
+        superadmin = User.objects.create_superuser("elsuper4", password="pass12345")
+        plan = PlanSuscripcion.objects.create(nombre="Plan Real 2", precio_mensual=Decimal("10.00"))
+        organizador_real = User.objects.create_user("dueno_real8", password="pass12345")
+        cancha_real = ComplejoDeportivo.objects.create(
+            nombre="Cancha Real 8", slug="cancha-real-8", organizador=organizador_real, plan=plan,
+        )
+        usuario_demo = User.objects.create_user("tester27", password="pass12345")
+        cancha_demo = crear_entorno_prueba(usuario_demo)
+
+        self.client.login(username="elsuper4", password="pass12345")
+        response = self.client.get("/nexus-admin/canchas/")
+
+        ids_mostrados = [c.id for c in response.context["canchas"]]
+        self.assertIn(cancha_real.id, ids_mostrados)
+        self.assertNotIn(cancha_demo.id, ids_mostrados)
