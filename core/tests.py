@@ -8,8 +8,9 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from .models import (
-    AbonoSancion, ComplejoDeportivo, Configuracion, Equipo, FotoGaleria,
-    Jugador, Partido, Pago, PlanSuscripcion, RolComplejo, Sancion, Torneo,
+    AbonoSancion, ComplejoDeportivo, Configuracion, DetallePartido, Equipo,
+    FotoGaleria, Jugador, Partido, Pago, PlanSuscripcion, RolComplejo, Sancion,
+    Torneo,
 )
 
 
@@ -706,3 +707,63 @@ class CrearEntornoPruebaEquiposYJugadoresTest(TestCase):
             self.assertEqual(equipo.estado_inscripcion, "APROBADO")
             self.assertEqual(equipo.dirigente, usuario)
             self.assertGreater(equipo.cupos_disponibles, 0)
+
+
+class CrearEntornoPruebaPartidosTest(TestCase):
+    def test_crea_partidos_jugados_y_partidos_futuros(self):
+        usuario = User.objects.create_user("tester10", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        partidos = Partido.objects.filter(torneo__complejo=complejo)
+        self.assertEqual(partidos.filter(estado="JUG").count(), 3)
+        self.assertEqual(partidos.filter(estado="PROG").count(), 3)
+
+    def test_partidos_futuros_tienen_fecha_en_el_futuro_y_sin_resultado(self):
+        usuario = User.objects.create_user("tester11", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        ahora = timezone.now()
+        for partido in Partido.objects.filter(torneo__complejo=complejo, estado="PROG"):
+            self.assertIsNotNone(partido.fecha_hora)
+            self.assertGreater(partido.fecha_hora, ahora)
+            self.assertEqual(partido.goles_local, 0)
+            self.assertEqual(partido.goles_visita, 0)
+
+    def test_hay_al_menos_una_tarjeta_amarilla_y_una_roja_con_su_multa(self):
+        usuario = User.objects.create_user("tester12", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        self.assertTrue(DetallePartido.objects.filter(
+            partido__torneo__complejo=complejo, tipo="TA",
+        ).exists())
+        self.assertTrue(DetallePartido.objects.filter(
+            partido__torneo__complejo=complejo, tipo="TR",
+        ).exists())
+        self.assertTrue(Sancion.objects.filter(
+            torneo__complejo=complejo, tipo="AMARILLA",
+        ).exists())
+        self.assertTrue(Sancion.objects.filter(
+            torneo__complejo=complejo, tipo="ROJA",
+        ).exists())
+
+    def test_tarjeta_roja_incrementa_el_contador_del_jugador(self):
+        usuario = User.objects.create_user("tester13", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        jugador_expulsado = Jugador.objects.get(
+            equipo__torneo__complejo=complejo,
+            detallepartido__tipo="TR",
+        )
+        self.assertEqual(jugador_expulsado.rojas_directas_acumuladas, 1)
+
+    def test_partidos_jugados_tienen_goles_registrados_como_detalle(self):
+        usuario = User.objects.create_user("tester14", password="pass12345")
+
+        complejo = crear_entorno_prueba(usuario)
+
+        goles = DetallePartido.objects.filter(partido__torneo__complejo=complejo, tipo="GOL")
+        self.assertGreaterEqual(goles.count(), 4)

@@ -4,8 +4,8 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from ..models import (
-    Categoria, ComplejoDeportivo, Equipo, Jugador, PlanSuscripcion,
-    RolComplejo, Torneo,
+    Categoria, ComplejoDeportivo, DetallePartido, Equipo, Jugador, Partido,
+    PlanSuscripcion, RolComplejo, Sancion, Torneo,
 )
 
 NOMBRE_PLAN_DEMO = "Plan Demo (Prueba)"
@@ -63,7 +63,8 @@ def crear_entorno_prueba(usuario):
         inscripcion_abierta=True,
     )
 
-    _sembrar_equipos_y_jugadores(torneo, usuario)
+    equipos = _sembrar_equipos_y_jugadores(torneo, usuario)
+    _sembrar_partidos(torneo, equipos)
 
     return complejo
 
@@ -90,3 +91,82 @@ def _sembrar_equipos_y_jugadores(torneo, usuario):
             )
         equipos.append(equipo)
     return equipos
+
+
+def _sembrar_partidos(torneo, equipos):
+    ahora = timezone.now()
+
+    _crear_partido_jugado(
+        torneo, equipos[0], equipos[1], numero_fecha=1,
+        goles_local=2, goles_visita=1,
+        goleador_local=equipos[0].jugadores.get(dorsal=1),
+        goleador_visita=equipos[1].jugadores.get(dorsal=1),
+        tarjeta_amarilla_a=equipos[1].jugadores.get(dorsal=2),
+    )
+    _crear_partido_jugado(
+        torneo, equipos[2], equipos[3], numero_fecha=1,
+        goles_local=1, goles_visita=1,
+        goleador_local=equipos[2].jugadores.get(dorsal=1),
+        goleador_visita=equipos[3].jugadores.get(dorsal=1),
+        tarjeta_roja_a=equipos[3].jugadores.get(dorsal=3),
+    )
+    _crear_partido_jugado(
+        torneo, equipos[4], equipos[5], numero_fecha=1,
+        goles_local=3, goles_visita=0,
+        goleador_local=equipos[4].jugadores.get(dorsal=1),
+    )
+
+    Partido.objects.create(
+        torneo=torneo, equipo_local=equipos[0], equipo_visita=equipos[2],
+        numero_fecha=2, fecha_hora=ahora + timezone.timedelta(days=7), estado="PROG",
+    )
+    Partido.objects.create(
+        torneo=torneo, equipo_local=equipos[1], equipo_visita=equipos[4],
+        numero_fecha=2, fecha_hora=ahora + timezone.timedelta(days=8), estado="PROG",
+    )
+    Partido.objects.create(
+        torneo=torneo, equipo_local=equipos[3], equipo_visita=equipos[5],
+        numero_fecha=2, fecha_hora=ahora + timezone.timedelta(days=9), estado="PROG",
+    )
+
+
+def _crear_partido_jugado(torneo, equipo_local, equipo_visita, numero_fecha,
+                           goles_local, goles_visita,
+                           goleador_local=None, goleador_visita=None,
+                           tarjeta_amarilla_a=None, tarjeta_roja_a=None):
+    partido = Partido.objects.create(
+        torneo=torneo, equipo_local=equipo_local, equipo_visita=equipo_visita,
+        numero_fecha=numero_fecha, estado="JUG",
+        goles_local=goles_local, goles_visita=goles_visita,
+    )
+
+    if goleador_local:
+        DetallePartido.objects.create(
+            partido=partido, jugador=goleador_local, equipo_incidencia=equipo_local, tipo="GOL",
+        )
+    if goleador_visita:
+        DetallePartido.objects.create(
+            partido=partido, jugador=goleador_visita, equipo_incidencia=equipo_visita, tipo="GOL",
+        )
+    if tarjeta_amarilla_a:
+        _aplicar_tarjeta(partido, tarjeta_amarilla_a, "TA", torneo.costo_amarilla)
+    if tarjeta_roja_a:
+        _aplicar_tarjeta(partido, tarjeta_roja_a, "TR", torneo.costo_roja)
+
+    return partido
+
+
+def _aplicar_tarjeta(partido, jugador, tipo, monto):
+    equipo = jugador.equipo
+    DetallePartido.objects.create(
+        partido=partido, jugador=jugador, equipo_incidencia=equipo, tipo=tipo,
+    )
+    Sancion.objects.create(
+        torneo=partido.torneo, equipo=equipo, jugador=jugador, partido=partido,
+        tipo="AMARILLA" if tipo == "TA" else "ROJA",
+        monto=monto,
+        descripcion=f"Tarjeta {'amarilla' if tipo == 'TA' else 'roja'} - {jugador.nombres}",
+    )
+    if tipo == "TR":
+        jugador.rojas_directas_acumuladas += 1
+        jugador.save(update_fields=["rojas_directas_acumuladas"])
