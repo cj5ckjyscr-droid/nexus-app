@@ -157,6 +157,15 @@ LOGOUT_REDIRECT_URL = 'login'
 # si esta variable no está configurada.
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
 
+# Django activa por defecto la cabecera "Cross-Origin-Opener-Policy: same-origin",
+# que corta la referencia window.opener entre la ventana emergente de Google y
+# esta página. Sin ella, el script de Google Sign-In no puede hacer postMessage
+# de vuelta y la ventana emergente se queda en blanco con un error en consola
+# ("Cannot read properties of null (reading 'postMessage')"). Este valor sigue
+# protegiendo contra ataques de otras páginas, pero permite que las ventanas
+# emergentes que ESTA página abre (como la de Google) mantengan la conexión.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+
 # --- SEGURIDAD: RECUPERACIÓN DE CONTRASEÑA ---
 # El link de "olvidé mi contraseña" expira en 1 hora (Django trae 3 días
 # por defecto) — una ventana más corta reduce el riesgo si el correo del
