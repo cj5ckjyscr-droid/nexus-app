@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.sessions.backends.db import SessionStore
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.utils import timezone
 
 from .models import (
@@ -1618,3 +1618,175 @@ class DirigenteNoVeJugadoresDeOtroEquipoTest(TestCase):
         self.assertNotEqual(response.context["equipo_obj"], self.equipo_b)
         nombres = [j.nombres for j in response.context["jugadores"]]
         self.assertNotIn("Jugador De B", nombres)
+
+
+class MultiplesUsuariosSimultaneosTest(TestCase):
+    """Varios usuarios (de cualquier rol) deben poder tener sesión activa
+    AL MISMO TIEMPO sin pisarse entre sí — cada Client() de este test
+    simula un navegador/usuario real e independiente, con su propia
+    cookie de sesión. Se entrelazan sus acciones a propósito (A, luego B,
+    luego A de nuevo) para detectar cualquier estado compartido por
+    accidente entre requests de usuarios distintos."""
+
+    def setUp(self):
+        self.plan = PlanSuscripcion.objects.create(nombre="Plan Multi", precio_mensual=Decimal("10.00"))
+
+        self.super_user = User.objects.create_superuser("multi_super", password="pass12345")
+
+        self.org_a = User.objects.create_user("multi_org_a", password="pass12345")
+        self.complejo_a = ComplejoDeportivo.objects.create(nombre="Cancha Multi A", slug="cancha-multi-a", organizador=self.org_a, plan=self.plan, activo=True)
+        self.torneo_a = Torneo.objects.create(complejo=self.complejo_a, nombre="Torneo Multi A", organizador=self.org_a, activo=True)
+        self.dirigente_a = User.objects.create_user("multi_dir_a", password="pass12345")
+        RolComplejo.objects.create(usuario=self.dirigente_a, complejo=self.complejo_a, rol="DIR")
+        self.equipo_a = Equipo.objects.create(torneo=self.torneo_a, dirigente=self.dirigente_a, nombre="Equipo Multi A", estado_inscripcion="APROBADO", cupos_pagados=10)
+
+        self.org_b = User.objects.create_user("multi_org_b", password="pass12345")
+        self.complejo_b = ComplejoDeportivo.objects.create(nombre="Cancha Multi B", slug="cancha-multi-b", organizador=self.org_b, plan=self.plan, activo=True)
+        self.torneo_b = Torneo.objects.create(complejo=self.complejo_b, nombre="Torneo Multi B", organizador=self.org_b, activo=True)
+        self.dirigente_b = User.objects.create_user("multi_dir_b", password="pass12345")
+        RolComplejo.objects.create(usuario=self.dirigente_b, complejo=self.complejo_b, rol="DIR")
+        self.equipo_b = Equipo.objects.create(torneo=self.torneo_b, dirigente=self.dirigente_b, nombre="Equipo Multi B", estado_inscripcion="APROBADO", cupos_pagados=10)
+
+        self.usuario_prueba = User.objects.create_user("multi_prueba", password="pass12345")
+
+        # Cinco "navegadores" independientes, cada uno con su propia cookie.
+        self.c_super = Client()
+        self.c_org_a = Client()
+        self.c_dir_a = Client()
+        self.c_org_b = Client()
+        self.c_dir_b = Client()
+        self.c_prueba = Client()
+
+        self.assertTrue(self.c_super.login(username="multi_super", password="pass12345"))
+        self.assertTrue(self.c_org_a.login(username="multi_org_a", password="pass12345"))
+        self.assertTrue(self.c_dir_a.login(username="multi_dir_a", password="pass12345"))
+        self.assertTrue(self.c_org_b.login(username="multi_org_b", password="pass12345"))
+        self.assertTrue(self.c_dir_b.login(username="multi_dir_b", password="pass12345"))
+        self.assertTrue(self.c_prueba.login(username="multi_prueba", password="pass12345"))
+
+    def test_cada_organizador_ve_solo_su_propia_cancha_aunque_esten_todos_conectados(self):
+        # A y B consultan su dashboard entrelazado, no en bloques separados.
+        resp_a1 = self.c_org_a.get("/dashboard/")
+        resp_b1 = self.c_org_b.get("/dashboard/")
+        resp_a2 = self.c_org_a.get("/equipos/")
+        resp_b2 = self.c_org_b.get("/equipos/")
+
+        self.assertEqual(resp_a1.context["mi_complejo"], self.complejo_a)
+        self.assertEqual(resp_b1.context["mi_complejo"], self.complejo_b)
+
+        nombres_a = [e.nombre for e in resp_a2.context["equipos"]]
+        nombres_b = [e.nombre for e in resp_b2.context["equipos"]]
+        self.assertIn("Equipo Multi A", nombres_a)
+        self.assertNotIn("Equipo Multi B", nombres_a)
+        self.assertIn("Equipo Multi B", nombres_b)
+        self.assertNotIn("Equipo Multi A", nombres_b)
+
+    def test_cada_dirigente_ficha_en_su_propio_equipo_de_forma_entrelazada(self):
+        # Dirigente A ficha un jugador...
+        r1 = self.c_dir_a.post("/jugadores/", {
+            "equipo": self.equipo_a.id, "nombres": "Jugador Multi Uno", "dorsal": "1", "cedula": "1710000306",
+        })
+        # ...luego Dirigente B ficha el suyo, en medio...
+        r2 = self.c_dir_b.post("/jugadores/", {
+            "equipo": self.equipo_b.id, "nombres": "Jugador Multi Dos", "dorsal": "1", "cedula": "1710000314",
+        })
+        # ...y A vuelve a fichar otro más.
+        r3 = self.c_dir_a.post("/jugadores/", {
+            "equipo": self.equipo_a.id, "nombres": "Jugador Multi Tres", "dorsal": "2", "cedula": "1710000322",
+        })
+
+        self.assertEqual(r1.status_code, 302)
+        self.assertEqual(r2.status_code, 302)
+        self.assertEqual(r3.status_code, 302)
+
+        self.assertEqual(self.equipo_a.jugadores.count(), 2)
+        self.assertEqual(self.equipo_b.jugadores.count(), 1)
+        self.assertEqual(set(self.equipo_a.jugadores.values_list("nombres", flat=True)), {"Jugador Multi Uno", "Jugador Multi Tres"})
+        self.assertEqual(set(self.equipo_b.jugadores.values_list("nombres", flat=True)), {"Jugador Multi Dos"})
+
+        # Cada dirigente, al recargar su propia pantalla, sigue viendo
+        # únicamente su equipo — el entrelazado no contaminó su sesión.
+        vista_a = self.c_dir_a.get("/jugadores/")
+        vista_b = self.c_dir_b.get("/jugadores/")
+        self.assertEqual(vista_a.context["equipo_obj"], self.equipo_a)
+        self.assertEqual(vista_b.context["equipo_obj"], self.equipo_b)
+
+    def test_superadmin_y_organizadores_no_se_interfieren_entre_si(self):
+        resp_super = self.c_super.get("/nexus-admin/")
+        resp_a = self.c_org_a.get("/dashboard/")
+        resp_super2 = self.c_super.get("/nexus-admin/canchas/")
+        resp_b = self.c_org_b.get("/dashboard/")
+
+        canchas_ids = [c.id for c in resp_super2.context["canchas"]]
+        self.assertIn(self.complejo_a.id, canchas_ids)
+        self.assertIn(self.complejo_b.id, canchas_ids)
+        self.assertEqual(resp_a.context["mi_complejo"], self.complejo_a)
+        self.assertEqual(resp_b.context["mi_complejo"], self.complejo_b)
+        self.assertEqual(resp_super.status_code, 200)
+
+    def test_usuario_de_prueba_activa_su_modo_dirigente_sin_afectar_a_los_demas(self):
+        complejo_demo = crear_entorno_prueba(self.usuario_prueba)
+        equipo_demo = Equipo.objects.filter(torneo__complejo=complejo_demo).first()
+
+        # El resto de usuarios ya estaba conectado ANTES de que se creara
+        # el entorno de prueba; siguen funcionando bien después.
+        self.c_org_a.get("/dashboard/")
+        self.c_prueba.post(f"/prueba/dirigente/activar/{equipo_demo.id}/")
+        resp_dir_a = self.c_dir_a.get("/jugadores/")
+        resp_prueba = self.c_prueba.get("/dashboard/")
+        resp_org_b = self.c_org_b.get("/equipos/")
+
+        self.assertEqual(resp_prueba.context["mi_rol_principal"], "DIR")
+        self.assertEqual(resp_prueba.context["mi_equipo"], equipo_demo)
+        self.assertEqual(resp_dir_a.context["equipo_obj"], self.equipo_a)
+        nombres_b = [e.nombre for e in resp_org_b.context["equipos"]]
+        self.assertIn("Equipo Multi B", nombres_b)
+        self.assertNotIn("Equipo Multi A", nombres_b)
+
+
+class AsignarDirigenteActualizaSuRolAunqueYaTuvieraOtroTest(TestCase):
+    """Bug real encontrado en vivo: si a un usuario que YA tenía otro rol
+    (ej. FAN) en la cancha se le asignaba como Dirigente de un equipo,
+    RolComplejo.objects.get_or_create() no actualizaba su rol (solo aplica
+    `defaults` al crear, nunca si la fila ya existe) — así que
+    obtener_rol_principal() seguía devolviendo su rol viejo, y esa persona
+    quedaba sin poder usar /jugadores/ como Dirigente. El fix cambia
+    get_or_create por update_or_create en los puntos donde se asigna un
+    Dirigente."""
+
+    def setUp(self):
+        self.plan = PlanSuscripcion.objects.create(nombre="Plan Rol Upgrade", precio_mensual=Decimal("10.00"))
+        self.organizador = User.objects.create_user("org_rol_upgrade", password="pass12345")
+        self.complejo = ComplejoDeportivo.objects.create(
+            nombre="Cancha Rol Upgrade", slug="cancha-rol-upgrade", organizador=self.organizador, plan=self.plan, activo=True,
+        )
+        self.torneo = Torneo.objects.create(complejo=self.complejo, nombre="Torneo Rol Upgrade", organizador=self.organizador, activo=True)
+
+        self.candidato = User.objects.create_user("candidato_rol_upgrade", password="pass12345")
+        RolComplejo.objects.create(usuario=self.candidato, complejo=self.complejo, rol="FAN")
+
+        self.client.login(username="org_rol_upgrade", password="pass12345")
+
+    def test_asignar_como_dirigente_a_un_fan_existente_lo_sube_a_rol_dir(self):
+        response = self.client.post("/equipos/", {
+            "torneo": self.torneo.id, "nombre": "Equipo Rol Upgrade", "estado_inscripcion": "APROBADO",
+            "dirigente": self.candidato.id,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        rc = RolComplejo.objects.get(usuario=self.candidato, complejo=self.complejo)
+        self.assertEqual(rc.rol, "DIR")
+
+    def test_el_ex_fan_ahora_dirigente_puede_usar_la_pantalla_real_de_fichaje(self):
+        self.client.post("/equipos/", {
+            "torneo": self.torneo.id, "nombre": "Equipo Rol Upgrade 2", "estado_inscripcion": "APROBADO",
+            "dirigente": self.candidato.id,
+        })
+
+        self.client.logout()
+        self.client.login(username="candidato_rol_upgrade", password="pass12345")
+        response = self.client.get("/jugadores/")
+
+        self.assertEqual(response.status_code, 200)
+        equipo = Equipo.objects.get(nombre="Equipo Rol Upgrade 2")
+        self.assertEqual(response.context["equipo_obj"], equipo)

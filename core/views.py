@@ -367,7 +367,10 @@ def gestionar_equipos(request):
         form.fields['dirigente'].queryset = usuarios_del_complejo
         if form.is_valid():
             nuevo_equipo = form.save()
-            RolComplejo.objects.get_or_create(usuario=nuevo_equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
+            # 🔥 Se fuerza rol='DIR' incluso si ya tenía otro rol en esta
+            # cancha (ej. FAN) — si no, obtener_rol_principal seguiría
+            # devolviendo el rol viejo y /jugadores/ le quedaría bloqueado.
+            RolComplejo.objects.update_or_create(usuario=nuevo_equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
             if not nuevo_equipo.torneo.cobro_por_jugador:
                 costo_inscripcion = getattr(nuevo_equipo.torneo, 'costo_inscripcion', Decimal('0.00'))
                 Sancion.objects.create(
@@ -404,8 +407,9 @@ def editar_equipo(request, equipo_id):
         form.fields['dirigente'].queryset = usuarios_del_complejo
         if form.is_valid():
             form.save()
-            # 🔥 MULTI-TENANCY: Actualiza RolComplejo por si se cambió el dirigente
-            RolComplejo.objects.get_or_create(
+            # 🔥 MULTI-TENANCY: fuerza rol='DIR' aunque ya tuviera otro rol
+            # en esta cancha — ver nota equivalente en gestionar_equipos.
+            RolComplejo.objects.update_or_create(
                 usuario=equipo.dirigente,
                 complejo=mi_complejo,
                 defaults={'rol': 'DIR'}
@@ -1979,10 +1983,11 @@ def solicitar_inscripcion(request, torneo_id):
                     }
                 )
             
-            # 🔥 MULTI-TENANCY: Al inscribirse, se crea RolComplejo de DIR en la cancha actual
-            RolComplejo.objects.get_or_create(
-                usuario=request.user, 
-                complejo=torneo.complejo, 
+            # 🔥 MULTI-TENANCY: al inscribirse se fuerza rol='DIR' en esta
+            # cancha, aunque ya tuviera otro rol — ver nota en gestionar_equipos.
+            RolComplejo.objects.update_or_create(
+                usuario=request.user,
+                complejo=torneo.complejo,
                 defaults={'rol': 'DIR'}
             )
             
@@ -2069,7 +2074,7 @@ def gestionar_solicitudes(request):
         if accion == 'APROBAR':
             equipo.estado_inscripcion = 'APROBADO'
             equipo.save()
-            RolComplejo.objects.get_or_create(usuario=equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
+            RolComplejo.objects.update_or_create(usuario=equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
             
             # Notificación de aprobación
             try:
@@ -2961,8 +2966,9 @@ def importar_equipo_existente(request, torneo_nuevo_id):
                     estado_inscripcion='PENDIENTE'
                 )
 
-                # 🔥 MULTI-TENANCY: Actualizamos o creamos RolComplejo en la nueva cancha
-                RolComplejo.objects.get_or_create(usuario=request.user, complejo=torneo_nuevo.complejo, defaults={'rol': 'DIR'})
+                # 🔥 MULTI-TENANCY: fuerza rol='DIR' en la nueva cancha aunque
+                # ya tuviera otro rol — ver nota en gestionar_equipos.
+                RolComplejo.objects.update_or_create(usuario=request.user, complejo=torneo_nuevo.complejo, defaults={'rol': 'DIR'})
 
                 costo_inscripcion = getattr(torneo_nuevo, 'costo_inscripcion', Decimal('0.00')) 
                 if not torneo_nuevo.cobro_por_jugador:
