@@ -296,6 +296,183 @@
             }
             .btn-nexus, .btn-outline-nexus { width: 100%; margin-bottom: 0.5rem; text-align: center; }
         }
+
+        /* =========================================================
+           SISTEMA DE DISEÑO GLOBAL — premium, minimalista, iOS-like
+           Redefine tokens de Bootstrap para que TODO lo que ya usa
+           clases estándar (.btn, .card, .badge, .alert, .modal,
+           .form-control, .table) se vea consistente sin tocar cada
+           plantilla una por una.
+           ========================================================= */
+        :root {
+            --bs-primary: var(--brand-primary);
+            --bs-primary-rgb: 79, 70, 229;
+            --bs-link-color: var(--brand-primary);
+            --bs-link-hover-color: var(--brand-hover);
+            --bs-link-color-rgb: 79, 70, 229;
+            --bs-body-font-family: 'Inter', sans-serif;
+            --bs-border-radius: 14px;
+            --bs-border-radius-sm: 10px;
+            --bs-border-radius-lg: 18px;
+            --bs-border-radius-xl: 22px;
+            --bs-border-radius-pill: 999px;
+            --bs-box-shadow: var(--shadow-float);
+            --bs-box-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        /* --- BOTONES (cualquier .btn de Bootstrap, no solo .btn-nexus) --- */
+        .btn {
+            border-radius: var(--radius-btn);
+            font-weight: 600;
+            padding: 0.55rem 1.25rem;
+            font-size: 0.9rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+            min-height: 42px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary {
+            background-color: var(--brand-primary);
+            border-color: var(--brand-primary);
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: var(--brand-hover);
+            border-color: var(--brand-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.28);
+        }
+        .btn-sm { min-height: 34px; padding: 0.4rem 0.9rem; }
+        .btn.rounded-pill { padding-left: 1.4rem; padding-right: 1.4rem; }
+
+        /* --- CARDS: base uniforme para cualquier .card genérica --- */
+        .card {
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            background-color: var(--bg-surface);
+            box-shadow: var(--shadow-float);
+        }
+        .card-header {
+            background-color: transparent;
+            border-bottom: 1px solid var(--border-light);
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .card-footer { background-color: transparent; border-top: 1px solid var(--border-light); }
+
+        /* --- BADGES: pill, tipografía firme (marcadores, estados, dorsales) --- */
+        .badge {
+            border-radius: 999px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            padding: 0.4em 0.75em;
+        }
+
+        /* --- ALERTAS --- */
+        .alert {
+            border: none;
+            border-radius: var(--radius-md);
+            border-left: 4px solid currentColor;
+            font-weight: 500;
+        }
+
+        /* --- MODALES --- */
+        .modal-content {
+            border: none;
+            border-radius: 20px;
+            box-shadow: var(--shadow-float);
+            overflow: hidden;
+        }
+        .modal-header {
+            border-bottom: 1px solid var(--border-light);
+            padding: 1.1rem 1.4rem;
+        }
+        .modal-footer { border-top: 1px solid var(--border-light); }
+        .modal-body { padding: 1.4rem; }
+
+        /* --- FORMULARIOS: inputs cómodos para dedo/mouse --- */
+        .form-control, .form-select {
+            border: 1.5px solid var(--border-light);
+            border-radius: 10px;
+            padding: 0.6rem 0.9rem;
+            min-height: 44px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            background-color: var(--bg-surface);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+        }
+        .form-label { font-weight: 600; color: var(--text-main); font-size: 0.9rem; margin-bottom: 0.4rem; }
+        .form-check-input:checked { background-color: var(--brand-primary); border-color: var(--brand-primary); }
+
+        /* --- TABLAS: filas espaciadas, encabezado sutil, sin bordes duros --- */
+        .table {
+            --bs-table-bg: transparent;
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+        .table > thead {
+            background-color: var(--slate-50);
+        }
+        .table > thead th {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-soft);
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-light);
+            padding: 0.9rem 1rem;
+        }
+        .table > tbody td {
+            border-color: var(--border-light);
+            padding: 0.85rem 1rem;
+        }
+        .table-hover > tbody > tr:hover > * {
+            background-color: var(--slate-50);
+        }
+        .table-responsive {
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+        }
+        .table-responsive .table { margin-bottom: 0; }
+        .table-responsive .table > thead th:first-child,
+        .table-responsive .table > tbody td:first-child { padding-left: 1.2rem; }
+
+        /* --- ESTADOS VACÍOS: patrón reutilizable (icono + texto muted) --- */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-soft);
+        }
+        .empty-state i { font-size: 2.5rem; opacity: 0.35; display: block; margin-bottom: 0.75rem; }
+        .empty-state p { font-weight: 600; margin: 0; }
+
+        /* --- MARCADORES / IDENTIDAD FUTBOLÍSTICA --- */
+        .score-pill {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            background: var(--slate-900); color: #fff;
+            font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.1rem;
+            padding: 0.3rem 0.9rem; border-radius: 999px; letter-spacing: 0.02em;
+        }
+        .team-shield {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--slate-100); display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--border-light); color: var(--text-soft); overflow: hidden;
+        }
+        .team-shield img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* --- RESPONSIVE: menos scroll, paddings ajustados en móvil --- */
+        @media (max-width: 576px) {
+            .main-content { padding-bottom: 40px; }
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.3rem; }
+            .card-body { padding: 1rem; }
+            .modal-body { padding: 1rem; }
+            .btn { padding: 0.55rem 1rem; }
+            .table > thead th, .table > tbody td { padding: 0.65rem 0.7rem; font-size: 0.85rem; }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 
