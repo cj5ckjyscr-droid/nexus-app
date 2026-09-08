@@ -92,9 +92,20 @@ class EquipoSolicitudForm(forms.ModelForm):
         }
         
 class EquipoForm(forms.ModelForm):
+    # Queryset real se restringe en la vista a los usuarios del complejo
+    # actual (nunca "todos los usuarios del sistema" — el sistema es
+    # compartido entre varios complejos deportivos).
+    dirigente = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        label="Dirigente del Equipo",
+        empty_label="-- Selecciona un usuario de esta cancha --",
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text='¿La persona no aparece? Créala primero en "Usuarios".',
+    )
+
     class Meta:
         model = Equipo
-        fields = ['torneo', 'nombre', 'escudo', 'telefono_contacto', 'nombre_suplente_1', 'nombre_suplente_2', 'estado_inscripcion']
+        fields = ['torneo', 'dirigente', 'nombre', 'escudo', 'telefono_contacto', 'nombre_suplente_1', 'nombre_suplente_2', 'estado_inscripcion']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Los Rayados FC'}),
             'escudo': forms.FileInput(attrs={'class': 'form-control'}),

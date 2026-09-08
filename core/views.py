@@ -349,13 +349,27 @@ def gestionar_equipos(request):
     except EmptyPage:
         equipos = paginator.page(paginator.num_pages)
         
+    # 🔥 AISLAMIENTO: estos querysets se fijan ANTES de validar el POST —
+    # si se fijan después de is_valid() (como estaba antes para "torneo"),
+    # la validación real corre sin restricción y un POST manipulado con el
+    # ID de un torneo/usuario de OTRO complejo pasaría igual. Solo usuarios
+    # que ya pertenecen a ESTE complejo (o su organizador) pueden ser
+    # elegidos como dirigente — nunca cualquier usuario del sistema, que es
+    # compartido entre varios complejos.
+    torneos_del_complejo = Torneo.objects.filter(complejo=mi_complejo, activo=True).order_by('categoria__nombre', 'nombre')
+    usuarios_del_complejo = User.objects.filter(
+        Q(roles_cancha__complejo=mi_complejo) | Q(id=mi_complejo.organizador_id)
+    ).distinct().order_by('username')
+
     if request.method == 'POST':
         form = EquipoForm(request.POST, request.FILES)
+        form.fields['torneo'].queryset = torneos_del_complejo
+        form.fields['dirigente'].queryset = usuarios_del_complejo
         if form.is_valid():
             nuevo_equipo = form.save()
             RolComplejo.objects.get_or_create(usuario=nuevo_equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
             if not nuevo_equipo.torneo.cobro_por_jugador:
-                costo_inscripcion = getattr(nuevo_equipo.torneo, 'costo_inscripcion', Decimal('0.00')) 
+                costo_inscripcion = getattr(nuevo_equipo.torneo, 'costo_inscripcion', Decimal('0.00'))
                 Sancion.objects.create(
                     torneo=nuevo_equipo.torneo, equipo=nuevo_equipo, tipo='ADMIN',
                     monto=costo_inscripcion, monto_pagado=Decimal('0.00'),
@@ -365,17 +379,29 @@ def gestionar_equipos(request):
             return redirect('gestionar_equipos')
     else:
         form = EquipoForm()
-        
-    form.fields['torneo'].queryset = Torneo.objects.filter(complejo=mi_complejo, activo=True).order_by('categoria__nombre', 'nombre')
-    return render(request, 'core/gestionar_equipos.html', {'form': form, 'equipos': equipos})
+        form.fields['torneo'].queryset = torneos_del_complejo
+        form.fields['dirigente'].queryset = usuarios_del_complejo
+
+    return render(request, 'core/gestionar_equipos.html', {
+        'form': form, 'equipos': equipos, 'sin_usuarios_disponibles': not usuarios_del_complejo.exists(),
+    })
 
 @login_required
 @user_passes_test(es_organizador)
 def editar_equipo(request, equipo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
+
+    # 🔥 AISLAMIENTO: fijados ANTES de is_valid() — ver nota en gestionar_equipos.
+    torneos_del_complejo = Torneo.objects.filter(complejo=mi_complejo, activo=True).order_by('categoria__nombre', 'nombre')
+    usuarios_del_complejo = User.objects.filter(
+        Q(roles_cancha__complejo=mi_complejo) | Q(id=mi_complejo.organizador_id)
+    ).distinct().order_by('username')
+
     if request.method == 'POST':
         form = EquipoForm(request.POST, request.FILES, instance=equipo)
+        form.fields['torneo'].queryset = torneos_del_complejo
+        form.fields['dirigente'].queryset = usuarios_del_complejo
         if form.is_valid():
             form.save()
             # 🔥 MULTI-TENANCY: Actualiza RolComplejo por si se cambió el dirigente
@@ -388,12 +414,13 @@ def editar_equipo(request, equipo_id):
             return redirect('gestionar_equipos')
     else:
         form = EquipoForm(instance=equipo)
-        
-    form.fields['torneo'].queryset = Torneo.objects.filter(complejo=mi_complejo, activo=True).order_by('categoria__nombre', 'nombre')
+        form.fields['torneo'].queryset = torneos_del_complejo
+        form.fields['dirigente'].queryset = usuarios_del_complejo
+
     equipos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).select_related(
         'torneo', 'torneo__categoria', 'dirigente'
     ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
-    
+
     return render(request, 'core/gestionar_equipos.html', {'form': form, 'equipos': equipos, 'editando': True})
 
 @login_required
@@ -426,8 +453,10 @@ def gestionar_jugadores(request):
 
         equipos_activos = mis_equipos.filter(torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
         equipo_id = request.GET.get('equipo') or (equipo_simulado.id if equipo_simulado else None)
-        mi_equipo = mis_equipos.filter(id=equipo_id).first() if equipo_id else (equipos_activos.first() or mis_equipos.first())
-        
+        # 🔥 Si el ID pedido no es un equipo propio (ajeno o inexistente),
+        # nunca se revienta: cae de vuelta al equipo activo por defecto.
+        mi_equipo = (mis_equipos.filter(id=equipo_id).first() if equipo_id else None) or equipos_activos.first() or mis_equipos.first()
+
         mi_complejo = mi_equipo.torneo.complejo # 🔥 AISLAMIENTO AÑADIDO
 
         jugadores = Jugador.objects.filter(equipo=mi_equipo).order_by('dorsal')
@@ -2475,7 +2504,9 @@ def mis_finanzas_equipo(request):
     mis_equipos = Equipo.objects.filter(dirigente=request.user)
     equipo_simulado = obtener_equipo_simulado(request)
     equipo_id = request.GET.get('equipo') or (equipo_simulado.id if equipo_simulado else None)
-    mi_equipo = mis_equipos.filter(id=equipo_id).first() if equipo_id else mis_equipos.first()
+    # 🔥 Si el ID pedido no es un equipo propio (ajeno o inexistente), cae
+    # de vuelta al primer equipo propio en vez de mostrar la pantalla vacía.
+    mi_equipo = (mis_equipos.filter(id=equipo_id).first() if equipo_id else None) or mis_equipos.first()
 
     if mi_equipo:
         mis_sanciones = Sancion.objects.filter(equipo=mi_equipo).order_by('-id')

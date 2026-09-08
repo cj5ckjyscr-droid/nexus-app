@@ -1460,3 +1460,161 @@ class NavSuperAdminAgrupadaTest(TestCase):
         self.assertContains(response, 'href="/nexus-admin/planes/"')
         self.assertContains(response, 'href="/nexus-admin/pruebas/"')
         self.assertContains(response, 'href="/nexus-admin/"')
+
+
+class RegistrarEquipoAsignaDirigenteDelComplejoTest(TestCase):
+    """El bug original: crear un equipo no pedía ningún dirigente (el
+    formulario no tenía ese campo) y el guardado reventaba con
+    IntegrityError. El fix agrega el campo, pero restringido SIEMPRE a
+    usuarios que ya pertenecen a la cancha del organizador — nunca a
+    cualquier usuario del sistema, que es compartido entre varias canchas."""
+
+    def setUp(self):
+        self.plan = PlanSuscripcion.objects.create(nombre="Plan Equipos", precio_mensual=Decimal("10.00"))
+        self.organizador = User.objects.create_user("org_equipos", password="pass12345")
+        self.complejo = ComplejoDeportivo.objects.create(
+            nombre="Cancha Equipos", slug="cancha-equipos", organizador=self.organizador, plan=self.plan,
+        )
+        self.torneo = Torneo.objects.create(complejo=self.complejo, nombre="Torneo Equipos", organizador=self.organizador, activo=True)
+
+        self.usuario_de_mi_cancha = User.objects.create_user("usuario_propio", password="pass12345")
+        RolComplejo.objects.create(usuario=self.usuario_de_mi_cancha, complejo=self.complejo, rol="FAN")
+
+        self.otro_organizador = User.objects.create_user("org_ajeno", password="pass12345")
+        self.otro_complejo = ComplejoDeportivo.objects.create(
+            nombre="Cancha Ajena", slug="cancha-ajena", organizador=self.otro_organizador, plan=self.plan,
+        )
+        self.usuario_de_otra_cancha = User.objects.create_user("usuario_ajeno", password="pass12345")
+        RolComplejo.objects.create(usuario=self.usuario_de_otra_cancha, complejo=self.otro_complejo, rol="FAN")
+
+        self.client.login(username="org_equipos", password="pass12345")
+
+    def test_crear_equipo_sin_dirigente_no_revienta_y_pide_elegir_uno(self):
+        response = self.client.post("/equipos/", {
+            "torneo": self.torneo.id, "nombre": "Equipo Sin Dirigente", "estado_inscripcion": "APROBADO",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Equipo.objects.filter(nombre="Equipo Sin Dirigente").exists())
+        self.assertIn("dirigente", response.context["form"].errors)
+
+    def test_puede_asignar_como_dirigente_a_un_usuario_que_ya_pertenece_a_su_cancha(self):
+        response = self.client.post("/equipos/", {
+            "torneo": self.torneo.id, "nombre": "Equipo Propio", "estado_inscripcion": "APROBADO",
+            "dirigente": self.usuario_de_mi_cancha.id,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        equipo = Equipo.objects.get(nombre="Equipo Propio")
+        self.assertEqual(equipo.dirigente, self.usuario_de_mi_cancha)
+        # Ya tenía un RolComplejo (FAN) en esta cancha desde el setUp; el
+        # get_or_create no lo "sube" a DIR si ya existía — solo lo crea
+        # si no existía. Confirmamos que sigue ahí (idempotente).
+        self.assertTrue(RolComplejo.objects.filter(usuario=self.usuario_de_mi_cancha, complejo=self.complejo).exists())
+
+    def test_el_organizador_puede_asignarse_a_si_mismo_como_dirigente(self):
+        response = self.client.post("/equipos/", {
+            "torneo": self.torneo.id, "nombre": "Equipo Del Dueno", "estado_inscripcion": "APROBADO",
+            "dirigente": self.organizador.id,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Equipo.objects.get(nombre="Equipo Del Dueno").dirigente, self.organizador)
+
+    def test_no_puede_asignar_como_dirigente_a_un_usuario_de_otra_cancha(self):
+        response = self.client.post("/equipos/", {
+            "torneo": self.torneo.id, "nombre": "Equipo Intruso", "estado_inscripcion": "APROBADO",
+            "dirigente": self.usuario_de_otra_cancha.id,
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Equipo.objects.filter(nombre="Equipo Intruso").exists())
+        self.assertIn("dirigente", response.context["form"].errors)
+
+    def test_el_selector_de_dirigente_solo_lista_usuarios_de_mi_cancha(self):
+        response = self.client.get("/equipos/")
+
+        opciones = list(response.context["form"].fields["dirigente"].queryset)
+        self.assertIn(self.usuario_de_mi_cancha, opciones)
+        self.assertIn(self.organizador, opciones)
+        self.assertNotIn(self.usuario_de_otra_cancha, opciones)
+
+    def test_editar_equipo_tambien_restringe_el_selector_a_mi_cancha(self):
+        equipo = Equipo.objects.create(
+            torneo=self.torneo, dirigente=self.usuario_de_mi_cancha, nombre="Equipo Editable", estado_inscripcion="APROBADO",
+        )
+
+        response = self.client.get(f"/equipos/editar/{equipo.id}/")
+
+        opciones = list(response.context["form"].fields["dirigente"].queryset)
+        self.assertIn(self.usuario_de_mi_cancha, opciones)
+        self.assertNotIn(self.usuario_de_otra_cancha, opciones)
+
+    def test_editar_equipo_no_permite_reasignar_a_un_dirigente_de_otra_cancha(self):
+        equipo = Equipo.objects.create(
+            torneo=self.torneo, dirigente=self.usuario_de_mi_cancha, nombre="Equipo Editable 2", estado_inscripcion="APROBADO",
+        )
+
+        response = self.client.post(f"/equipos/editar/{equipo.id}/", {
+            "torneo": self.torneo.id, "nombre": "Equipo Editable 2", "estado_inscripcion": "APROBADO",
+            "dirigente": self.usuario_de_otra_cancha.id,
+        })
+
+        self.assertEqual(response.status_code, 200)
+        equipo.refresh_from_db()
+        self.assertEqual(equipo.dirigente, self.usuario_de_mi_cancha)
+
+    def test_no_puede_inscribir_un_equipo_en_un_torneo_de_otra_cancha(self):
+        torneo_ajeno = Torneo.objects.create(complejo=self.otro_complejo, nombre="Torneo Ajeno", organizador=self.otro_organizador, activo=True)
+
+        response = self.client.post("/equipos/", {
+            "torneo": torneo_ajeno.id, "nombre": "Equipo Colado", "estado_inscripcion": "APROBADO",
+            "dirigente": self.usuario_de_mi_cancha.id,
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Equipo.objects.filter(nombre="Equipo Colado").exists())
+        self.assertIn("torneo", response.context["form"].errors)
+
+
+class DirigenteNoVeJugadoresDeOtroEquipoTest(TestCase):
+    """Al fichar/ver jugadores, un Dirigente solo debe ver su propio
+    equipo — nunca el de otro equipo, ni siquiera pasando su ID por la
+    URL. Las tablas de estadísticas/goleadores/sanciones sí son
+    intencionalmente visibles para todos (torneo completo), pero fichar
+    jugadores es un dato privado de cada equipo."""
+
+    def setUp(self):
+        plan = PlanSuscripcion.objects.create(nombre="Plan Aislamiento", precio_mensual=Decimal("10.00"))
+        organizador = User.objects.create_user("org_aislamiento", password="pass12345")
+        complejo = ComplejoDeportivo.objects.create(
+            nombre="Cancha Aislamiento", slug="cancha-aislamiento", organizador=organizador, plan=plan,
+        )
+        torneo = Torneo.objects.create(complejo=complejo, nombre="Torneo Aislamiento", organizador=organizador, activo=True)
+
+        self.dirigente_a = User.objects.create_user("dirigente_a", password="pass12345")
+        self.equipo_a = Equipo.objects.create(torneo=torneo, dirigente=self.dirigente_a, nombre="Equipo A", estado_inscripcion="APROBADO")
+        Jugador.objects.create(equipo=self.equipo_a, nombres="Jugador De A", dorsal=1, cedula="1710000201")
+
+        self.dirigente_b = User.objects.create_user("dirigente_b", password="pass12345")
+        self.equipo_b = Equipo.objects.create(torneo=torneo, dirigente=self.dirigente_b, nombre="Equipo B", estado_inscripcion="APROBADO")
+        Jugador.objects.create(equipo=self.equipo_b, nombres="Jugador De B", dorsal=1, cedula="1710000202")
+
+        self.client.login(username="dirigente_a", password="pass12345")
+
+    def test_ve_su_propio_plantel_por_defecto(self):
+        response = self.client.get("/jugadores/")
+
+        self.assertEqual(response.context["equipo_obj"], self.equipo_a)
+        nombres = [j.nombres for j in response.context["jugadores"]]
+        self.assertIn("Jugador De A", nombres)
+        self.assertNotIn("Jugador De B", nombres)
+
+    def test_no_puede_ver_el_plantel_de_otro_equipo_pasando_su_id_por_la_url(self):
+        response = self.client.get(f"/jugadores/?equipo={self.equipo_b.id}")
+
+        # Se ignora el intento y cae de vuelta a su propio equipo — nunca
+        # muestra el plantel ajeno.
+        self.assertNotEqual(response.context["equipo_obj"], self.equipo_b)
+        nombres = [j.nombres for j in response.context["jugadores"]]
+        self.assertNotIn("Jugador De B", nombres)

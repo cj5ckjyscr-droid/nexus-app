@@ -221,9 +221,19 @@
                 </div>
             </div>
 
+            {% if sin_usuarios_disponibles %}
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div>
+                        Todavía no tienes usuarios registrados en tu cancha para asignarlos como Dirigente.
+                        <a href="{% url 'crear_usuario' %}" class="fw-bold">Crea uno primero &rarr;</a>
+                    </div>
+                </div>
+            {% endif %}
+
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                
+
                 <!-- El row g-3 acomoda los inputs en varias columnas en PC y 1 en móvil -->
                 <div class="row g-3">
                     {% for field in form %}
