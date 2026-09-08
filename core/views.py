@@ -39,6 +39,7 @@ from .models import (
 
 from .utils import validar_cedula_ecuador, consultar_sri
 from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba, obtener_equipo_simulado, NOMBRE_PLAN_DEMO
+from .services.google_auth import verificar_token_google, obtener_o_crear_usuario_de_google, GoogleTokenInvalido
 
 # =========================================================
 # --- FUNCIONES DE CONTROL DE ACCESO (PERMISOS CONTEXTUALES) ---
@@ -1925,6 +1926,40 @@ def registro_publico(request):
         form = RegistroPublicoForm()
         
     return render(request, 'registration/registro_publico.html', {'form': form})
+
+
+def google_login_callback(request):
+    """Recibe el ID token que entrega Google Identity Services desde el
+    botón "Iniciar sesión con Google" del login. Solo acepta POST — nunca
+    inicia sesión a partir de un GET/link (evita ataques de login CSRF)."""
+    if request.method != 'POST':
+        return redirect('login')
+
+    token = request.POST.get('credential')
+    if not token:
+        messages.error(request, "⛔ No se recibió el token de Google. Intenta de nuevo.")
+        return redirect('login')
+
+    try:
+        info = verificar_token_google(token)
+    except GoogleTokenInvalido as e:
+        messages.error(request, f"⛔ No se pudo iniciar sesión con Google: {e}")
+        return redirect('login')
+
+    usuario, creado = obtener_o_crear_usuario_de_google(info)
+    if not usuario.is_active:
+        messages.error(request, "⛔ Esta cuenta está desactivada. Contacta a soporte.")
+        return redirect('login')
+
+    login(request, usuario, backend='core.backends.UsuarioOCedulaBackend')
+    nombre_mostrado = usuario.first_name or usuario.username
+    if creado:
+        messages.success(request, f'✅ ¡Bienvenido, {nombre_mostrado}! Tu cuenta se creó con Google.')
+    else:
+        messages.success(request, f'✅ Bienvenido de nuevo, {nombre_mostrado}.')
+    return redirect('dashboard')
+
+
 def ver_torneos_activos(request):
     # 🔥 AISLAMIENTO: Si el dirigente entra, solo le mostramos los torneos
     # de los complejos donde él ya tiene un equipo o ha jugado.

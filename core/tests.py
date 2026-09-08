@@ -1790,3 +1790,86 @@ class AsignarDirigenteActualizaSuRolAunqueYaTuvieraOtroTest(TestCase):
         self.assertEqual(response.status_code, 200)
         equipo = Equipo.objects.get(nombre="Equipo Rol Upgrade 2")
         self.assertEqual(response.context["equipo_obj"], equipo)
+
+
+class GoogleLoginCallbackTest(TestCase):
+    def test_get_no_inicia_sesion_solo_redirige_al_login(self):
+        response = self.client.get("/auth/google/callback/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse("_auth_user_id" in self.client.session)
+
+    def test_post_sin_credential_muestra_error_y_no_revienta(self):
+        response = self.client.post("/auth/google/callback/", follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse("_auth_user_id" in self.client.session)
+
+    @patch("core.views.verificar_token_google")
+    def test_token_invalido_no_inicia_sesion(self, mock_verificar):
+        from core.services.google_auth import GoogleTokenInvalido
+        mock_verificar.side_effect = GoogleTokenInvalido("token vencido")
+
+        response = self.client.post("/auth/google/callback/", {"credential": "token-falso"}, follow=True)
+
+        self.assertFalse("_auth_user_id" in self.client.session)
+        mensajes = [str(m) for m in response.context["messages"]]
+        self.assertTrue(any("token vencido" in m for m in mensajes))
+
+    @patch("core.views.verificar_token_google")
+    def test_token_valido_crea_cuenta_nueva_y_la_deja_logueada(self, mock_verificar):
+        mock_verificar.return_value = {
+            "email": "nuevo.jugador@example.com", "email_verified": True,
+            "given_name": "Nuevo", "family_name": "Jugador", "iss": "accounts.google.com",
+        }
+
+        response = self.client.post("/auth/google/callback/", {"credential": "token-valido"})
+
+        self.assertEqual(response.status_code, 302)
+        usuario = User.objects.get(email="nuevo.jugador@example.com")
+        self.assertEqual(int(self.client.session["_auth_user_id"]), usuario.id)
+        self.assertFalse(usuario.has_usable_password())
+
+    @patch("core.views.verificar_token_google")
+    def test_token_valido_de_un_correo_existente_inicia_sesion_en_esa_cuenta(self, mock_verificar):
+        existente = User.objects.create_user("ya_registrado", email="ya.registrado@example.com", password="pass12345")
+        mock_verificar.return_value = {
+            "email": "ya.registrado@example.com", "email_verified": True,
+            "given_name": "Ya", "family_name": "Registrado", "iss": "accounts.google.com",
+        }
+
+        response = self.client.post("/auth/google/callback/", {"credential": "token-valido"})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(int(self.client.session["_auth_user_id"]), existente.id)
+        self.assertEqual(User.objects.filter(email="ya.registrado@example.com").count(), 1)
+
+
+class VerificarTokenGoogleTest(TestCase):
+    """Prueba el helper de verificación en sí (no la vista), con
+    google.oauth2.id_token.verify_oauth2_token mockeado para no llamar a
+    Google de verdad."""
+
+    @override_settings(GOOGLE_CLIENT_ID="")
+    def test_sin_google_client_id_configurado_rechaza_con_mensaje_claro(self):
+        from core.services.google_auth import verificar_token_google, GoogleTokenInvalido
+        with self.assertRaises(GoogleTokenInvalido):
+            verificar_token_google("cualquier-token")
+
+    @override_settings(GOOGLE_CLIENT_ID="mi-client-id")
+    @patch("core.services.google_auth.id_token.verify_oauth2_token")
+    def test_rechaza_un_emisor_que_no_es_google(self, mock_verify):
+        from core.services.google_auth import verificar_token_google, GoogleTokenInvalido
+        mock_verify.return_value = {"iss": "https://malicioso.example.com", "email_verified": True, "email": "a@b.com"}
+
+        with self.assertRaises(GoogleTokenInvalido):
+            verificar_token_google("token")
+
+    @override_settings(GOOGLE_CLIENT_ID="mi-client-id")
+    @patch("core.services.google_auth.id_token.verify_oauth2_token")
+    def test_rechaza_un_correo_no_verificado(self, mock_verify):
+        from core.services.google_auth import verificar_token_google, GoogleTokenInvalido
+        mock_verify.return_value = {"iss": "accounts.google.com", "email_verified": False, "email": "a@b.com"}
+
+        with self.assertRaises(GoogleTokenInvalido):
+            verificar_token_google("token")

@@ -1,4 +1,6 @@
 # core/context_processors.py
+from django.conf import settings
+
 from .models import ComplejoDeportivo, Configuracion
 from .services.pruebas import obtener_equipo_simulado
 
@@ -18,4 +20,5 @@ def configuracion_global(request):
         'config_global': config,
         'es_entorno_prueba': es_entorno_prueba,
         'rol_nav_efectivo': rol_nav_efectivo,
+        'google_client_id': settings.GOOGLE_CLIENT_ID,
     }

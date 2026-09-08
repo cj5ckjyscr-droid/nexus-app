@@ -8,18 +8,53 @@
     /* Ocultamos navegación superior e inferior para formato "Pantalla Dividida" pura */
     .navbar { display: none !important; }
     .main-content { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
-    
+
     body {
+        padding-top: 0 !important; /* Sin navbar en esta pantalla, no hace falta el espacio reservado */
         background-color: #ffffff;
         min-height: 100vh;
         overflow-x: hidden;
     }
 
     /* ==========================================
-       COLUMNA IZQUIERDA: BRANDING (HERO)
+       BOTÓN "VOLVER AL INICIO" — siempre visible,
+       fijo en la esquina, sin depender de scroll.
+       ========================================== */
+    .btn-volver-inicio {
+        position: fixed;
+        top: 1.25rem;
+        left: 1.25rem;
+        z-index: 50;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.55rem 1.1rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #fff;
+        transition: all 0.2s ease;
+    }
+    .btn-volver-inicio:hover { background: rgba(255, 255, 255, 0.22); color: #fff; transform: translateX(-3px); }
+    @media (max-width: 991px) {
+        .btn-volver-inicio {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: var(--primary-navy, #0f172a);
+        }
+        .btn-volver-inicio:hover { background: #e2e8f0; color: var(--primary-navy, #0f172a); }
+    }
+
+    /* ==========================================
+       COLUMNA IZQUIERDA: BRANDING (HERO FUTBOLERO)
        ========================================== */
     .login-cover {
-        background: linear-gradient(145deg, var(--primary-navy, #0f172a) 0%, #1e293b 100%);
+        background: linear-gradient(160deg, #061014 0%, var(--primary-navy, #0f172a) 45%, #16241f 100%);
         position: relative;
         height: 100vh;
         display: flex;
@@ -31,32 +66,59 @@
         overflow: hidden;
     }
 
-    /* Patrón de fondo sutil */
-    .login-cover::before {
-        content: '';
+    /* Cancha: línea de medio campo + círculo central, muy sutiles */
+    .pitch-lines {
         position: absolute;
         inset: 0;
-        background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-        background-size: 32px 32px;
-        opacity: 0.7;
+        opacity: 0.07;
+        pointer-events: none;
+    }
+    .pitch-lines::before {
+        content: '';
+        position: absolute;
+        top: 0; bottom: 0; left: 50%;
+        width: 2px;
+        background: #fff;
+        transform: translateX(-50%);
+    }
+    .pitch-lines::after {
+        content: '';
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 260px; height: 260px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
     }
 
-    /* Resplandor animado detrás del logo */
+    /* Reflectores de estadio (glow) */
     .logo-glow {
         position: absolute;
         width: 500px;
         height: 500px;
         background: var(--primary-blue, #1d4ed8);
         filter: blur(150px);
-        opacity: 0.15;
+        opacity: 0.18;
         border-radius: 50%;
         z-index: 0;
         animation: pulseGlow 6s ease-in-out infinite alternate;
     }
+    .logo-glow-alt {
+        position: absolute;
+        bottom: -10%;
+        right: -10%;
+        width: 380px;
+        height: 380px;
+        background: #16a34a;
+        filter: blur(140px);
+        opacity: 0.14;
+        border-radius: 50%;
+        z-index: 0;
+    }
 
     @keyframes pulseGlow {
-        0% { transform: scale(0.85); opacity: 0.1; }
-        100% { transform: scale(1.15); opacity: 0.25; }
+        0% { transform: scale(0.85); opacity: 0.12; }
+        100% { transform: scale(1.15); opacity: 0.28; }
     }
 
     .hero-logo {
@@ -74,6 +136,31 @@
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Tira de estadísticas estilo marcador */
+    .stats-strip {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 2rem;
+        margin-top: 2.5rem;
+    }
+    .stats-strip .stat-item { text-align: center; }
+    .stats-strip .stat-num {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+        font-size: 1.6rem;
+        color: #fff;
+        line-height: 1;
+    }
+    .stats-strip .stat-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(255,255,255,0.55);
+        font-weight: 700;
+        margin-top: 0.3rem;
     }
 
     /* ==========================================
@@ -104,13 +191,13 @@
         height: 3.8rem;
         transition: all 0.3s ease;
     }
-    
+
     .form-floating > .form-control:focus {
         border-color: var(--primary-blue, #1d4ed8);
         background-color: #ffffff;
         box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.1);
     }
-    
+
     .form-floating > label {
         color: #64748b;
         font-weight: 600;
@@ -156,11 +243,53 @@
         justify-content: center;
         align-items: center;
     }
-    
+
     .btn-login-pro:hover {
         transform: translateY(-3px);
         box-shadow: 0 12px 25px rgba(29, 78, 216, 0.35);
         filter: brightness(1.05);
+    }
+
+    /* Divisor "o continúa con" */
+    .divider-o {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 1.5rem 0;
+        color: #94a3b8;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .divider-o::before, .divider-o::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
+    /* Botón de Google */
+    .btn-google-pro {
+        background: #ffffff;
+        color: #1e293b;
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        font-weight: 700;
+        padding: 12px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .btn-google-pro:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(15, 23, 42, 0.08);
     }
 
     /* Caja de Registro Alternativo */
@@ -210,15 +339,22 @@
 {% endblock %}
 
 {% block contenido %}
+
+<a href="{% url 'dashboard' %}" class="btn-volver-inicio">
+    <i class="bi bi-arrow-left-short fs-5"></i> Volver al inicio
+</a>
+
 <div class="row g-0 h-100 w-100">
-    
+
     <div class="col-lg-6 col-xl-7 d-none d-lg-flex login-cover">
+        <div class="pitch-lines"></div>
         <div class="logo-glow"></div>
-        
+        <div class="logo-glow-alt"></div>
+
         {% if config_global.logo_sistema %}
             <img src="{{ config_global.logo_sistema.url }}" alt="Logo NEXUS SPORTOPS" class="img-fluid hero-logo mb-5 animate__animated animate__zoomIn">
         {% endif %}
-        
+
         <div class="text-center position-relative z-1 animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
             <h1 class="fw-black text-white mb-2" style="letter-spacing: -1.5px; font-size: 3.8rem; text-shadow: 0 4px 12px rgba(0,0,0,0.3);">
                 NEXUS SPORTOPS
@@ -231,13 +367,28 @@
                     <i class="bi bi-geo-alt-fill text-info me-2"></i> Valle de los Chillos, Ecuador
                 </span>
             </div>
+
+            <div class="stats-strip justify-content-center">
+                <div class="stat-item">
+                    <div class="stat-num">⚽ 100%</div>
+                    <div class="stat-label">En Cancha</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">🏆 24/7</div>
+                    <div class="stat-label">Estadísticas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">🟨🟥 Live</div>
+                    <div class="stat-label">Vocalía</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="col-12 col-lg-6 col-xl-5">
         <div class="login-form-container">
             <div class="form-wrapper">
-                
+
                 <div class="text-center d-lg-none mb-5 cascade-1">
                     {% if config_global.logo_sistema %}
                         <img src="{{ config_global.logo_sistema.url }}" style="height: 80px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));" alt="Logo NEXUS SPORTOPS">
@@ -263,7 +414,7 @@
 
                 <form method="post" class="cascade-2">
                     {% csrf_token %}
-                    
+
                     <div class="form-floating mb-3 position-relative">
                         <input type="text" name="username" class="form-control" id="floatingUser" placeholder="Usuario o Cédula" autocomplete="username" required>
                         <label for="floatingUser"><i class="bi bi-person-fill me-2 text-muted"></i>Usuario o Cédula</label>
@@ -290,6 +441,32 @@
                     </button>
                 </form>
 
+                {% if google_client_id %}
+                <div class="cascade-3">
+                    <div class="divider-o">o continúa con</div>
+
+                    <button type="button" id="btnGoogleLogin" class="btn-google-pro">
+                        <svg width="20" height="20" viewBox="0 0 48 48">
+                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+                        </svg>
+                        Iniciar sesión con Google
+                    </button>
+                </div>
+
+                <div id="g_id_onload"
+                     data-client_id="{{ google_client_id }}"
+                     data-callback="handleGoogleCredential"
+                     style="display:none;">
+                </div>
+                <form id="googleLoginForm" method="post" action="{% url 'google_login_callback' %}" class="d-none">
+                    {% csrf_token %}
+                    <input type="hidden" name="credential" id="googleCredentialInput">
+                </form>
+                {% endif %}
+
                 <div class="register-box cascade-3">
                     <div class="mb-3">
                         <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 mb-2 rounded-pill fw-bold">NUEVA TEMPORADA</span>
@@ -301,16 +478,32 @@
                     </a>
                 </div>
 
-                <div class="mt-4 text-center cascade-4">
-                     <a href="{% url 'dashboard' %}" class="text-muted small text-decoration-none fw-bold hover-lift d-inline-block p-2">
-                        <i class="bi bi-arrow-left-short fs-5 align-middle"></i> Volver a la página principal
-                    </a>
-                </div>
-
             </div>
         </div>
     </div>
 </div>
+
+{% if google_client_id %}
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+    function handleGoogleCredential(response) {
+        document.getElementById('googleCredentialInput').value = response.credential;
+        document.getElementById('googleLoginForm').submit();
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        var btn = document.getElementById('btnGoogleLogin');
+        if (btn) {
+            btn.addEventListener('click', function () {
+                if (window.google && window.google.accounts && window.google.accounts.id) {
+                    google.accounts.id.prompt();
+                } else {
+                    alert('Google Sign-In todavía está cargando, intenta de nuevo en un segundo.');
+                }
+            });
+        }
+    });
+</script>
+{% endif %}
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -323,7 +516,7 @@
                 // Alternar tipo de input
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordInput.setAttribute('type', type);
-                
+
                 // Animación y cambio de ícono
                 eyeIcon.style.transform = 'scale(0.5)';
                 setTimeout(() => {

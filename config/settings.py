@@ -151,6 +151,32 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
+# --- GOOGLE SIGN-IN ---
+# Crear en https://console.cloud.google.com/apis/credentials (tipo "ID de
+# cliente de OAuth" > "Aplicación web"). El botón de Google se oculta solo
+# si esta variable no está configurada.
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
+
+# --- SEGURIDAD: RECUPERACIÓN DE CONTRASEÑA ---
+# El link de "olvidé mi contraseña" expira en 1 hora (Django trae 3 días
+# por defecto) — una ventana más corta reduce el riesgo si el correo del
+# usuario queda expuesto o el link se comparte por error.
+PASSWORD_RESET_TIMEOUT = 3600
+
+# --- SEGURIDAD: COOKIES Y HTTPS (solo en producción, DEBUG=False) ---
+# En desarrollo local (sin HTTPS) estas banderas romperían el login, por
+# eso solo se activan cuando DEBUG está apagado.
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    # Render (y la mayoría de PaaS) están detrás de un proxy que termina el
+    # TLS y reenvía por HTTP interno — sin esto Django cree que todo es
+    # HTTP y entra en un loop de redirects con SECURE_SSL_REDIRECT activo.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
 # --- CRISPY FORMS (BOOTSTRAP 5) ---
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -158,16 +184,20 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # ==========================================
 # CONFIGURACIÓN PARA ENVIAR CORREOS (GMAIL)
 # ==========================================
-# Para pruebas locales, es mejor que los correos se impriman en la consola 
-# en lugar de enviarlos de verdad, para evitar bloqueos por spam.
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'deyvi2413@gmail.com'  
-EMAIL_HOST_PASSWORD = 'qjok ygwc hufa tlbm' 
-DEFAULT_FROM_EMAIL = 'NEXUS SPORTOPS <deyvi2413@gmail.com>'
+# 🔒 Nunca hardcodear credenciales reales aquí — SIEMPRE por variable de
+# entorno. Si EMAIL_HOST_PASSWORD no está configurada, se usa la consola
+# (los correos se imprimen en la terminal, no se envían de verdad) para
+# que el proyecto siga siendo usable en desarrollo sin exponer nada.
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'deyvi2413@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+if EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = f'NEXUS SPORTOPS <{EMAIL_HOST_USER}>'
 
 # 💻 CONFIGURACIÓN EN COMPUTADORA LOCAL (DESARROLLO)
 # Si existe CLOUDINARY_URL, los archivos (logos, fotos) se suben a Cloudinary
