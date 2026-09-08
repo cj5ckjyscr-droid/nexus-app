@@ -171,7 +171,7 @@
                     <div class="form-floating">
                         {{ field }}
                         <label for="{{ field.id_for_label }}">
-                            {% if field.name == 'username' or 'cedula' in field.name|lower %}
+                            {% if field.name == 'username' %}
                                 Cédula (10 dígitos)
                             {% elif 'telefono' in field.name|lower or 'celular' in field.name|lower %}
                                 Celular (09...)
@@ -217,7 +217,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const name = input.name.toLowerCase();
             const val = input.value;
 
-            if (name === 'username' || name.includes('cedula')) {
+            if (name === 'username') {
                 cedulaValida = validarCedulaEcuatoriana(val);
                 mostrarFeedback(input, cedulaValida, "Cédula inválida");
             }

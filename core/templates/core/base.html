@@ -4,20 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="color-scheme" content="light dark">
+    <meta name="color-scheme" content="light">
     <title>{% block title %}{% if complejo %}{{ complejo.nombre }}{% else %}NEXUS SPORTOPS{% endif %}{% endblock %}</title>
-    <script>
-        /* Aplica el tema ANTES de pintar la página, para evitar parpadeo. */
-        (function () {
-            try {
-                var guardado = localStorage.getItem('nexus-theme');
-                var tema = guardado || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                document.documentElement.setAttribute('data-theme', tema);
-                document.documentElement.setAttribute('data-bs-theme', tema);
-            } catch (e) {}
-        })();
-    </script>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -70,54 +59,6 @@
             --slate-900: #0F172A;
         }
 
-        /* =========================================================
-           MODO OSCURO: automático (sistema) + manual (data-theme)
-           ========================================================= */
-        @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) {
-                --bg-app: #0B1220;
-                --bg-surface: #111827;
-                --text-main: #F1F5F9;
-                --text-soft: #94A3B8;
-                --border-light: #1E293B;
-                --brand-primary: #818CF8;
-                --brand-hover: #A5B4FC;
-                --bg-surface-translucent: rgba(17, 24, 39, 0.95);
-
-                --slate-50: #0F172A;
-                --slate-100: #1E293B;
-                --slate-200: #334155;
-                --slate-300: #475569;
-                --slate-400: #64748B;
-                --slate-500: #94A3B8;
-                --slate-600: #CBD5E1;
-                --slate-700: #E2E8F0;
-                --slate-800: #F1F5F9;
-                --slate-900: #F8FAFC;
-            }
-        }
-        :root[data-theme="dark"] {
-            --bg-app: #0B1220;
-            --bg-surface: #111827;
-            --text-main: #F1F5F9;
-            --text-soft: #94A3B8;
-            --border-light: #1E293B;
-            --brand-primary: #818CF8;
-            --brand-hover: #A5B4FC;
-            --bg-surface-translucent: rgba(17, 24, 39, 0.95);
-
-            --slate-50: #0F172A;
-            --slate-100: #1E293B;
-            --slate-200: #334155;
-            --slate-300: #475569;
-            --slate-400: #64748B;
-            --slate-500: #94A3B8;
-            --slate-600: #CBD5E1;
-            --slate-700: #E2E8F0;
-            --slate-800: #F1F5F9;
-            --slate-900: #F8FAFC;
-        }
-
         /* --- ALIAS "SLATE" (usados por varias plantillas migradas) --- */
         .text-slate-50 { color: var(--slate-50) !important; }
         .text-slate-100 { color: var(--slate-100) !important; }
@@ -143,6 +84,7 @@
             flex-direction: column;
             -webkit-font-smoothing: antialiased;
             letter-spacing: -0.01em;
+            padding-top: 90px;
         }
 
         h1, h2, h3, h4, h5, .brand-text, .btn-nexus {
@@ -298,7 +240,6 @@
         /* --- CONTENEDOR PRINCIPAL --- */
         .main-content {
             flex: 1;
-            margin-top: 90px;
             padding-bottom: 60px;
         }
 
@@ -358,13 +299,6 @@
     </style>
     {% block extra_css %}{% endblock %}
 
-    {# =============================================================
-       CAPA DE COORDINACIÓN DARK/LIGHT (GLOBAL)
-       Se carga DESPUÉS de los <style> de cada plantilla para que
-       los overrides ganen. Remapea clases estáticas de Bootstrap y
-       colores claros hardcodeados a las variables del tema cuando
-       el modo oscuro está activo (manual o por preferencia del SO).
-       ============================================================= #}
     <style>
         /* Remapeos globales de clases estáticas light -> variables de tema */
         .text-dark { color: var(--text-main) !important; }
@@ -411,10 +345,6 @@
         .clean-input:focus {
             background-color: var(--bg-surface) !important;
         }
-
-        /* Aplica el override solo en modo oscuro para no afectar al claro.
-           En claro las variables ya apuntan a los valores light correctos,
-           por lo que estos remapeos son coherentes en ambos. */
     </style>
 </head>
 <body>
@@ -463,14 +393,10 @@
                 <i class="bi bi-list fs-2" style="color: var(--text-main);"></i>
             </button>
 
-            <button type="button" id="themeToggleBtn" class="btn-outline-nexus d-flex align-items-center justify-content-center ms-2" style="width: 40px; height: 40px; padding: 0; border-radius: 50%;" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema claro/oscuro">
-                <i class="bi bi-moon-stars-fill" id="themeToggleIconDark" style="display: none;"></i>
-                <i class="bi bi-sun-fill" id="themeToggleIconLight" style="display: none;"></i>
-            </button>
-
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
 
+                    {% if not user.is_authenticated or rol_nav_efectivo == 'FAN' %}
                     <li class="nav-item">
                         <a class="nav-link fw-bold {% if request.resolver_match.url_name == 'landing_principal' %}text-primary{% endif %}" href="{% url 'landing_principal' %}">
                             <i class="bi bi-grid-fill me-1"></i> Explorar Canchas
@@ -482,6 +408,7 @@
                             Planes y Precios
                         </a>
                     </li>
+                    {% endif %}
 
                     {% if complejo %}
                         <li class="nav-item">
@@ -505,15 +432,20 @@
                             </li>
 
                         {% elif rol_nav_efectivo == 'ORG' %}
-                            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Panel</a></li>
+                            <li class="nav-item"><a class="nav-link fw-semibold" href="{% url 'dashboard' %}"><i class="bi bi-house-door-fill me-1"></i>Inicio</a></li>
                             {% if es_entorno_prueba %}
                                 <li class="nav-item"><a class="nav-link text-warning fw-bold" href="{% url 'prueba_seleccionar_equipo' %}">🧪 Dirigente de Equipo</a></li>
                             {% endif %}
-                            <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_equipos' %}">Equipos</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'gestionar_finanzas' %}">Finanzas</a></li>
-                            
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Gestión</a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_equipos' %}"><i class="bi bi-shield me-2"></i>Equipos</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_finanzas' %}"><i class="bi bi-cash-stack me-2"></i>Finanzas</a></li>
+                                </ul>
+                            </li>
+
                         {% elif rol_nav_efectivo == 'DIR' %}
-                            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Mi Equipo</a></li>
+                            <li class="nav-item"><a class="nav-link fw-semibold" href="{% url 'dashboard' %}"><i class="bi bi-house-door-fill me-1"></i>Inicio</a></li>
                         {% endif %}
 
                         <li class="nav-item dropdown ms-lg-2 mt-2 mt-lg-0">
@@ -630,33 +562,6 @@
             });
             toastList.forEach(toast => toast.show());
         });
-    </script>
-
-    <script>
-        (function () {
-            var root = document.documentElement;
-            var btn = document.getElementById('themeToggleBtn');
-            var iconDark = document.getElementById('themeToggleIconDark');
-            var iconLight = document.getElementById('themeToggleIconLight');
-
-            function actualizarIcono() {
-                var esOscuro = root.getAttribute('data-theme') === 'dark';
-                iconDark.style.display = esOscuro ? 'none' : 'inline-block';
-                iconLight.style.display = esOscuro ? 'inline-block' : 'none';
-            }
-
-            actualizarIcono();
-
-            if (btn) {
-                btn.addEventListener('click', function () {
-                    var nuevoTema = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-                    root.setAttribute('data-theme', nuevoTema);
-                    root.setAttribute('data-bs-theme', nuevoTema);
-                    try { localStorage.setItem('nexus-theme', nuevoTema); } catch (e) {}
-                    actualizarIcono();
-                });
-            }
-        })();
     </script>
 
     {% block extra_js %}{% endblock %}

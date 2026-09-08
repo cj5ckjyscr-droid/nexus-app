@@ -208,31 +208,28 @@ class PagoForm(forms.ModelForm):
         return cleaned_data
 
 class RegistroPublicoForm(UserCreationForm):
+    # El "usuario" de registro público ES la cédula (así lo fuerza el JS del
+    # formulario: solo dígitos, máx. 10, validada). No se vuelve a pedir la
+    # cédula en un campo aparte para no duplicar la misma pregunta.
     first_name = forms.CharField(label="Nombres", required=True, widget=forms.TextInput(attrs={'class': 'form-control'}))
     last_name = forms.CharField(label="Apellidos", required=True, widget=forms.TextInput(attrs={'class': 'form-control'}))
     email = forms.EmailField(label="Correo Electrónico", required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
     telefono = forms.CharField(label="Teléfono", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    cedula = forms.CharField(
-        label="Cédula", required=False,
-        help_text="Opcional. Podrás iniciar sesión con ella además de tu usuario.",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '10 dígitos'}),
-    )
 
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']
         widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '10 dígitos'}),
         }
 
-    def clean_cedula(self):
-        cedula = self.cleaned_data.get('cedula')
-        if not cedula:
-            return cedula
-        validar_cedula_db(cedula)
-        if Perfil.objects.filter(cedula=cedula).exists():
-            raise forms.ValidationError("Esa cédula ya está registrada en otra cuenta.")
-        return cedula
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if username:
+            validar_cedula_db(username)
+            if Perfil.objects.filter(cedula=username).exists():
+                raise forms.ValidationError("Esa cédula ya está registrada en otra cuenta.")
+        return username
 
     # Le agregamos el parámetro "complejo=None" por si se registran desde la página de una cancha específica
     def save(self, complejo=None, commit=True):
@@ -241,14 +238,14 @@ class RegistroPublicoForm(UserCreationForm):
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.email = self.cleaned_data['email']
-        
+
         if commit:
             user.save()
-            
+
         # 1. Creamos el Perfil GLOBAL (Solo datos personales)
         perfil, created = Perfil.objects.get_or_create(usuario=user)
         perfil.telefono = self.cleaned_data.get('telefono')
-        perfil.cedula = self.cleaned_data.get('cedula') or None
+        perfil.cedula = user.username
         # ELIMINADO: perfil.rol = 'FAN' <-- Esto ya no va aquí
         perfil.save()
         

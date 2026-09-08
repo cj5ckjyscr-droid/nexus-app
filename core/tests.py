@@ -588,7 +588,7 @@ class LoginPorCedulaTest(DosCanchasTestCase):
 
     def test_registro_publico_no_revienta_al_iniciar_sesion_automaticamente(self):
         response = self.client.post("/registro/", {
-            "username": "nuevo_fan",
+            "username": "1701000000",
             "password1": "ClaveSegura123!",
             "password2": "ClaveSegura123!",
             "first_name": "Nuevo",
