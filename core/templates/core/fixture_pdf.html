@@ -122,20 +122,21 @@
         <div class="empresa">NEXUS SPORTOPS</div>
         <div class="subtitulo">FIXTURE OFICIAL DEL TORNEO</div>
         <div class="titulo-doc">{{ torneo.nombre }}</div>
+        {% if fase_titulo %}<div class="subtitulo">{{ fase_titulo }}</div>{% endif %}
     </div>
     
     {% for jornada in fixture %}
     <div class="jornada">
-        <div class="jornada-title">FECHA {{ jornada.numero_fecha }}</div>
+        <div class="jornada-title">{% if jornada.titulo %}{{ jornada.titulo }}{% else %}FECHA {{ jornada.numero_fecha }}{% endif %}</div>
         <table>
             {% for partido in jornada.partidos %}
             <tr>
                 <td class="local">
-                    {% if partido.local %}{{ partido.local.nombre }}{% else %}<span class="descanso">DESCANSO</span>{% endif %}
+                    {% if partido.local %}{{ partido.local.nombre|default:partido.local }}{% else %}<span class="descanso">DESCANSO</span>{% endif %}
                 </td>
-                <td class="vs">VS</td>
+                <td class="vs">{% if partido.detalle %}<span style="font-size:8px;">{{ partido.detalle }}</span><br>{% endif %}VS</td>
                 <td class="visita">
-                    {% if partido.visita %}{{ partido.visita.nombre }}{% else %}<span class="descanso">DESCANSO</span>{% endif %}
+                    {% if partido.visita %}{{ partido.visita.nombre|default:partido.visita }}{% else %}<span class="descanso">DESCANSO</span>{% endif %}
                 </td>
             </tr>
             {% endfor %}

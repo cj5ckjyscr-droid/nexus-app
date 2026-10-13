@@ -27,6 +27,26 @@ def validar_cedula_db(value):
     if calculado != digito:
         raise ValidationError("La cédula ecuatoriana ingresada no es matemáticamente válida.")
 
+def validar_documento_venezolano(value):
+    """Cédula venezolana: 7 u 8 dígitos (acepta prefijo V-/E-)."""
+    valor_limpio = value.upper().replace('-', '').replace('V', '').replace('E', '').strip()
+    if not valor_limpio.isdigit() or len(valor_limpio) not in [7, 8]:
+        raise ValidationError("El documento venezolano debe tener entre 7 y 8 dígitos numéricos (Ej: 12345678 o V-12345678).")
+
+def validar_documento_colombiano(value):
+    """Cédula colombiana: entre 6 y 10 dígitos."""
+    valor_limpio = value.replace(' ', '').strip()
+    if not valor_limpio.isdigit() or len(valor_limpio) < 6 or len(valor_limpio) > 10:
+        raise ValidationError("El documento colombiano debe tener entre 6 y 10 dígitos numéricos.")
+
+def validar_documento(tipo, value):
+    if tipo == 'VE':
+        validar_documento_venezolano(value)
+    elif tipo == 'CO':
+        validar_documento_colombiano(value)
+    else:
+        validar_cedula_db(value)
+
 validador_letras = RegexValidator(
     regex=r'^[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]+$', 
     message='El nombre solo puede contener letras y espacios. No se permiten números ni símbolos.'
@@ -235,8 +255,39 @@ class Torneo(models.Model):
     fase2_ida_vuelta = models.BooleanField(default=False, verbose_name="Fase 2 (Grupos) - Ida y Vuelta Acumulativa")
     fase3_ida_vuelta = models.BooleanField(default=False, verbose_name="Fase 3 (Eliminatorias/Cuartos) - Ida y Vuelta")
 
+    # ✨ MODALIDAD DEL CAMPEONATO (se elige al pulsar "Empezar campeonato")
+    # '' = aún no empieza (no hay fixture). 'CLASICO' = torneos creados con
+    # el flujo anterior (Fase 1 -> Fase 2 A/B -> Cuartos), se respetan tal cual.
+    FORMATOS = [
+        ('LIGA', 'Liga: todos contra todos'),
+        ('LIGA_PLAYOFF', 'Liga + Eliminatorias (los mejores pasan a llaves)'),
+        ('GRUPOS', 'Fase de grupos + Eliminatorias'),
+        ('ELIMINACION', 'Eliminación directa'),
+        ('CLASICO', 'Formato clásico (Fase 1, Fase 2 y Cuartos)'),
+    ]
+    formato = models.CharField(max_length=12, choices=FORMATOS, blank=True, default='')
+    num_grupos = models.PositiveSmallIntegerField(default=0)
+    clasifican_por_grupo = models.PositiveSmallIntegerField(default=0)
+    mejores_extra = models.PositiveSmallIntegerField(
+        default=0, help_text="Cuántos 'mejores' del siguiente puesto clasifican (ej. 4 mejores terceros).",
+    )
+    clasifican_liga = models.PositiveSmallIntegerField(default=0, help_text="Liga + Eliminatorias: cuántos pasan a llaves.")
+    final_ida_vuelta = models.BooleanField(default=False)
+    tercer_lugar = models.BooleanField(default=True)
+    semilla_sorteo = models.PositiveIntegerField(null=True, blank=True)
+    campeonato_iniciado_en = models.DateTimeField(null=True, blank=True)
+    fase_regular_cerrada = models.BooleanField(default=False)
+
     def __str__(self):
         return f"{self.nombre} ({self.complejo.nombre if self.complejo else ''})"
+
+    @property
+    def campeonato_iniciado(self):
+        return bool(self.formato)
+
+    @property
+    def es_formato_nuevo(self):
+        return self.formato in ('LIGA', 'LIGA_PLAYOFF', 'GRUPOS', 'ELIMINACION')
 
     @property
     def periodo_valido(self):
@@ -264,6 +315,7 @@ class Equipo(models.Model):
     puntos_bonificacion = models.IntegerField(default=0)
     GRUPO_FASE2_CHOICES = [('A', 'Grupo A'), ('B', 'Grupo B'), ('N', 'Ninguno')]
     grupo_fase2 = models.CharField(max_length=1, null=True, blank=True)
+    grupo = models.CharField(max_length=2, blank=True, default='', help_text="Grupo en la fase de grupos (A, B, C...)")
     
     ESTADOS_INSCRIPCION = [
         ('PENDIENTE', '⏳ Pendiente de Aprobación'),
@@ -337,20 +389,38 @@ class Pago(models.Model):
 # =====================================================
 class Jugador(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='jugadores')
+    TIPOS_DOCUMENTO = [
+        ('EC', '🇪🇨 Cédula Ecuador'),
+        ('CO', '🇨🇴 Cédula Colombia'),
+        ('VE', '🇻🇪 Cédula Venezuela'),
+    ]
     nombres = models.CharField(max_length=100, validators=[validador_letras])
     dorsal = models.PositiveIntegerField()
-    cedula = models.CharField(max_length=15, validators=[validar_cedula_db])
+    # Solo el administrador de la cancha puede fichar con documento CO/VE.
+    tipo_documento = models.CharField(max_length=2, choices=TIPOS_DOCUMENTO, default='EC', verbose_name="Tipo de Documento")
+    cedula = models.CharField(max_length=15, db_index=True)
     foto = models.ImageField(upload_to='jugadores/', null=True, blank=True)
     
     rojas_directas_acumuladas = models.PositiveIntegerField(default=0)
     expulsado_torneo = models.BooleanField(default=False)
     partidos_suspension = models.IntegerField(default=0, verbose_name="Partidos de Suspensión")
     sancionado_hasta = models.DateField(null=True, blank=True, verbose_name="Jugador Suspendido hasta:")
+    motivo_suspension = models.CharField(max_length=200, blank=True, default='')
+    # Bloqueo por no cumplir el mínimo de partidos jugados (igual que gestion_futbol)
+    bloqueado_por_cuota = models.BooleanField(default=False, verbose_name="Bloqueado por cuota de partidos")
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['equipo', 'dorsal'], name='unico_dorsal_por_equipo')
         ]
+
+    def clean(self):
+        super().clean()
+        if self.cedula:
+            try:
+                validar_documento(self.tipo_documento, self.cedula)
+            except ValidationError as e:
+                raise ValidationError({'cedula': e.messages})
 
     def __str__(self):
         return f"{self.nombres} ({self.dorsal})"
@@ -364,7 +434,20 @@ class Jugador(models.Model):
         return (self.partidos_suspension <= 0 
                 and not self.expulsado_torneo 
                 and self.rojas_directas_acumuladas < 3 
-                and not self.esta_sancionado)
+                and not self.esta_sancionado
+                and not self.bloqueado_por_cuota)
+
+    @property
+    def motivo_inhabilitacion(self):
+        if self.expulsado_torneo or self.rojas_directas_acumuladas >= 3:
+            return "Expulsado del torneo"
+        if self.bloqueado_por_cuota:
+            return "No cumplió el mínimo de partidos"
+        if self.esta_sancionado:
+            return f"Suspendido hasta {self.sancionado_hasta:%d/%m/%Y}"
+        if self.partidos_suspension > 0:
+            return f"Debe {self.partidos_suspension} partido(s)"
+        return ""
 
 # =====================================================
 # 10. PARTIDOS
@@ -378,10 +461,12 @@ class Partido(models.Model):
         ('WO', 'Walkover')
     ]
     ETAPAS = [
-        ('F1', 'Fase 1'), ('F2', 'Fase 2'), 
+        ('F1', 'Fase 1'), ('F2', 'Fase 2'), ('GRP', 'Fase de Grupos'),
+        ('16VOS', 'Dieciseisavos de Final'), ('8VOS', 'Octavos de Final'),
         ('4TOS', 'Cuartos de Final'), ('SEMI', 'Semifinal'), 
         ('TERC', 'Tercer Lugar'), ('FINAL', 'Final')
     ]
+    ETAPAS_ELIMINATORIAS = ['16VOS', '8VOS', '4TOS', 'SEMI', 'TERC', 'FINAL']
     
     informe_vocal = models.TextField(blank=True, null=True)
     informe_arbitro = models.TextField(blank=True, null=True)
@@ -402,6 +487,7 @@ class Partido(models.Model):
     goles_visita = models.PositiveIntegerField(default=0)
     estado = models.CharField(max_length=4, choices=ESTADOS, default='PROG')
     ganador_wo = models.ForeignKey(Equipo, null=True, blank=True, on_delete=models.SET_NULL)
+    llave = models.ForeignKey('Llave', null=True, blank=True, on_delete=models.CASCADE, related_name='partidos')
     
     sanciones_aplicadas = models.BooleanField(default=False, verbose_name="¿Sanciones procesadas?")
 
@@ -411,6 +497,13 @@ class Partido(models.Model):
 
     firma_local_base64 = models.TextField(blank=True, null=True, verbose_name="Firma Local Base64")
     firma_visita_base64 = models.TextField(blank=True, null=True, verbose_name="Firma Visita Base64")
+
+    class Meta:
+        indexes = [models.Index(fields=['torneo', 'etapa', 'numero_fecha'])]
+
+    @property
+    def esta_cerrado(self):
+        return self.estado in ('JUG', 'WO')
 
     def clean(self):
         if self.equipo_local == self.equipo_visita:
@@ -447,6 +540,12 @@ class DetallePartido(models.Model):
     minuto = models.PositiveIntegerField(blank=True, null=True, default=0) 
     observacion = models.TextField(blank=True, null=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['partido', 'tipo']),
+            models.Index(fields=['jugador', 'tipo']),
+        ]
+
 class Sancion(models.Model):
     TIPOS = [
         ('INSCRIPCION', 'Deuda por Inscripción'),
@@ -467,6 +566,9 @@ class Sancion(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     monto_pagado = models.DecimalField(max_digits=8, decimal_places=2, default=0.00)
 
+    class Meta:
+        indexes = [models.Index(fields=['torneo', 'pagada'])]
+
     def __str__(self):
         estado = "PAGADO" if self.pagada else "DEUDA"
         return f"{self.equipo.nombre} - {self.get_tipo_display()} (${self.monto}) [{estado}]"
@@ -484,6 +586,78 @@ class AbonoSancion(models.Model):
     def __str__(self):
         return f"Abono ${self.monto} - {self.sancion.equipo.nombre}"
     
+# =====================================================
+# 11-B. LLAVES ELIMINATORIAS (estructura fija y transparente)
+# =====================================================
+class Llave(models.Model):
+    """Un cruce del cuadro eliminatorio. Se crea completo al empezar el
+    campeonato (con etiquetas tipo "1° Grupo A") para que todos vean desde el
+    inicio contra quién se cruza cada puesto. Los ganadores avanzan solos a la
+    llave 'siguiente': nadie puede armar cruces a mano."""
+    torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name='llaves')
+    ronda = models.CharField(max_length=5)
+    orden = models.PositiveSmallIntegerField()
+    origen_a = models.CharField(max_length=12, blank=True, default='')
+    origen_b = models.CharField(max_length=12, blank=True, default='')
+    etiqueta_a = models.CharField(max_length=40, blank=True, default='')
+    etiqueta_b = models.CharField(max_length=40, blank=True, default='')
+    equipo_a = models.ForeignKey(Equipo, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    equipo_b = models.ForeignKey(Equipo, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    ganador = models.ForeignKey(Equipo, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    siguiente = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    slot_siguiente = models.CharField(max_length=1, blank=True, default='')
+    # Solo semifinales: a dónde va el perdedor (partido por el 3er lugar)
+    siguiente_perdedor = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    slot_perdedor = models.CharField(max_length=1, blank=True, default='')
+
+    class Meta:
+        ordering = ['torneo', 'orden']
+        constraints = [models.UniqueConstraint(fields=['torneo', 'ronda', 'orden'], name='llave_unica_por_ronda')]
+
+    def __str__(self):
+        a = self.equipo_a.nombre if self.equipo_a else self.etiqueta_a
+        b = self.equipo_b.nombre if self.equipo_b else self.etiqueta_b
+        return f"{self.ronda} #{self.orden}: {a} vs {b}"
+
+    @property
+    def es_bye(self):
+        return self.origen_a == 'BYE' or self.origen_b == 'BYE'
+
+# =====================================================
+# 11-C. TRAZABILIDAD FINANCIERA (bitácora inmutable)
+# =====================================================
+class MovimientoFinanciero(models.Model):
+    """Cada cobro, abono, reverso, multa creada o borrada queda registrado
+    aquí con quién lo hizo y desde dónde. Nunca se edita ni se borra."""
+    TIPOS = [
+        ('CARGO', 'Deuda / multa creada'),
+        ('ABONO', 'Cobro / abono'),
+        ('REVERSO', 'Reverso de cobro'),
+        ('ANULACION', 'Deuda / multa eliminada'),
+        ('PAGO', 'Pago directo'),
+        ('AJUSTE', 'Ajuste'),
+    ]
+    ORIGENES = [('VOCALIA', 'Mesa / Vocalía'), ('FINANZAS', 'Finanzas'), ('SISTEMA', 'Automático'), ('INSCRIPCION', 'Inscripción')]
+    complejo = models.ForeignKey(ComplejoDeportivo, on_delete=models.CASCADE, related_name='movimientos')
+    torneo = models.ForeignKey(Torneo, null=True, blank=True, on_delete=models.SET_NULL)
+    equipo = models.ForeignKey(Equipo, null=True, blank=True, on_delete=models.SET_NULL)
+    partido = models.ForeignKey(Partido, null=True, blank=True, on_delete=models.SET_NULL)
+    usuario = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    sancion_ref = models.PositiveIntegerField(null=True, blank=True)
+    tipo = models.CharField(max_length=10, choices=TIPOS)
+    origen = models.CharField(max_length=12, choices=ORIGENES, default='FINANZAS')
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
+    descripcion = models.CharField(max_length=200, blank=True)
+    equipo_nombre = models.CharField(max_length=100, blank=True)
+    fecha = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-fecha', '-id']
+        indexes = [models.Index(fields=['complejo', '-fecha'])]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} ${self.monto} - {self.equipo_nombre}"
+
 # =====================================================
 # 12. CONTABILIDAD DEL SOFTWARE (TUS GANANCIAS COMO DUEÑO)
 # =====================================================

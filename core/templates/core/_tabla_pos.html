@@ -1,0 +1,15 @@
+<table class="tabla-pos">
+    <thead><tr><th>#</th><th class="eq">Equipo</th><th>PJ</th><th class="oc-movil">G</th><th class="oc-movil">E</th><th class="oc-movil">P</th><th class="oc-movil">GF</th><th class="oc-movil">GC</th><th>DG</th><th>PTS</th></tr></thead>
+    <tbody>
+    {% for f in tabla %}
+        <tr class="{% if f.zona %}zona-{{ f.zona }}{% endif %}">
+            <td class="fw-bold">{{ f.pos }}</td>
+            <td class="eq"><span class="nombre" title="{{ f.equipo.nombre }}">{{ f.equipo.nombre }}</span></td>
+            <td>{{ f.pj }}</td><td class="oc-movil">{{ f.pg }}</td><td class="oc-movil">{{ f.pe }}</td><td class="oc-movil">{{ f.pp }}</td>
+            <td class="oc-movil">{{ f.gf }}</td><td class="oc-movil">{{ f.gc }}</td><td>{{ f.gd }}</td><td class="pts">{{ f.pts }}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="10" class="py-4" style="color: var(--text-soft);">Sin equipos</td></tr>
+    {% endfor %}
+    </tbody>
+</table>

@@ -106,6 +106,20 @@
         <span class="bg-success rounded-circle animate__animated animate__pulse animate__infinite" style="width: 8px; height: 8px;"></span>
         Portal Oficial de Torneos
     </div>
+
+    {% if not es_miembro %}
+    <div class="mb-4">
+        {% if user.is_authenticated %}
+        <form method="post" action="{% url 'unirse_cancha' complejo.slug %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold"><i class="bi bi-person-plus me-1"></i>Unirme como aficionado</button>
+        </form>
+        {% else %}
+        <a href="{% url 'login' %}?next={{ request.path|urlencode }}" class="btn btn-primary rounded-pill px-4 fw-bold"><i class="bi bi-person-plus me-1"></i>Unirme a esta cancha</a>
+        {% endif %}
+        <div class="small mt-2" style="color: var(--text-soft);">Para seguir los torneos o ser vocal de mesa de esta cancha.</div>
+    </div>
+    {% endif %}
     
     {% if url_whatsapp %}
         <div>
@@ -182,7 +196,7 @@
                 
                 <div class="mt-auto d-flex flex-column gap-2">
                     
-                    {% if torneo.inscripcion_abierta %}
+                    {% if torneo.inscripcion_abierta and not torneo.campeonato_iniciado %}
                         {% if user.is_authenticated %}
                             <a href="{% url 'solicitar_inscripcion' torneo.id %}" class="action-btn btn-inscribir mb-2 rounded-pill">
                                 <i class="bi bi-shield-plus fs-5"></i> ¡Inscribir mi Equipo!
@@ -194,7 +208,7 @@
                         {% endif %}
                     {% endif %}
 
-                    <a href="{% url 'tabla_posiciones' torneo.id %}" class="action-btn">
+                    <a href="{% if torneo.formato == 'CLASICO' %}{% url 'tabla_posiciones' torneo.id %}{% else %}{% url 'ver_campeonato' torneo.id %}{% endif %}" class="action-btn">
                         <i class="bi bi-list-ol text-primary fs-6"></i> Posiciones y Resultados
                     </a>
                     

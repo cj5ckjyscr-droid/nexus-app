@@ -1,0 +1,25 @@
+{# Panel de sanción de un jugador (solo administrador). Variables: j, volver #}
+<details class="susp-panel mt-2">
+    <summary class="small fw-semibold" style="cursor: pointer; color: #B91C1C;"><i class="bi bi-slash-circle me-1"></i>Sancionar / suspender{% if not j.esta_habilitado %} · <span class="text-dark">{{ j.motivo_inhabilitacion }}</span>{% endif %}</summary>
+    <div class="p-2 mt-2 rounded-3" style="background: #FEF2F2; border: 1px solid #FECACA;">
+        {% if j.motivo_suspension %}<div class="small mb-2"><strong>Motivo actual:</strong> {{ j.motivo_suspension }}</div>{% endif %}
+        <form method="post" action="{% url 'suspender_jugador' j.id %}" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ volver }}">
+            <input type="text" name="motivo" class="form-control form-control-sm mb-2" maxlength="200" placeholder="Motivo (ej. agresión al árbitro)">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <input type="number" name="partidos" min="1" max="50" value="1" class="form-control form-control-sm" style="width: 80px;" aria-label="Partidos">
+                <button type="submit" name="accion" value="partidos" class="btn btn-danger btn-sm">Sumar partidos</button>
+                {% if j.partidos_suspension > 0 %}<button type="submit" name="accion" value="reducir" class="btn btn-outline-secondary btn-sm">Restar</button>{% endif %}
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                <input type="date" name="hasta" class="form-control form-control-sm" style="width: 160px;" aria-label="Suspendido hasta">
+                <button type="submit" name="accion" value="fecha" class="btn btn-outline-danger btn-sm">Suspender hasta fecha</button>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                <button type="submit" name="accion" value="expulsar" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Expulsar a {{ j.nombres|escapejs }} del torneo?')">Expulsar del torneo</button>
+                {% if not j.esta_habilitado %}<button type="submit" name="accion" value="levantar" class="btn btn-success btn-sm" onclick="return confirm('¿Levantar todas las sanciones de {{ j.nombres|escapejs }}?')">Levantar sanción</button>{% endif %}
+            </div>
+        </form>
+    </div>
+</details>

@@ -141,7 +141,7 @@
         </div>
     </div>
 
-    {% if request.user.perfil.rol == 'ORG' and not fase2_ya_generada %}
+    {% if es_org and torneo.formato == 'CLASICO' and not fase2_ya_generada %}
     <div class="admin-panel reveal-up" style="animation-delay: 0.1s;">
         <div class="d-flex align-items-center mb-3 pb-2 border-bottom border-secondary">
             <i class="bi bi-rocket-takeoff-fill text-primary fs-3 me-3"></i>
@@ -151,6 +151,27 @@
             </div>
         </div>
 
+        <details class="mb-3">
+            <summary class="fw-semibold small" style="cursor: pointer; color: #B91C1C;"><i class="bi bi-person-x me-1"></i>Excluir equipos de la siguiente fase (sancionados / retirados)</summary>
+            <div class="small mt-2 mb-2" style="color: var(--text-soft);">Los marcados no pasan; su lugar lo toma el siguiente de la tabla.</div>
+            <div class="d-flex flex-wrap gap-2">
+                {% for fila in tabla %}
+                <label class="border rounded-pill px-3 py-1 small d-flex align-items-center gap-2" style="cursor: pointer;">
+                    <input type="checkbox" class="form-check-input m-0 excluir-chk" value="{{ fila.equipo.id }}"> {{ fila.pos }}. {{ fila.equipo.nombre }}
+                </label>
+                {% endfor %}
+            </div>
+        </details>
+        <script>
+            document.addEventListener('submit', function (e) {
+                const f = e.target;
+                if (!f.classList.contains('transition-card')) return;
+                f.querySelectorAll('input[name="excluir"]').forEach(i => i.remove());
+                document.querySelectorAll('.excluir-chk:checked').forEach(c => {
+                    const h = document.createElement('input'); h.type = 'hidden'; h.name = 'excluir'; h.value = c.value; f.appendChild(h);
+                });
+            }, true);
+        </script>
         <div class="row g-3">
             <div class="col-md-4">
                 <form action="{% url 'generar_fase2' torneo.id %}" method="post" class="transition-card tc-grupos">

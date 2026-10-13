@@ -79,6 +79,8 @@ def crear_entorno_prueba(usuario):
         organizador=usuario,
         categoria=categoria,
         inscripcion_abierta=True,
+        # Los partidos de demostración son de liga (todos contra todos)
+        formato="LIGA",
     )
 
     equipos = _sembrar_equipos_y_jugadores(torneo, usuario)

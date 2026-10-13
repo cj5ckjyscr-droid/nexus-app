@@ -16,6 +16,16 @@ from .models import (
 )
 
 
+def firma_png():
+    import base64, io
+    from PIL import Image, ImageDraw
+    img = Image.new("RGBA", (900, 400), (0, 0, 0, 0))
+    ImageDraw.Draw(img).line([(80, 300), (300, 120), (600, 320), (820, 150)], fill=(0, 0, 0, 255), width=6)
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
 def imagen_falsa(nombre="foto.jpg"):
     return SimpleUploadedFile(nombre, b"contenido-de-prueba", content_type="image/jpeg")
 
@@ -383,19 +393,36 @@ class VocaliaFirmasTest(DosCanchasTestCase):
     def test_guardar_informe_registra_las_firmas_digitales(self):
         self.client.login(username="org_a", password="pass12345")
 
+        firma = firma_png()
         self.client.post(f"/vocalia/{self.partido_a.id}/", {
             "guardar_informe": "1",
             "informe_vocal": "Sin novedad",
             "informe_arbitro": "Partido normal",
-            "firma_local_base64": "data:image/png;base64,AAAA",
-            "firma_visita_base64": "data:image/png;base64,BBBB",
+            "firma_local_base64": firma,
+            "firma_visita_base64": firma,
             "validado_local": "on",
             "validado_visita": "on",
         })
 
         self.partido_a.refresh_from_db()
-        self.assertEqual(self.partido_a.firma_local_base64, "data:image/png;base64,AAAA")
-        self.assertEqual(self.partido_a.firma_visita_base64, "data:image/png;base64,BBBB")
+        # Las firmas se guardan comprimidas (recortadas, blanco y negro)
+        self.assertTrue(self.partido_a.firma_local_base64.startswith("data:image/png;base64,"))
+        self.assertTrue(self.partido_a.firma_visita_base64.startswith("data:image/png;base64,"))
+        self.assertLess(len(self.partido_a.firma_local_base64), len(firma))
+        self.assertEqual(self.partido_a.estado, "JUG")
+
+    def test_firma_invalida_no_se_guarda_y_no_finaliza(self):
+        self.client.login(username="org_a", password="pass12345")
+        self.client.post(f"/vocalia/{self.partido_a.id}/", {
+            "guardar_informe": "1",
+            "firma_local_base64": "data:image/png;base64,AAAA",
+            "firma_visita_base64": "data:image/png;base64,BBBB",
+            "validado_local": "on",
+            "validado_visita": "on",
+        })
+        self.partido_a.refresh_from_db()
+        self.assertIsNone(self.partido_a.firma_local_base64)
+        self.assertEqual(self.partido_a.estado, "ACTA")
 
     def test_vocal_de_otra_cancha_no_puede_firmar_partido_ajeno(self):
         self.client.login(username="org_b", password="pass12345")

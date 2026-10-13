@@ -1,0 +1,177 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ torneo.nombre }} | Campeonato{% endblock %}
+{% block extra_css %}{% include 'core/_estilos_campeonato.html' %}{% endblock %}
+
+{% block contenido %}
+<div class="mt-3 mb-5" style="max-width: 1200px; margin: 0 auto;">
+
+    <div class="camp-hero mb-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
+            <div>
+                <div class="sub small text-uppercase fw-bold">{{ torneo.complejo.nombre }}</div>
+                <h2 class="fw-black m-0">{{ torneo.nombre }}</h2>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    {% if torneo.categoria %}<span class="camp-chip"><i class="bi bi-tag"></i>{{ torneo.categoria.nombre }}</span>{% endif %}
+                    {% if torneo.formato %}<span class="camp-chip"><i class="bi bi-trophy"></i>{{ torneo.get_formato_display }}</span>{% endif %}
+                    {% if avance.total %}<span class="camp-chip"><i class="bi bi-check2-circle"></i>{{ avance.jugados }}/{{ avance.total }} partidos de la 1ª fase</span>{% endif %}
+                    {% if torneo.semilla_sorteo %}<span class="camp-chip" title="Con este número el sorteo siempre da el mismo resultado"><i class="bi bi-shuffle"></i>Sorteo #{{ torneo.semilla_sorteo }}</span>{% endif %}
+                </div>
+            </div>
+            {% if es_admin and torneo.formato %}
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'programar_partidos' %}?torneo={{ torneo.id }}" class="btn btn-light btn-sm rounded-pill fw-bold"><i class="bi bi-calendar-event me-1"></i>Programar fechas</a>
+                {% if puede_cerrar_fase %}
+                <a href="{% url 'cerrar_fase_regular' torneo.id %}" class="btn btn-warning btn-sm rounded-pill fw-bold"><i class="bi bi-skip-forward-fill me-1"></i>{% if torneo.formato == 'LIGA' %}Cerrar liga{% else %}Pasar a la siguiente fase{% endif %}</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not torneo.formato %}
+        <div class="camp-card p-4 text-center">
+            <i class="bi bi-hourglass-split fs-1" style="color: var(--brand-primary);"></i>
+            <h5 class="fw-bold mt-2">El campeonato aún no empieza</h5>
+            {% if es_admin %}
+            <p style="color: var(--text-soft);">Elige la modalidad y el sistema genera el fixture y las llaves.</p>
+            <a href="{% url 'iniciar_campeonato' torneo.id %}" class="btn btn-primary rounded-pill px-4"><i class="bi bi-play-fill me-1"></i>Empezar campeonato</a>
+            {% else %}
+            <p class="mb-0" style="color: var(--text-soft);">Cuando el organizador lo inicie verás aquí los grupos, el fixture y las llaves.</p>
+            {% endif %}
+        </div>
+    {% else %}
+
+    {% if cuadro.campeon or campeon_liga %}
+    <div class="campeon-banner mb-4 d-flex align-items-center gap-3">
+        <div style="font-size: 2.4rem;">🏆</div>
+        <div><div class="small fw-bold text-uppercase">Campeón</div><h3 class="fw-black m-0">{% if cuadro.campeon %}{{ cuadro.campeon.nombre }}{% else %}{{ campeon_liga.nombre }}{% endif %}</h3></div>
+    </div>
+    {% endif %}
+
+    <ul class="nav nav-pills gap-2 mb-3 flex-nowrap overflow-auto" role="tablist" style="scrollbar-width: none;">
+        {% if tablas_grupos or tabla_liga %}<li class="nav-item"><button class="nav-link active rounded-pill fw-semibold text-nowrap" data-bs-toggle="pill" data-bs-target="#tab-pos" type="button"><i class="bi bi-list-ol me-1"></i>Posiciones</button></li>{% endif %}
+        {% if cuadro %}<li class="nav-item"><button class="nav-link {% if not tablas_grupos and not tabla_liga %}active{% endif %} rounded-pill fw-semibold text-nowrap" data-bs-toggle="pill" data-bs-target="#tab-llaves" type="button"><i class="bi bi-diagram-3 me-1"></i>Llaves</button></li>{% endif %}
+        {% if jornadas %}<li class="nav-item"><button class="nav-link rounded-pill fw-semibold text-nowrap" data-bs-toggle="pill" data-bs-target="#tab-fixture" type="button"><i class="bi bi-calendar3 me-1"></i>Fixture</button></li>{% endif %}
+    </ul>
+
+    <div class="tab-content">
+        <!-- POSICIONES -->
+        {% if tablas_grupos or tabla_liga %}
+        <div class="tab-pane fade show active" id="tab-pos">
+            <div class="leyenda mb-3">
+                <span><i style="background:#16A34A"></i>Clasifica a llaves</span>
+                {% if ranking_mejores %}<span><i style="background:#D97706"></i>Clasifica como mejor {{ posicion_mejores }}°</span>{% endif %}
+                <span>Desempate: puntos, diferencia de gol, goles a favor, partidos ganados.</span>
+            </div>
+
+            {% if tablas_grupos %}
+            <div class="row g-3">
+                {% for letra, tabla in tablas_grupos.items %}
+                <div class="col-12 col-lg-6 col-xxl-4">
+                    <div class="camp-card h-100">
+                        <div class="camp-card-h"><span class="camp-titulo">Grupo {{ letra }}</span></div>
+                        <div class="table-responsive border-0">
+                            {% include 'core/_tabla_pos.html' with tabla=tabla %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if ranking_mejores %}
+            <div class="camp-card mt-3">
+                <div class="camp-card-h"><span class="camp-titulo">Tabla de mejores {{ posicion_mejores }}°</span><span class="small" style="color: var(--text-soft);">Se compara por promedio por partido (justo aunque los grupos tengan distinto tamaño)</span></div>
+                <div class="table-responsive border-0">
+                    <table class="tabla-pos">
+                        <thead><tr><th>#</th><th class="eq">Equipo</th><th>Grupo</th><th>PJ</th><th>DG</th><th>GF</th><th>PTS</th></tr></thead>
+                        <tbody>
+                        {% for f in ranking_mejores %}
+                            <tr class="{% if f.zona %}zona-{{ f.zona }}{% endif %}"><td>{{ f.rank }}</td><td class="eq"><span class="nombre">{{ f.equipo.nombre }}</span></td><td>{{ f.grupo }}</td><td>{{ f.pj }}</td><td>{{ f.gd }}</td><td>{{ f.gf }}</td><td class="pts">{{ f.pts }}</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="camp-card">
+                <div class="table-responsive border-0">{% include 'core/_tabla_pos.html' with tabla=tabla_liga %}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- LLAVES -->
+        {% if cuadro %}
+        <div class="tab-pane fade {% if not tablas_grupos and not tabla_liga %}show active{% endif %}" id="tab-llaves">
+            <p class="small mb-2" style="color: var(--text-soft);"><i class="bi bi-lock me-1"></i>Cruces fijos desde el inicio del campeonato. Los ganadores avanzan automáticamente. Desliza → para ver todas las rondas.</p>
+            <div class="cuadro-scroll">
+                <div class="cuadro">
+                    {% for r in cuadro.rondas %}
+                    <div class="ronda">
+                        <div class="ronda-titulo">{{ r.nombre }}
+                            <a href="{% url 'fixture_pdf_campeonato' torneo.id %}?fase={{ r.codigo }}" title="Descargar PDF de {{ r.nombre }}" style="color: var(--text-soft);"><i class="bi bi-file-earmark-pdf"></i></a>
+                        </div>
+                        <div class="ronda-llaves">
+                            {% for ll in r.llaves %}{% include 'core/_llave.html' with ll=ll %}{% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if cuadro.tercer %}
+                    <div class="ronda">
+                        <div class="ronda-titulo">Tercer lugar
+                            <a href="{% url 'fixture_pdf_campeonato' torneo.id %}?fase=TERC" title="Descargar PDF" style="color: var(--text-soft);"><i class="bi bi-file-earmark-pdf"></i></a>
+                        </div>
+                        <div class="ronda-llaves">{% include 'core/_llave.html' with ll=cuadro.tercer %}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- FIXTURE -->
+        {% if jornadas %}
+        <div class="tab-pane fade" id="tab-fixture">
+            <div class="d-flex justify-content-end mb-2">
+                <a href="{% url 'fixture_pdf_campeonato' torneo.id %}?fase=regular" class="btn btn-outline-secondary btn-sm rounded-pill"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF</a>
+            </div>
+            <div class="row g-3">
+                {% for numero, partidos in jornadas %}
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="camp-card h-100">
+                        <div class="camp-card-h"><span class="camp-titulo">Fecha {{ numero }}</span></div>
+                        <div>
+                            {% for p in partidos %}
+                            <div class="d-flex align-items-center gap-2 px-3 py-2 {% if not forloop.first %}border-top{% endif %}" style="font-size: .86rem;">
+                                {% if p.equipo_local.grupo and torneo.formato == 'GRUPOS' %}<span class="badge bg-dark">{{ p.equipo_local.grupo }}</span>{% endif %}
+                                <span class="flex-fill text-end text-truncate fw-semibold">{{ p.equipo_local.nombre }}</span>
+                                {% if p.estado == 'JUG' or p.estado == 'WO' %}
+                                    <span class="score-pill" style="font-size: .85rem; padding: .15rem .6rem;">{{ p.goles_local }}-{{ p.goles_visita }}</span>
+                                {% else %}
+                                    <span class="small fw-bold" style="color: var(--text-soft); min-width: 52px; text-align: center;">{% if p.fecha_hora %}{{ p.fecha_hora|date:"d/m H:i" }}{% else %}vs{% endif %}</span>
+                                {% endif %}
+                                <span class="flex-fill text-truncate fw-semibold">{{ p.equipo_visita.nombre }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if es_admin and puede_reiniciar %}
+    <details class="camp-card p-3 mt-4">
+        <summary class="fw-semibold text-danger" style="cursor: pointer;"><i class="bi bi-arrow-counterclockwise me-1"></i>Reiniciar campeonato (solo si aún no se juega ningún partido)</summary>
+        <form method="post" action="{% url 'reiniciar_campeonato' torneo.id %}" class="mt-3 d-flex flex-column flex-sm-row gap-2">
+            {% csrf_token %}
+            <input type="text" name="confirmacion" class="form-control" placeholder="Escribe REINICIAR" autocomplete="off" required style="max-width: 260px;">
+            <button type="submit" class="btn btn-outline-danger rounded-pill">Borrar fixture y elegir otra modalidad</button>
+        </form>
+    </details>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

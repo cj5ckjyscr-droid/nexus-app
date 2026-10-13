@@ -19,6 +19,7 @@ urlpatterns = [
     # 2. PORTAL MULTI-TENANT (PÚBLICO POR CANCHA)
     # Por ahora lo dejamos simple, luego se puede expandir
     path('cancha/<slug:slug_complejo>/', views.portal_complejo, name='portal_complejo'),
+    path('cancha/<slug:slug_complejo>/unirme/', views.unirse_cancha, name='unirse_cancha'),
 
     # 3. RUTAS DEL SISTEMA PRIVADO (DASHBOARD)
     path('dashboard/', views.dashboard, name='dashboard'),
@@ -47,6 +48,9 @@ urlpatterns = [
     path('api/buscar_cedula/', views.api_consultar_cedula, name='api_consultar_cedula'),
     path('api/buscar_jugador/<str:cedula>/', views.buscar_jugador_api, name='buscar_jugador_api'),
     path('traspasar_jugador/<int:jugador_id>/', views.traspasar_jugador, name='traspasar_jugador'),
+    path('jugadores/suspender/<int:jugador_id>/', views.suspender_jugador, name='suspender_jugador'),
+    path('torneo/<int:torneo_id>/suspender-cuota/', views.suspender_por_cuota, name='suspender_por_cuota'),
+    path('torneo/<int:torneo_id>/revertir-cuota/', views.revertir_cuota, name='revertir_cuota'),
 
     # Calendario y Vocalía
     path('programar/', views.programar_partidos, name='programar_partidos'),
@@ -64,7 +68,15 @@ urlpatterns = [
     path('vocalia/toggle-asistencia/<int:partido_id>/<int:jugador_id>/', views.toggle_asistencia, name='toggle_asistencia'),
     path('acta/pdf/<int:partido_id>/', views.generar_acta_pdf, name='generar_acta_pdf'),
 
-    # Fixtures Automáticos
+    # Campeonato (modalidades, grupos y llaves)
+    path('campeonato/<int:torneo_id>/', views.ver_campeonato, name='ver_campeonato'),
+    path('campeonato/<int:torneo_id>/empezar/', views.iniciar_campeonato, name='iniciar_campeonato'),
+    path('campeonato/<int:torneo_id>/cerrar-fase/', views.cerrar_fase_regular, name='cerrar_fase_regular'),
+    path('campeonato/<int:torneo_id>/reiniciar/', views.reiniciar_campeonato, name='reiniciar_campeonato'),
+    path('campeonato/<int:torneo_id>/fixture.pdf', views.fixture_pdf_campeonato, name='fixture_pdf_campeonato'),
+    path('campeonato/llave/<int:llave_id>/retirar/<int:equipo_id>/', views.retirar_equipo_llave, name='retirar_equipo_llave'),
+
+    # Fixtures Automáticos (formato clásico)
     path('generar-fixture/<int:torneo_id>/', views.generar_fixture, name='generar_fixture'),
     path('generar_fase2/<int:torneo_id>/', views.generar_fase2, name='generar_fase2'),
     path('generar-semis-directas/<int:torneo_id>/', views.generar_semis_directas, name='generar_semis_directas'),
@@ -88,6 +100,7 @@ urlpatterns = [
     # Finanzas
     path('finanzas/', views.gestionar_finanzas, name='gestionar_finanzas'),
     path('finanzas/caja-diaria/', views.cierre_diario_caja, name='cierre_diario_caja'),
+    path('finanzas/trazabilidad/', views.trazabilidad_financiera, name='trazabilidad_financiera'),
     path('finanzas/notificar-whatsapp/<int:equipo_id>/', views.notificar_equipo_whatsapp, name='notificar_equipo_whatsapp'),
     path('pago/registrar/', views.registrar_pago, name='registrar_pago'),
     path('pago/historial/<int:equipo_id>/', views.historial_pagos_equipo, name='historial_pagos_equipo'),
@@ -121,7 +134,6 @@ urlpatterns = [
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='core/password_reset_confirm.html'), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='core/password_reset_complete.html'), name='password_reset_complete'),
     path('nexus-admin/', views.dashboard_saas, name='dashboard_saas'),
-    path('nexus-admin/', views.dashboard_saas, name='dashboard_saas'),
     path('nexus-admin/canchas/', views.gestionar_canchas_saas, name='gestionar_canchas_saas'),
     path('nexus-admin/canchas/editar/<int:cancha_id>/', views.editar_cancha_saas, name='editar_cancha_saas'),
     path('nexus-admin/pagos/', views.registrar_pago_saas, name='registrar_pago_saas'),
@@ -132,7 +144,6 @@ urlpatterns = [
 
     path('precios/', views.precios_publicos, name='precios_publicos'),
 
-    path('cancha/<slug:slug_complejo>/', views.portal_complejo, name='portal_complejo'),
     path('saas/pago/reversar/<int:pago_id>/', views.revertir_pago_saas, name='revertir_pago_saas'),
     # URL Secreta de Automatización
     path('api/cron/revision-diaria/', views.automatizacion_diaria_saas, name='cron_revision_diaria'),

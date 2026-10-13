@@ -8,7 +8,7 @@ from .models import (
     Perfil, Torneo, Equipo, Jugador, Partido, Pago,
     Cupon, FotoGaleria, Configuracion, Sancion,
     ComplejoDeportivo, PlanSuscripcion, PagoSuscripcionSaaS,
-    RolComplejo, ComplejoDeportivo, validar_cedula_db
+    RolComplejo, ComplejoDeportivo, validar_cedula_db, validar_documento
 )
 
 # =====================================================
@@ -118,34 +118,55 @@ class EquipoForm(forms.ModelForm):
         }
 
 class JugadorForm(forms.ModelForm):
+    """El tipo de documento (Ecuador / Colombia / Venezuela) SOLO lo ve y lo
+    puede cambiar el administrador de la cancha. El dirigente siempre ficha
+    con cédula ecuatoriana."""
     class Meta:
         model = Jugador
-        fields = ['equipo', 'nombres', 'dorsal', 'cedula', 'foto']
+        fields = ['equipo', 'nombres', 'dorsal', 'tipo_documento', 'cedula', 'foto']
         widgets = {
-            'equipo': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
-            'nombres': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'Ej: Enner Valencia'}),
-            'dorsal': forms.NumberInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'Ej: 13'}),
-            'cedula': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'Cédula / DNI'}),
-            'foto': forms.FileInput(attrs={'class': 'form-control bg-dark text-white border-secondary'}),
+            'equipo': forms.Select(attrs={'class': 'form-select'}),
+            'nombres': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Enner Valencia'}),
+            'dorsal': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 13', 'min': '0', 'max': '99'}),
+            'tipo_documento': forms.Select(attrs={'class': 'form-select'}),
+            'cedula': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número de documento', 'inputmode': 'numeric'}),
+            'foto': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         }
 
+    def __init__(self, *args, es_admin=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.es_admin = es_admin
+        if not es_admin:
+            self.fields.pop('tipo_documento')
+        else:
+            self.fields['tipo_documento'].required = False
+
+    def clean_tipo_documento(self):
+        return self.cleaned_data.get('tipo_documento') or 'EC'
+
     def clean_cedula(self):
-        cedula = self.cleaned_data.get('cedula')
+        cedula = (self.cleaned_data.get('cedula') or '').strip().upper().replace(' ', '')
+        tipo = self.cleaned_data.get('tipo_documento') if self.es_admin else 'EC'
+        if not self.es_admin and self.instance.pk:
+            tipo = self.instance.tipo_documento
+        tipo = tipo or 'EC'
+        if tipo == 'VE':
+            cedula = cedula.replace('V-', '').replace('E-', '').replace('-', '')
+        try:
+            validar_documento(tipo, cedula)
+        except ValidationError as e:
+            raise forms.ValidationError(e.messages)
+
         equipo_destino = self.cleaned_data.get('equipo')
-        
         if equipo_destino and equipo_destino.torneo:
-            torneo_actual = equipo_destino.torneo
-            
-            # 🔥 BLOQUEO INTELIGENTE: Verifica si la cédula ya existe en OTRO equipo del MISMO TORNEO
+            # 🔥 BLOQUEO: la cédula ya existe en OTRO equipo del MISMO TORNEO
             jugador_existente = Jugador.objects.filter(
-                cedula=cedula,
-                equipo__torneo=torneo_actual
+                cedula=cedula, equipo__torneo=equipo_destino.torneo
             ).exclude(equipo=equipo_destino).first()
-            
             if jugador_existente:
                 raise forms.ValidationError(f"⛔ Fichaje bloqueado: Este jugador ya pertenece a '{jugador_existente.equipo.nombre}' en este torneo. Solo el organizador puede traspasarlo.")
-                
         return cedula
+
 
 # =====================================================
 # 5. PROGRAMAR PARTIDOS

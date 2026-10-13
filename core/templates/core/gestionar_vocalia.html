@@ -14,9 +14,9 @@
         --text-muted: #8A8A8E;
         --primary-blue: #007AFF;
         --primary-navy: #0A192F;
-        --accent-green: #34C759;
-        --accent-red: #FF3B30;
-        --accent-orange: #FF9500;
+        --accent-green: #15803D;
+        --accent-red: #DC2626;
+        --accent-orange: #C2410C;
         --accent-yellow: #FFCC00;
         --ios-radius: 14px;
     }
@@ -136,7 +136,30 @@
     .ios-btn-primary { background: var(--primary-blue); color: white; border: none; border-radius: 12px; padding: 14px; font-size: 1rem; font-weight: 600; width: 100%; cursor: pointer; text-align: center; }
     .ios-btn-secondary { background: var(--ios-surface); color: var(--primary-blue); border: 0.5px solid var(--ios-separator); border-radius: 12px; padding: 14px; font-size: 1rem; font-weight: 600; width: 100%; cursor: pointer; text-align: center; }
 
+    /* VISOR DE EVENTOS: resumen fijo + lista con scroll (no se satura) */
+    .ev-resumen { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
+    .ev-chip { background: var(--ios-surface); border: 0.5px solid var(--ios-separator); border-radius: 12px; padding: 6px 4px; text-align: center; }
+    .ev-chip .n { font-weight: 800; font-size: 1.15rem; line-height: 1; color: var(--text-main); }
+    .ev-chip .l { font-size: 0.62rem; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: .02em; margin-top: 2px; }
+    .ev-lista { max-height: 230px; overflow-y: auto; background: var(--ios-surface); border-radius: 14px; border: 0.5px solid var(--ios-separator); overscroll-behavior: contain; }
+    .ev-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 0.5px solid var(--ios-separator); font-size: 0.85rem; }
+    .ev-item:last-child { border-bottom: none; }
+    .ev-ico { width: 28px; text-align: center; font-size: 1rem; flex-shrink: 0; }
+    .ev-txt { flex: 1; min-width: 0; }
+    .ev-txt .nom { font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ev-txt .eq { font-size: 0.7rem; font-weight: 600; }
+    .ev-min { font-size: 0.75rem; font-weight: 700; color: #6B7280; flex-shrink: 0; }
+    .ev-del { color: #9CA3AF; font-size: 1rem; padding: 4px; flex-shrink: 0; }
+    .ev-del:hover { color: var(--accent-red); }
+    .lado-local { color: var(--primary-blue); }
+    .lado-visita { color: #C2410C; }
+    /* Partido cerrado: solo lectura */
+    .solo-lectura .ios-player-btns, .solo-lectura .ios-player-sub, .solo-lectura .ios-bench,
+    .solo-lectura .ev-del, .solo-lectura #actaForm button, .solo-lectura .btn-firmar { pointer-events: none; opacity: .45; }
+
     @media (max-width: 576px) {
+        .ev-resumen { gap: 4px; }
+        .ev-chip .n { font-size: 1rem; }
         .score-digit { font-size: 2.2rem; padding: 4px 12px; }
         .scoreboard-ios { padding: 16px 12px; border-radius: 20px; }
         .ios-player { padding: 10px 0; }
@@ -148,7 +171,7 @@
 {% endblock %}
 
 {% block contenido %}
-<div class="container-fluid px-2 animate__animated animate__fadeIn" style="max-width: 600px; margin: 0 auto; padding-bottom: 30px;">
+<div class="container-fluid px-2 {% if cerrado %}solo-lectura{% endif %}" style="max-width: 640px; margin: 0 auto; padding-bottom: 30px;">
 
     <!-- HEADER VOLVER -->
     <div class="d-flex justify-content-between align-items-center mb-2 mt-3 px-2">
@@ -159,6 +182,13 @@
             {{ partido.torneo.nombre }}
         </span>
     </div>
+
+    {% if cerrado %}
+    <div class="alert alert-secondary d-flex align-items-center gap-2 py-2 px-3 mb-3" style="border-left-color:#6B7280;">
+        <i class="bi bi-lock-fill fs-5"></i>
+        <div class="small"><strong>Partido {% if partido.estado == 'WO' %}cerrado por W.O.{% else %}finalizado{% endif %}.</strong> Ya no se puede modificar desde la mesa{% if es_admin_cancha %}; si hay un error, reinícialo desde el calendario{% endif %}.</div>
+    </div>
+    {% endif %}
 
     <!-- SCOREBOARD iOS WIDGET -->
     <div class="scoreboard-ios mb-3">
@@ -175,8 +205,12 @@
         <div class="d-flex align-items-center gap-3">
             <span class="score-digit">{{ partido.goles_local }}</span>
             <div class="d-flex flex-column align-items-center justify-content-center">
+                {% if cerrado %}
+                <div class="rounded-pill px-2 py-1" style="background: #374151; color: white; font-size: 0.6rem; font-weight: 700;">{% if partido.estado == 'WO' %}W.O.{% else %}FINAL{% endif %}</div>
+                {% else %}
                 <div class="rounded-pill px-2 py-1 animate__animated animate__pulse animate__infinite" style="background: var(--accent-red); color: white; font-size: 0.6rem; font-weight: 700;">EN VIVO</div>
-                <span style="font-size: 0.7rem; color: #8A8A8E; font-weight: 500; margin-top: 4px;">VS</span>
+                {% endif %}
+                <span style="font-size: 0.7rem; color: #9CA3AF; font-weight: 500; margin-top: 4px;">{{ partido.get_etapa_display }}</span>
             </div>
             <span class="score-digit">{{ partido.goles_visita }}</span>
         </div>
@@ -220,25 +254,36 @@
         </div>
     </div>
 
-    <!-- BITACORA SCROLL HORIZONTAL iOS -->
+    <!-- VISOR DE EVENTOS: resumen + lista con scroll -->
     <div class="mb-4">
         <div class="d-flex align-items-center justify-content-between px-2 mb-2">
-            <span class="fw-semibold text-muted" style="font-size: 0.8rem; text-transform: uppercase;">Eventos Recientes</span>
-            <span class="badge rounded-pill" style="background: var(--ios-separator); color: var(--text-main);">{{ eventos|length }}</span>
+            <span class="fw-semibold text-muted" style="font-size: 0.8rem; text-transform: uppercase;">Eventos del partido</span>
+            <span class="badge rounded-pill bg-dark">{{ eventos|length }}</span>
         </div>
-        <div class="d-flex overflow-auto gap-2 pb-2" style="scrollbar-width: none; -ms-overflow-style: none;">
+        <div class="ev-resumen">
+            <div class="ev-chip"><div class="n lado-local">{{ resumen_eventos.goles_local }}</div><div class="l">⚽ Local</div></div>
+            <div class="ev-chip"><div class="n lado-visita">{{ resumen_eventos.goles_visita }}</div><div class="l">⚽ Visita</div></div>
+            <div class="ev-chip"><div class="n" style="color:#B45309;">{{ resumen_eventos.amarillas }}</div><div class="l">🟨 Amar.</div></div>
+            <div class="ev-chip"><div class="n" style="color:#DC2626;">{{ resumen_eventos.rojas }}</div><div class="l">🟥 Rojas</div></div>
+            <div class="ev-chip"><div class="n" style="color:#B45309;">{{ resumen_eventos.figuras }}</div><div class="l">⭐ Fig.</div></div>
+        </div>
+        {% if eventos %}
+        <div class="ev-lista" id="listaEventos">
             {% for ev in eventos %}
-            <div class="flex-shrink-0 rounded-3 p-2 d-flex flex-column justify-content-center" style="width: 110px; height: 65px; background: var(--ios-surface); border: 0.5px solid var(--ios-separator); position: relative; {% if ev.tipo == 'STAR' %}background-color: #FFFBEB; border-color: #FCD34D;{% endif %}">
-                <a href="{% url 'eliminar_evento' ev.id %}" class="position-absolute top-0 end-0 p-1 text-muted" onclick="return confirm('¿Borrar registro?')" style="font-size: 0.8rem;"><i class="bi bi-x-circle-fill"></i></a>
-                <div class="fw-bold" style="font-size: 0.6rem; color: {% if ev.tipo == 'GOL' %}var(--accent-green){% elif ev.tipo == 'TA' %}var(--accent-orange){% elif ev.tipo in 'TR,DA' %}var(--accent-red){% elif ev.tipo == 'STAR' %}var(--accent-orange){% else %}var(--text-muted){% endif %};">
-                    {% if ev.tipo == 'GOL' %}⚽ GOL{% elif ev.tipo == 'TA' %}🟨 AMARILLA{% elif ev.tipo == 'TR' %}🟥 ROJA DIR.{% elif ev.tipo == 'DA' %}🟥 ROJA ACUM.{% elif ev.tipo == 'STAR' %}⭐ MVP{% endif %}
+            <div class="ev-item">
+                <span class="ev-ico">{% if ev.tipo == 'GOL' %}⚽{% elif ev.tipo == 'TA' %}🟨{% elif ev.tipo == 'TR' %}🟥{% elif ev.tipo == 'DA' %}🟨🟥{% elif ev.tipo == 'STAR' %}⭐{% else %}•{% endif %}</span>
+                <div class="ev-txt">
+                    <div class="nom">{{ ev.jugador.nombres }} <span class="text-muted fw-normal">#{{ ev.jugador.dorsal }}</span></div>
+                    <div class="eq {% if ev.equipo_incidencia_id == partido.equipo_local_id %}lado-local{% else %}lado-visita{% endif %}">{{ ev.get_tipo_display }} · {% if ev.equipo_incidencia_id == partido.equipo_local_id %}{{ partido.equipo_local.nombre }}{% else %}{{ partido.equipo_visita.nombre }}{% endif %}</div>
                 </div>
-                <div class="fw-semibold" style="font-size: 0.75rem; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">{{ ev.jugador.nombres }}</div>
+                {% if ev.minuto %}<span class="ev-min">{{ ev.minuto }}'</span>{% endif %}
+                <a href="{% url 'eliminar_evento' ev.id %}" data-post data-confirm="¿Borrar este registro ({{ ev.get_tipo_display }} de {{ ev.jugador.nombres }})?" class="ev-del" title="Borrar"><i class="bi bi-x-circle-fill"></i></a>
             </div>
-            {% empty %}
-            <div class="w-100 text-center py-3 text-muted fw-medium" style="font-size: 0.85rem; background: var(--ios-surface); border-radius: 12px;">Sin eventos registrados</div>
             {% endfor %}
         </div>
+        {% else %}
+        <div class="w-100 text-center py-3 text-muted fw-medium" style="font-size: 0.85rem; background: var(--ios-surface); border-radius: 12px;">Sin eventos registrados</div>
+        {% endif %}
     </div>
 
     <!-- ==================== EQUIPO LOCAL ==================== -->
@@ -264,7 +309,7 @@
                             </div>
                         </div>
                         <!-- SIEMPRE PERMITIMOS SACAR AL JUGADOR SI YA ESTÁ EN CANCHA -->
-                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" class="ios-player-sub" onclick="return confirm('¿Sacar de cancha? Anulará sus goles y tarjetas.');">
+                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" class="ios-player-sub" data-post onclick="guardarScroll(); return confirm('¿Sacar de cancha? Anulará sus goles y tarjetas.');">
                             <i class="bi bi-box-arrow-right"></i> Sacar
                         </a>
                     </div>
@@ -274,10 +319,10 @@
                         {% if j.tr_match > 0 or j.da_match > 0 %}
                             <div class="roja-state-ios">
                                 {% if j.tr_match > 0 %}
-                                    <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TR' %}" class="roja-undo" onclick="guardarScroll()">-</a>
+                                    <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TR' %}" class="roja-undo" data-post onclick="guardarScroll()">-</a>
                                     <span>ROJA DIR.</span>
                                 {% else %}
-                                    <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="roja-undo" onclick="guardarScroll()">-</a>
+                                    <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="roja-undo" data-post onclick="guardarScroll()">-</a>
                                     <span>ROJA ACUM.</span>
                                 {% endif %}
                             </div>
@@ -287,14 +332,14 @@
                             <div class="ios-btns-group">
                                 <!-- Goles -->
                                 <div class="ios-stepper border">
-                                    {% if j.goles_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'GOL' %}" onclick="guardarScroll()" class="ios-step-btn sub">-</a>{% else %}<span class="ios-step-btn disabled">-</span>{% endif %}
+                                    {% if j.goles_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'GOL' %}" data-post onclick="guardarScroll()" class="ios-step-btn sub">-</a>{% else %}<span class="ios-step-btn disabled">-</span>{% endif %}
                                     <span class="ios-step-val">{{ j.goles_match }}</span>
                                     <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">{% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="GOL"><button type="submit" class="ios-step-btn add text-success">⚽</button></form>
                                 </div>
                                 <!-- MVP -->
                                 <div class="ios-stepper border ms-1">
                                     {% if j.star_match > 0 %}
-                                        <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'STAR' %}" onclick="guardarScroll()" class="ios-step-btn sub" style="color: var(--accent-orange);">⭐</a>
+                                        <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'STAR' %}" data-post onclick="guardarScroll()" class="ios-step-btn sub" style="color: var(--accent-orange);">⭐</a>
                                     {% else %}
                                         <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
                                             {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="STAR">
@@ -306,7 +351,7 @@
                             <div class="ios-btns-group">
                                 <!-- Amarillas -->
                                 <div class="bg-light border rounded p-1 d-flex align-items-center">
-                                    {% if j.ta_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="ios-step-btn sub text-decoration-none me-1" style="width: auto;" onclick="guardarScroll()">-</a>{% endif %}
+                                    {% if j.ta_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" data-post class="ios-step-btn sub text-decoration-none me-1" style="width: auto;" onclick="guardarScroll()">-</a>{% endif %}
                                     <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
                                         {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="TA">
                                         <button type="submit" class="ios-btn-sm text-white position-relative" style="background-color: var(--accent-orange);">🟨
@@ -333,7 +378,7 @@
                 {% for j in jugadores_local %}{% if j.id not in asistencias_ids %}
                     <!-- EN LA BANCA SÍ RESTRINGIMOS SI ESTÁ INHABILITADO PARA QUE NO PUEDA ENTRAR -->
                     {% if j.esta_habilitado %}
-                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" onclick="guardarScroll()" class="ios-bench justify-content-between">
+                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" data-post onclick="guardarScroll()" class="ios-bench justify-content-between">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="badge bg-primary rounded-pill" style="font-size: 0.65rem;">{{ j.dorsal }}</span>
                                 <span>{{ j.nombres }}</span>
@@ -346,7 +391,7 @@
                                 <span class="badge bg-secondary rounded-pill" style="font-size: 0.65rem;">{{ j.dorsal }}</span>
                                 <span class="text-decoration-line-through text-danger">{{ j.nombres }}</span>
                             </div>
-                            <span class="text-danger fw-bold" style="font-size: 0.6rem;">SUSPENDIDO</span>
+                            <span class="text-danger fw-bold text-end" style="font-size: 0.6rem; max-width: 45%;">{{ j.motivo_inhabilitacion|upper }}</span>
                         </div>
                     {% endif %}
                 {% endif %}{% endfor %}
@@ -377,7 +422,7 @@
                             </div>
                         </div>
                         <!-- SIEMPRE PERMITIMOS SACAR AL JUGADOR SI YA ESTÁ EN CANCHA -->
-                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" class="ios-player-sub" onclick="return confirm('¿Sacar de cancha? Anulará sus goles y tarjetas.');">
+                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" class="ios-player-sub" data-post onclick="guardarScroll(); return confirm('¿Sacar de cancha? Anulará sus goles y tarjetas.');">
                             <i class="bi bi-box-arrow-right"></i> Sacar
                         </a>
                     </div>
@@ -387,10 +432,10 @@
                         {% if j.tr_match > 0 or j.da_match > 0 %}
                             <div class="roja-state-ios">
                                 {% if j.tr_match > 0 %}
-                                    <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TR' %}" class="roja-undo" onclick="guardarScroll()">-</a>
+                                    <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TR' %}" class="roja-undo" data-post onclick="guardarScroll()">-</a>
                                     <span>ROJA DIR.</span>
                                 {% else %}
-                                    <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="roja-undo" onclick="guardarScroll()">-</a>
+                                    <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="roja-undo" data-post onclick="guardarScroll()">-</a>
                                     <span>ROJA ACUM.</span>
                                 {% endif %}
                             </div>
@@ -400,14 +445,14 @@
                             <div class="ios-btns-group">
                                 <!-- Goles -->
                                 <div class="ios-stepper border">
-                                    {% if j.goles_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'GOL' %}" onclick="guardarScroll()" class="ios-step-btn sub">-</a>{% else %}<span class="ios-step-btn disabled">-</span>{% endif %}
+                                    {% if j.goles_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'GOL' %}" data-post onclick="guardarScroll()" class="ios-step-btn sub">-</a>{% else %}<span class="ios-step-btn disabled">-</span>{% endif %}
                                     <span class="ios-step-val">{{ j.goles_match }}</span>
                                     <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">{% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="GOL"><button type="submit" class="ios-step-btn add text-success">⚽</button></form>
                                 </div>
                                 <!-- MVP -->
                                 <div class="ios-stepper border ms-1">
                                     {% if j.star_match > 0 %}
-                                        <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'STAR' %}" onclick="guardarScroll()" class="ios-step-btn sub" style="color: var(--accent-orange);">⭐</a>
+                                        <a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'STAR' %}" data-post onclick="guardarScroll()" class="ios-step-btn sub" style="color: var(--accent-orange);">⭐</a>
                                     {% else %}
                                         <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
                                             {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="STAR">
@@ -419,7 +464,7 @@
                             <div class="ios-btns-group">
                                 <!-- Amarillas -->
                                 <div class="bg-light border rounded p-1 d-flex align-items-center">
-                                    {% if j.ta_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" class="ios-step-btn sub text-decoration-none me-1" style="width: auto;" onclick="guardarScroll()">-</a>{% endif %}
+                                    {% if j.ta_match > 0 %}<a href="{% url 'eliminar_evento_ultimo' partido.id j.id 'TA' %}" data-post class="ios-step-btn sub text-decoration-none me-1" style="width: auto;" onclick="guardarScroll()">-</a>{% endif %}
                                     <form action="{% url 'registrar_incidencia' partido.id %}" method="post" class="m-0" onsubmit="guardarScroll()">
                                         {% csrf_token %}<input type="hidden" name="jugador_id" value="{{ j.id }}"><input type="hidden" name="tipo" value="TA">
                                         <button type="submit" class="ios-btn-sm text-white position-relative" style="background-color: var(--accent-orange);">🟨
@@ -446,7 +491,7 @@
                 {% for j in jugadores_visita %}{% if j.id not in asistencias_ids %}
                     <!-- EN LA BANCA SÍ RESTRINGIMOS SI ESTÁ INHABILITADO PARA QUE NO PUEDA ENTRAR -->
                     {% if j.esta_habilitado %}
-                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" onclick="guardarScroll()" class="ios-bench justify-content-between">
+                        <a href="{% url 'toggle_asistencia' partido.id j.id %}" data-post onclick="guardarScroll()" class="ios-bench justify-content-between">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.65rem;">{{ j.dorsal }}</span>
                                 <span>{{ j.nombres }}</span>
@@ -459,7 +504,7 @@
                                 <span class="badge bg-secondary rounded-pill" style="font-size: 0.65rem;">{{ j.dorsal }}</span>
                                 <span class="text-decoration-line-through text-danger">{{ j.nombres }}</span>
                             </div>
-                            <span class="text-danger fw-bold" style="font-size: 0.6rem;">SUSPENDIDO</span>
+                            <span class="text-danger fw-bold text-end" style="font-size: 0.6rem; max-width: 45%;">{{ j.motivo_inhabilitacion|upper }}</span>
                         </div>
                     {% endif %}
                 {% endif %}{% endfor %}
@@ -541,7 +586,7 @@
                         </div>
                         <div class="d-flex align-items-center gap-3">
                             <span class="text-danger fw-bold">${{ m.monto }}</span>
-                            <a href="{% url 'eliminar_multa' m.id %}" class="text-danger fs-5" onclick="return confirm('¿Borrar multa?')"><i class="bi bi-trash"></i></a>
+                            <a href="{% url 'eliminar_multa' m.id %}" data-post class="text-danger fs-5" onclick="return confirm('¿Borrar multa? Quedará registrado en la trazabilidad financiera.')"><i class="bi bi-trash"></i></a>
                         </div>
                     </div>
                     {% endfor %}
@@ -567,7 +612,7 @@
                 <input type="hidden" name="validado_local" id="hiddenValidadoLocal" value="{% if partido.firma_local_base64 %}on{% endif %}">
                 <input type="hidden" name="validado_visita" id="hiddenValidadoVisita" value="{% if partido.firma_visita_base64 %}on{% endif %}">
 
-                {% if partido.etapa in '4TOS,SEMI,TERC,FINAL' %}
+                {% if partido.etapa in '16VOS,8VOS,4TOS,SEMI,TERC,FINAL' %}
                 <div class="p-3 mb-3 text-center rounded-3" style="background: #FFF4E5; border: 0.5px solid var(--accent-orange);">
                     <span class="d-block fw-semibold text-dark mb-2" style="font-size: 0.85rem;">Tiros Penales (En caso de Empate)</span>
                     <div class="d-flex justify-content-center align-items-center gap-3">
@@ -580,11 +625,11 @@
 
                 <div class="mb-3">
                     <label class="fw-semibold text-muted mb-1" style="font-size: 0.75rem;">INFORME DEL VOCAL (MESA)</label>
-                    <textarea name="informe_vocal" class="form-control clean-input" rows="3" placeholder="Escribe aquí las novedades de la mesa, balones, comportamiento...">{{ partido.informe_vocal }}</textarea>
+                    <textarea name="informe_vocal" class="form-control clean-input" rows="3" placeholder="Escribe aquí las novedades de la mesa, balones, comportamiento...">{{ partido.informe_vocal|default_if_none:'' }}</textarea>
                 </div>
                 <div class="mb-3">
                     <label class="fw-semibold text-muted mb-1" style="font-size: 0.75rem;">INFORME DEL ÁRBITRO CENTRAL</label>
-                    <textarea name="informe_arbitro" class="form-control clean-input" rows="3" placeholder="Escribe aquí los motivos de expulsiones, reclamos...">{{ partido.informe_arbitro }}</textarea>
+                    <textarea name="informe_arbitro" class="form-control clean-input" rows="3" placeholder="Escribe aquí los motivos de expulsiones, reclamos...">{{ partido.informe_arbitro|default_if_none:'' }}</textarea>
                 </div>
 
                 <!-- 🌟 BOTONES DE FIRMA FLOTANTES iOS 🌟 -->
@@ -717,20 +762,24 @@
     // ==========================================
     let canvasModal, ctxModal, isDrawingModal = false, firmaActual = '';
 
+    let listenersFirma = false;
     function initCanvasModal() {
         canvasModal = document.getElementById('canvasFirmaModal');
         ctxModal = canvasModal.getContext('2d');
         const wrapper = canvasModal.parentElement;
         
-        canvasModal.width = wrapper.clientWidth;
-        canvasModal.height = wrapper.clientHeight;
+        canvasModal.width = Math.max(wrapper.clientWidth, 200);
+        canvasModal.height = Math.max(wrapper.clientHeight, 160);
         
         ctxModal.lineWidth = 3.5;
         ctxModal.lineCap = 'round';
+        ctxModal.lineJoin = 'round';
         ctxModal.strokeStyle = '#000000'; 
         
         canvasModal.isDrawn = false;
 
+        if (listenersFirma) return;
+        listenersFirma = true;
         canvasModal.addEventListener('mousedown', startDraw);
         canvasModal.addEventListener('mouseup', endDraw);
         canvasModal.addEventListener('mouseleave', endDraw);
@@ -773,9 +822,11 @@
         const inputId = equipo === 'local' ? 'firmaLocalInput' : 'firmaVisitaInput';
         const existingData = document.getElementById(inputId).value;
         
-        new bootstrap.Modal(document.getElementById('modalFirma')).show();
+        const modalEl = document.getElementById('modalFirma');
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
         
-        setTimeout(() => {
+        modalEl.addEventListener('shown.bs.modal', function alMostrar() {
+            modalEl.removeEventListener('shown.bs.modal', alMostrar);
             initCanvasModal();
             if (existingData) { 
                 const img = new Image(); 
@@ -785,7 +836,7 @@
                 }; 
                 img.src = existingData; 
             }
-        }, 300);
+        });
     }
     
     function limpiarCanvasModal() { 
@@ -889,7 +940,8 @@
         const valVisita = document.getElementById('hiddenValidadoVisita').value;
 
         if (valLocal !== 'on' || valVisita !== 'on') {
-            return confirm('⚠️ ¡FALTAN FIRMAS DE CAPITANES!\n\nUno o ambos equipos no han registrado su firma.\n\n¿Estás completamente seguro de que deseas FINALIZAR y CERRAR el partido de todos modos?');
+            alert('⚠️ FALTAN FIRMAS DE CAPITANES\n\nPara finalizar el partido deben firmar los dos capitanes. Toca «Firmar» en cada equipo.\n\nSi solo quieres guardar el avance usa «Guardar Borrador».');
+            return false;
         }
 
         return confirm('¿Seguro que deseas FINALIZAR?\n\nSe cerrará el acta del partido y se aplicarán todas las estadísticas y sanciones en el torneo.');

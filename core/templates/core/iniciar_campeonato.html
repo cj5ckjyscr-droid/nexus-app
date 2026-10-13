@@ -1,0 +1,310 @@
+{% extends 'core/base.html' %}
+{% block title %}Empezar campeonato | {{ torneo.nombre }}{% endblock %}
+{% block extra_css %}{% include 'core/_estilos_campeonato.html' %}{% endblock %}
+
+{% block contenido %}
+<div class="mt-3 mb-5" style="max-width: 1100px; margin: 0 auto;">
+
+    <div class="camp-hero mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center">
+            <div>
+                <div class="sub small text-uppercase fw-bold">Empezar campeonato</div>
+                <h2 class="fw-black m-0">{{ torneo.nombre }}</h2>
+                <div class="sub mt-1">{% if torneo.categoria %}{{ torneo.categoria.nombre }} · {% endif %}{{ n_equipos }} equipo{{ n_equipos|pluralize }} aprobado{{ n_equipos|pluralize }} participan</div>
+            </div>
+            <a href="{% url 'programar_partidos' %}?torneo={{ torneo.id }}" class="btn btn-light btn-sm rounded-pill fw-bold"><i class="bi bi-arrow-left me-1"></i>Volver al calendario</a>
+        </div>
+    </div>
+
+    {% if pendientes %}
+    <div class="alert alert-warning"><i class="bi bi-hourglass-split me-1"></i> Hay <strong>{{ pendientes }}</strong> solicitud{{ pendientes|pluralize:"es" }} pendiente{{ pendientes|pluralize }}. Solo participan los equipos <strong>aprobados</strong>; una vez iniciado no se podrán sumar más. <a href="{% url 'gestionar_solicitudes' %}" class="fw-bold">Revisar solicitudes</a></div>
+    {% endif %}
+
+    {% if errores %}
+    <div class="alert alert-danger">
+        <div class="fw-bold mb-1"><i class="bi bi-x-octagon me-1"></i>La estructura no es válida:</div>
+        <ul class="mb-0 ps-3">{% for e in errores %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <form method="post" id="formCamp">
+        {% csrf_token %}
+        <input type="hidden" name="semilla" value="{{ semilla|default:'' }}">
+
+        <!-- PASO 1: MODALIDAD -->
+        <div class="camp-card mb-4">
+            <div class="camp-card-h"><span class="camp-titulo"><span class="badge bg-primary me-2">1</span>Elige la modalidad</span></div>
+            <div class="p-3">
+                <div class="row g-3">
+                    {% for valor, nombre in formatos %}
+                    <div class="col-6 col-lg-3">
+                        <label class="modo-card position-relative {% if cfg.formato == valor %}activo{% endif %}">
+                            <input type="radio" name="formato" value="{{ valor }}" {% if cfg.formato == valor %}checked{% endif %} required>
+                            <div class="ico">
+                                {% if valor == 'LIGA' %}<i class="bi bi-list-ol"></i>{% elif valor == 'LIGA_PLAYOFF' %}<i class="bi bi-bar-chart-steps"></i>{% elif valor == 'GRUPOS' %}<i class="bi bi-grid-3x3-gap-fill"></i>{% else %}<i class="bi bi-diagram-3-fill"></i>{% endif %}
+                            </div>
+                            <div class="t">{% if valor == 'LIGA' %}Liga{% elif valor == 'LIGA_PLAYOFF' %}Liga + Llaves{% elif valor == 'GRUPOS' %}Grupos + Llaves{% else %}Eliminación directa{% endif %}</div>
+                            <div class="d">
+                                {% if valor == 'LIGA' %}Todos contra todos. Gana el que más puntos suma.
+                                {% elif valor == 'LIGA_PLAYOFF' %}Todos contra todos y los mejores pasan a eliminatorias.
+                                {% elif valor == 'GRUPOS' %}Grupos sorteados; clasifican los primeros (y mejores terceros) a llaves.
+                                {% else %}Llaves desde el inicio. El que pierde queda fuera.{% endif %}
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 2: CONFIGURACIÓN -->
+        <div class="camp-card mb-4" id="panelConfig">
+            <div class="camp-card-h"><span class="camp-titulo"><span class="badge bg-primary me-2">2</span>Configura la estructura</span></div>
+            <div class="p-3 p-md-4">
+                <p id="msgSinModo" class="mb-0" style="color: var(--text-soft);">Elige primero una modalidad.</p>
+
+                <!-- Liga / fase regular -->
+                <div data-modo="LIGA LIGA_PLAYOFF GRUPOS" class="cfg-bloque mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="ivLiga" name="ida_vuelta_liga" {% if cfg.ida_vuelta_liga %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="ivLiga"><span data-modo="LIGA LIGA_PLAYOFF">Liga</span><span data-modo="GRUPOS">Fase de grupos</span> a <strong>ida y vuelta</strong></label>
+                    </div>
+                </div>
+
+                <!-- Grupos -->
+                <div data-modo="GRUPOS" class="cfg-bloque">
+                    <div class="row g-3">
+                        <div class="col-4"><label class="form-label">N° de grupos</label><input type="number" min="2" max="16" class="form-control" name="num_grupos" id="numGrupos" value="{{ cfg.num_grupos|default:'' }}"></div>
+                        <div class="col-4"><label class="form-label">Clasifican por grupo</label><input type="number" min="1" max="8" class="form-control" name="clasifican" id="clasifican" value="{{ cfg.clasifican }}"></div>
+                        <div class="col-4"><label class="form-label">Mejores del sig. puesto</label><input type="number" min="0" max="15" class="form-control" name="mejores" id="mejores" value="{{ cfg.mejores }}"></div>
+                    </div>
+                    <div class="form-text">Ejemplo: 24 equipos → 6 grupos, clasifican 2 y los <strong>4 mejores terceros</strong> = 16 equipos a octavos de final.</div>
+                    {% if sugerencias %}
+                    <div class="mt-3">
+                        <div class="small fw-bold mb-2" style="color: var(--text-soft);">Estructuras válidas para {{ n_equipos }} equipos (toca una para usarla):</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for s in sugerencias %}
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill sugerencia" data-g="{{ s.grupos }}" data-k="{{ s.clasifican }}" data-m="{{ s.mejores }}">
+                                {{ s.grupos }} grupos · pasan {{ s.clasifican }}{% if s.mejores %} + {{ s.mejores }} mejores{% endif %} → {{ s.total }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Liga + llaves -->
+                <div data-modo="LIGA_PLAYOFF" class="cfg-bloque">
+                    <label class="form-label">¿Cuántos pasan a las llaves?</label>
+                    <select name="clasifican_liga" id="clasificanLiga" class="form-select" style="max-width: 280px;">
+                        <option value="2" {% if cfg.clasifican_liga == 2 %}selected{% endif %}>2 (final directa)</option>
+                        <option value="4" {% if cfg.clasifican_liga == 4 %}selected{% endif %}>4 (semifinales)</option>
+                        <option value="8" {% if cfg.clasifican_liga == 8 %}selected{% endif %}>8 (cuartos de final)</option>
+                        <option value="16" {% if cfg.clasifican_liga == 16 %}selected{% endif %}>16 (octavos de final)</option>
+                        <option value="32" {% if cfg.clasifican_liga == 32 %}selected{% endif %}>32 (dieciseisavos)</option>
+                    </select>
+                    <div class="form-text">Los cruces son fijos desde hoy: 1° vs último clasificado, 2° vs penúltimo… el 1° y el 2° solo pueden verse en la final.</div>
+                </div>
+
+                <!-- Opciones de llaves -->
+                <div data-modo="LIGA_PLAYOFF GRUPOS ELIMINACION" class="cfg-bloque mt-3 pt-3 border-top">
+                    <div class="fw-bold mb-2">Eliminatorias</div>
+                    <div class="d-flex flex-column flex-md-row gap-2 gap-md-4">
+                        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="ivLlaves" name="ida_vuelta_llaves" {% if cfg.ida_vuelta_llaves %}checked{% endif %}><label class="form-check-label" for="ivLlaves">Llaves a ida y vuelta</label></div>
+                        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="ivFinal" name="final_ida_vuelta" {% if cfg.final_ida_vuelta %}checked{% endif %}><label class="form-check-label" for="ivFinal">Final a ida y vuelta</label></div>
+                        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="tercer" name="tercer_lugar" {% if cfg.tercer_lugar %}checked{% endif %}><label class="form-check-label" for="tercer">Partido por el 3er lugar</label></div>
+                    </div>
+                    <div class="form-text">Si una llave termina empatada en el global se define por penales (se registran en el acta).</div>
+                </div>
+
+                <div id="calculadora" class="calc mt-3 d-none"></div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-column flex-sm-row gap-2 mb-4">
+            <button type="submit" name="accion" value="previsualizar" class="btn btn-primary btn-lg rounded-pill px-4"><i class="bi bi-eye me-1"></i>Ver vista previa</button>
+            {% if preview %}<span class="align-self-center small" style="color: var(--text-soft);">Nada se guarda hasta que confirmes.</span>{% endif %}
+        </div>
+
+        {% if preview and not errores %}
+        <!-- PASO 3: VISTA PREVIA -->
+        <div class="camp-card mb-4">
+            <div class="camp-card-h flex-wrap">
+                <span class="camp-titulo"><span class="badge bg-primary me-2">3</span>Vista previa</span>
+                <span class="small fw-semibold" style="color: var(--text-soft);"><i class="bi bi-shuffle me-1"></i>Sorteo #{{ semilla }} (con este número el sorteo siempre da lo mismo)</span>
+            </div>
+            <div class="p-3 p-md-4">
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-6 col-md-3"><div class="camp-card p-2"><div class="fs-4 fw-black">{{ resumen.equipos }}</div><div class="small" style="color: var(--text-soft);">Equipos</div></div></div>
+                    {% if resumen.partidos_fase %}<div class="col-6 col-md-3"><div class="camp-card p-2"><div class="fs-4 fw-black">{{ resumen.partidos_fase }}</div><div class="small" style="color: var(--text-soft);">Partidos 1ª fase</div></div></div>{% endif %}
+                    {% if resumen.clasificados %}<div class="col-6 col-md-3"><div class="camp-card p-2"><div class="fs-4 fw-black">{{ resumen.clasificados }}</div><div class="small" style="color: var(--text-soft);">A las llaves</div></div></div>{% endif %}
+                    {% if resumen.byes %}<div class="col-6 col-md-3"><div class="camp-card p-2"><div class="fs-4 fw-black">{{ resumen.byes }}</div><div class="small" style="color: var(--text-soft);">Pases directos</div></div></div>{% endif %}
+                </div>
+                {% if resumen.rondas %}<p class="small fw-semibold mb-3"><i class="bi bi-signpost-split me-1"></i>Rondas: {{ resumen.rondas|join:" → " }}</p>{% endif %}
+
+                {% if grupos_preview %}
+                <input type="hidden" name="ajuste_manual" id="ajusteManual" value="{% if ajuste_manual %}1{% else %}0{% endif %}">
+                <h6 class="fw-bold mt-2">Grupos</h6>
+                <p class="small" style="color: var(--text-soft);">Puedes mover equipos de grupo con el selector y tocar «Aplicar cambios». Los grupos deben quedar parejos.</p>
+                <div class="row g-3 mb-2">
+                    {% for g in grupos_preview %}
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                        <div class="grupo-box">
+                            <div class="h">Grupo {{ g.letra }}</div>
+                            <ul>
+                                {% for e in g.equipos %}
+                                <li><span class="text-truncate">{{ e.nombre }}</span>
+                                    <select name="grupo_{{ e.id }}" class="form-select sel-grupo" aria-label="Grupo de {{ e.nombre }}">
+                                        {% for gg in grupos_preview %}<option value="{{ gg.letra }}" {% if gg.letra == g.letra %}selected{% endif %}>{{ gg.letra }}</option>{% endfor %}
+                                    </select>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            <details class="px-3 pb-2">
+                                <summary class="small fw-semibold" style="color: var(--brand-primary); cursor: pointer;">Ver partidos</summary>
+                                <div class="jornada-mini">
+                                    {% for j in g.jornadas %}<div class="f">Fecha {{ forloop.counter }}</div>{% for a, b in j %}<div>{{ a.nombre }} vs {{ b.nombre }}</div>{% endfor %}{% endfor %}
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <button type="submit" name="accion" value="previsualizar" class="btn btn-outline-primary btn-sm rounded-pill" onclick="document.getElementById('ajusteManual').value='1'"><i class="bi bi-check2 me-1"></i>Aplicar cambios de grupo</button>
+                    <button type="submit" name="accion" value="resortear" class="btn btn-outline-secondary btn-sm rounded-pill"><i class="bi bi-shuffle me-1"></i>Volver a sortear</button>
+                </div>
+                {% endif %}
+
+                {% if jornadas_preview %}
+                <details class="mb-4">
+                    <summary class="fw-bold" style="cursor: pointer;">Ver las {{ jornadas_preview|length }} fechas de la liga</summary>
+                    <div class="row g-3 mt-1">
+                        {% for j in jornadas_preview %}
+                        <div class="col-12 col-md-6 col-lg-4"><div class="jornada-mini"><div class="f">Fecha {{ forloop.counter }}</div>{% for a, b in j %}<div>{{ a.nombre }} vs {{ b.nombre }}</div>{% endfor %}</div></div>
+                        {% endfor %}
+                    </div>
+                </details>
+                {% endif %}
+
+                {% if cuadro_preview %}
+                <h6 class="fw-bold">Llaves (fijas desde el inicio)</h6>
+                <p class="small" style="color: var(--text-soft);">Así se cruzarán los clasificados. Nadie puede cambiar estos cruces después: los ganadores avanzan solos.</p>
+                <div class="cuadro-scroll mb-2">
+                    <div class="cuadro">
+                        {% for r in cuadro_preview %}
+                        <div class="ronda">
+                            <div class="ronda-titulo">{{ r.nombre }}</div>
+                            <div class="ronda-llaves">
+                                {% for c in r.cruces %}
+                                <div class="llave">
+                                    <div class="llave-num"><span>Llave {{ c.numero }}</span></div>
+                                    <div class="llave-eq"><span class="n {% if 'Ganador' in c.a or '°' in c.a or 'Pase' in c.a %}pendiente{% endif %}">{{ c.a }}</span></div>
+                                    <div class="llave-eq"><span class="n {% if 'Ganador' in c.b or '°' in c.b or 'Pase' in c.b %}pendiente{% endif %}">{{ c.b }}</span></div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="camp-card p-3 p-md-4 mb-4" style="border: 2px solid #16A34A;">
+            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+                <div>
+                    <div class="fw-bold"><i class="bi bi-shield-check text-success me-1"></i>¿Todo correcto?</div>
+                    <div class="small" style="color: var(--text-soft);">Al confirmar se crea el fixture completo, ya no se aceptan equipos nuevos y los cruces quedan fijos. Los dirigentes sí pueden seguir fichando jugadores.</div>
+                </div>
+                <div class="d-flex flex-column flex-sm-row gap-2">
+                    <button type="submit" name="accion" value="pdf" data-descarga class="btn btn-outline-secondary rounded-pill"><i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF</button>
+                    <button type="submit" name="accion" value="confirmar" class="btn btn-success rounded-pill px-4" onclick="return confirm('¿Crear el campeonato con esta estructura?\n\nSe generarán todos los partidos y ya no se aceptarán equipos nuevos.')"><i class="bi bi-trophy me-1"></i>Confirmar y guardar en el sistema</button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const N = {{ n_equipos }};
+    const form = document.getElementById('formCamp');
+    const radios = form.querySelectorAll('input[name="formato"]');
+    const calc = document.getElementById('calculadora');
+    const NOMBRES = {32: 'Dieciseisavos', 16: 'Octavos de final', 8: 'Cuartos de final', 4: 'Semifinal', 2: 'Final'};
+    const pot2 = n => n >= 2 && (n & (n - 1)) === 0;
+    const sigPot2 = n => { let p = 2; while (p < n) p *= 2; return p; };
+    const val = id => parseInt(document.getElementById(id)?.value || '0', 10) || 0;
+
+    function modo() { const r = form.querySelector('input[name="formato"]:checked'); return r ? r.value : ''; }
+
+    function rondas(n) { const out = []; while (n >= 2) { out.push(NOMBRES[n]); n /= 2; } return out.join(' → '); }
+
+    function mostrar() {
+        const m = modo();
+        document.querySelectorAll('.modo-card').forEach(c => c.classList.toggle('activo', c.querySelector('input').checked));
+        document.getElementById('msgSinModo').classList.toggle('d-none', !!m);
+        document.querySelectorAll('#panelConfig [data-modo]').forEach(el => {
+            el.classList.toggle('d-none', !m || !el.dataset.modo.split(' ').includes(m));
+        });
+        calcular();
+    }
+
+    function pintar(ok, html) { calc.classList.remove('d-none', 'ok', 'mal'); calc.classList.add(ok ? 'ok' : 'mal'); calc.innerHTML = html; }
+
+    function calcular() {
+        const m = modo();
+        if (!m) { calc.classList.add('d-none'); return; }
+        if (N < 2) return pintar(false, '⛔ Se necesitan al menos 2 equipos aprobados.');
+        if (m === 'LIGA') {
+            const iv = document.getElementById('ivLiga').checked;
+            return pintar(true, `✅ ${N} equipos · ${N * (N - 1) / 2 * (iv ? 2 : 1)} partidos · ${(N % 2 ? N : N - 1) * (iv ? 2 : 1)} fechas.`);
+        }
+        if (m === 'LIGA_PLAYOFF') {
+            const k = val('clasificanLiga');
+            if (k > N) return pintar(false, `⛔ No pueden pasar ${k} si solo hay ${N} equipos.`);
+            return pintar(true, `✅ Pasan los ${k} primeros · Llaves: ${rondas(k)}.`);
+        }
+        if (m === 'ELIMINACION') {
+            const P = sigPot2(N);
+            if (N > 32) return pintar(false, '⛔ Máximo 32 equipos en eliminación directa.');
+            return pintar(true, `✅ Cuadro de ${P}${P > N ? ` con ${P - N} pase(s) directo(s)` : ''} · ${rondas(P)}.`);
+        }
+        if (m === 'GRUPOS') {
+            const g = val('numGrupos'), k = val('clasifican'), b = val('mejores');
+            if (g < 2) return pintar(false, 'Indica cuántos grupos (mínimo 2).');
+            const base = Math.floor(N / g), extra = N % g;
+            if (base < 2) return pintar(false, `⛔ ${N} equipos no alcanzan para ${g} grupos.`);
+            const tam = extra ? `${extra} grupo(s) de ${base + 1} y ${g - extra} de ${base}` : `${g} grupos de ${base}`;
+            if (k < 1) return pintar(false, `${tam}. Indica cuántos clasifican por grupo.`);
+            if (k > base) return pintar(false, `⛔ ${tam}: no pueden clasificar ${k} por grupo.`);
+            if (b && k + 1 > base) return pintar(false, `⛔ Para tomar a los mejores ${k + 1}° todos los grupos deben tener ${k + 1} equipos o más.`);
+            if (b >= g && b) return pintar(false, `⛔ Los mejores ${k + 1}° deben ser menos que los grupos (${g}).`);
+            const total = g * k + b;
+            if (!pot2(total)) return pintar(false, `⛔ ${tam}. Clasificarían ${total} equipos; para armar llaves deben ser 2, 4, 8, 16 o 32.`);
+            if (total > 32) return pintar(false, '⛔ Máximo 32 clasificados.');
+            return pintar(true, `✅ ${tam}. Clasifican ${g}×${k}${b ? ` + ${b} mejores ${k + 1}°` : ''} = <strong>${total}</strong> → ${rondas(total)}.`);
+        }
+    }
+
+    radios.forEach(r => r.addEventListener('change', mostrar));
+    form.querySelectorAll('#panelConfig input, #panelConfig select').forEach(el => el.addEventListener('input', calcular));
+    document.querySelectorAll('.sugerencia').forEach(b => b.addEventListener('click', () => {
+        document.getElementById('numGrupos').value = b.dataset.g;
+        document.getElementById('clasifican').value = b.dataset.k;
+        document.getElementById('mejores').value = b.dataset.m;
+        calcular();
+    }));
+    // Si cambian la estructura después de la vista previa, el sorteo se rehace
+    form.querySelectorAll('input[name="formato"], #numGrupos').forEach(el => el.addEventListener('change', () => {
+        const aj = document.getElementById('ajusteManual'); if (aj) aj.value = '0';
+    }));
+    mostrar();
+})();
+</script>
+{% endblock %}

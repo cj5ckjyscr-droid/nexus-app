@@ -3,7 +3,7 @@
 {% block title %}Editar Partido | NEXUS SPORTOPS{% endblock %}
 
 {% block contenido %}
-<div class="row justify-content-center animate__animated animate__fadeInUp mt-4 mb-5">
+<div class="row justify-content-center mt-4 mb-5">
     <div class="col-md-8 col-lg-6">
         <div class="card card-pro border-0 shadow-lg rounded-4 overflow-hidden">
             
@@ -25,6 +25,21 @@
                 <form method="post">
                     {% csrf_token %}
                     
+                    {% if solo_horario %}
+                    <div class="text-center mb-4">
+                        <div class="small fw-bold text-uppercase" style="color: var(--text-soft);">{{ partido.get_etapa_display }}{% if partido.equipo_local.grupo and partido.etapa == 'GRP' %} · Grupo {{ partido.equipo_local.grupo }}{% endif %} · Fecha {{ partido.numero_fecha }}</div>
+                        <div class="fs-5 fw-bold mt-1">{{ partido.equipo_local.nombre }} <span style="color: var(--text-soft);">vs</span> {{ partido.equipo_visita.nombre }}</div>
+                        <div class="small mt-1" style="color: var(--text-soft);">Los equipos los define el sistema; aquí solo programas cuándo y dónde se juega.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fecha y hora</label>
+                        <input type="datetime-local" name="fecha_hora" class="form-control" value="{% if partido.fecha_hora %}{{ partido.fecha_hora|date:'Y-m-d\TH:i' }}{% endif %}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cancha</label>
+                        <input type="text" name="cancha" class="form-control" maxlength="100" value="{{ partido.cancha }}">
+                    </div>
+                    {% else %}
                     {% for field in form %}
                     <div class="mb-4">
                         <label class="form-label fw-bold text-uppercase" style="color: var(--primary-navy); font-size: 0.85rem; letter-spacing: 0.5px;">
@@ -39,6 +54,7 @@
                         {% endif %}
                     </div>
                     {% endfor %}
+                    {% endif %}
 
                     <div class="d-grid gap-3 mt-5">
                         <button type="submit" class="btn btn-sport btn-lg w-100 fw-bold shadow-sm" style="border-radius: 12px;">
@@ -50,13 +66,13 @@
                     </div>
                 </form>
 
-                {% if partido.estado == 'JUG' or partido.estado == 'WO' %}
+                {% if partido.estado != 'PROG' %}
                 <hr class="my-5" style="border-color: #E2E8F0;">
                 
                 <div class="alert border-0 rounded-4 p-4 shadow-sm" style="background-color: #FEF2F2; border-left: 5px solid #EF4444 !important;">
                     <h6 class="text-danger fw-black mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i> Zona de Corrección Administrativa</h6>
                     <p class="small text-danger mb-3 fw-medium" style="opacity: 0.85;">Si el resultado fue ingresado por error, puedes reiniciar el partido. Esto borrará goles, tarjetas y asistencias permanentemente.</p>
-                    <a href="{% url 'reiniciar_partido' partido.id %}" class="btn btn-outline-danger fw-bold rounded-pill w-100 transition-all" onclick="return confirm('⚠️ ¿ESTÁS SEGURO?\n\nSe borrarán todos los goles y tarjetas de este partido y volverá a estar pendiente.')">
+                    <a href="{% url 'reiniciar_partido' partido.id %}" data-post class="btn btn-outline-danger fw-bold rounded-pill w-100 transition-all" onclick="return confirm('⚠️ ¿ESTÁS SEGURO?\n\nSe borrarán todos los goles y tarjetas de este partido y volverá a estar pendiente.')">
                         <i class="bi bi-arrow-counterclockwise me-1"></i> Reiniciar Partido
                     </a>
                 </div>

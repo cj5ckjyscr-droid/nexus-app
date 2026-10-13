@@ -1,0 +1,24 @@
+<div class="llave {% if ll.bye %}bye{% endif %}">
+    <div class="llave-num">
+        <span>Llave {{ ll.numero }}</span>
+        {% if ll.partidos|length == 2 %}<span>Ida y vuelta</span>{% elif ll.bye %}<span>Pase directo</span>{% endif %}
+    </div>
+    <div class="llave-eq {% if ll.ganador_id %}{% if ll.a and ll.ganador_id == ll.a.id %}gana{% else %}pierde{% endif %}{% endif %}">
+        <span class="n {% if not ll.a %}pendiente{% endif %}">{% if ll.a %}{{ ll.a.nombre }}{% else %}{{ ll.etiqueta_a }}{% endif %}</span>
+        <span class="g">{% if ll.goles_a is not None %}{{ ll.goles_a }}{% if ll.penales %} <small>({{ ll.penales.0 }})</small>{% endif %}{% endif %}</span>
+    </div>
+    <div class="llave-eq {% if ll.ganador_id %}{% if ll.b and ll.ganador_id == ll.b.id %}gana{% else %}pierde{% endif %}{% endif %}">
+        <span class="n {% if not ll.b %}pendiente{% endif %}">{% if ll.b %}{{ ll.b.nombre }}{% else %}{{ ll.etiqueta_b }}{% endif %}</span>
+        <span class="g">{% if ll.goles_b is not None %}{{ ll.goles_b }}{% if ll.penales %} <small>({{ ll.penales.1 }})</small>{% endif %}{% endif %}</span>
+    </div>
+    {% if es_admin and ll.a and ll.b and not ll.ganador_id %}
+    <details class="px-2 pb-2 pt-1 border-top">
+        <summary class="small fw-semibold" style="cursor: pointer; color: var(--text-soft);">Retirar un equipo</summary>
+        <div class="small mt-1 mb-1" style="color: var(--text-soft);">El rival avanza por W.O. (sanción o retiro).</div>
+        <div class="d-flex flex-column gap-1">
+            <form method="post" action="{% url 'retirar_equipo_llave' ll.llave.id ll.a.id %}" onsubmit="return confirm('¿Retirar a {{ ll.a.nombre|escapejs }}? {{ ll.b.nombre|escapejs }} avanzará por W.O.')">{% csrf_token %}<button class="btn btn-outline-danger btn-sm w-100 text-truncate">Retirar a {{ ll.a.nombre }}</button></form>
+            <form method="post" action="{% url 'retirar_equipo_llave' ll.llave.id ll.b.id %}" onsubmit="return confirm('¿Retirar a {{ ll.b.nombre|escapejs }}? {{ ll.a.nombre|escapejs }} avanzará por W.O.')">{% csrf_token %}<button class="btn btn-outline-danger btn-sm w-100 text-truncate">Retirar a {{ ll.b.nombre }}</button></form>
+        </div>
+    </details>
+    {% endif %}
+</div>

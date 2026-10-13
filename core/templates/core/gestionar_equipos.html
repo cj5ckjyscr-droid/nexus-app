@@ -16,9 +16,9 @@
         --ios-text: #1C1C1E;
         --ios-muted: #8E8E93;
         --ios-blue: #007AFF;
-        --ios-green: #34C759;
-        --ios-red: #FF3B30;
-        --ios-orange: #FF9500;
+        --ios-green: #15803D;
+        --ios-red: #DC2626;
+        --ios-orange: #C2410C;
         --ios-separator: rgba(60, 60, 67, 0.15);
     }
 
@@ -269,6 +269,10 @@
 
     <!-- LISTA DE EQUIPOS (AHORA OCUPA TODA LA PANTALLA) -->
     <div>
+        <div class="d-flex flex-wrap gap-2 mb-3 mt-2">
+            <a href="{% url 'gestionar_equipos' %}" class="btn btn-sm rounded-pill {% if not ver_retirados %}btn-primary{% else %}btn-outline-secondary{% endif %}"><i class="bi bi-shield-check me-1"></i>Participando</a>
+            <a href="{% url 'gestionar_equipos' %}?ver=retirados" class="btn btn-sm rounded-pill {% if ver_retirados %}btn-primary{% else %}btn-outline-secondary{% endif %}"><i class="bi bi-shield-x me-1"></i>Rechazados / retirados{% if retirados_count %} ({{ retirados_count }}){% endif %}</a>
+        </div>
         {% if not equipos %}
             <div class="ios-card text-center py-5 mt-3">
                 <i class="bi bi-shield-slash text-muted" style="font-size: 3.5rem; opacity: 0.3;"></i>
@@ -357,7 +361,7 @@
                                                         <a href="{% url 'editar_equipo' equipo.id %}" class="btn-action-ios"><i class="bi bi-pencil"></i> Editar</a>
                                                     {% endif %}
                                                     
-                                                    <a href="{% url 'eliminar_equipo' equipo.id %}" class="btn-action-ios danger" onclick="return confirm('⚠️ ¿Eliminar equipo permanentemente?');"><i class="bi bi-trash"></i></a>
+                                                    <a href="{% url 'eliminar_equipo' equipo.id %}" data-post class="btn-action-ios danger" onclick="return confirm('⚠️ ¿Eliminar equipo permanentemente?');"><i class="bi bi-trash"></i></a>
                                                 </div>
                                             </div>
                                         {% endfor %}

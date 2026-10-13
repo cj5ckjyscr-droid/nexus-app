@@ -138,6 +138,8 @@ class Command(BaseCommand):
                 defaults={
                     "organizador": org_user, "categoria": categoria,
                     "costo_inscripcion": Decimal("20.00"), "activo": True,
+                    # Sus partidos se siembran como liga (todos contra todos)
+                    "formato": "LIGA",
                 },
             )
 

@@ -13,8 +13,8 @@
         --ios-text: #1C1C1E;
         --ios-muted: #8E8E93;
         --ios-blue: #007AFF;
-        --ios-green: #34C759;
-        --ios-red: #FF3B30;
+        --ios-green: #15803D;
+        --ios-red: #DC2626;
         --ios-separator: rgba(60, 60, 67, 0.15);
     }
 
@@ -237,7 +237,7 @@
                     <div class="photo-card">
                         <img src="{{ foto.imagen.url }}" alt="Instalación">
                         <div class="photo-overlay text-truncate">{{ foto.titulo|default:"Sin título" }}</div>
-                        <a href="{% url 'eliminar_foto' foto.id %}" class="btn-delete-ios" onclick="return confirm('¿Eliminar esta foto?');">
+                        <a href="{% url 'eliminar_foto' foto.id %}" data-post class="btn-delete-ios" onclick="return confirm('¿Eliminar esta foto?');">
                             <i class="bi bi-trash-fill" style="font-size: 0.8rem;"></i>
                         </a>
                     </div>

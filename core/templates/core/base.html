@@ -3,8 +3,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}{% if complejo %}{{ complejo.nombre }}{% else %}NEXUS SPORTOPS{% endif %}{% endblock %}</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -522,6 +524,73 @@
         .clean-input:focus {
             background-color: var(--bg-surface) !important;
         }
+
+        /* =========================================================
+           CONTRASTE: ningún texto del mismo color que su fondo
+           ========================================================= */
+        /* Formularios heredados con estilo oscuro sobre un tema claro */
+        .form-control.bg-dark, .form-select.bg-dark,
+        .form-control.text-white, .form-select.text-white {
+            background-color: var(--bg-surface) !important;
+            color: var(--text-main) !important;
+            border-color: var(--border-light) !important;
+        }
+        .form-control::placeholder { color: var(--slate-400); opacity: 1; }
+        .form-select option, select option { color: var(--text-main); background-color: var(--bg-surface); }
+        /* Elementos seleccionados: texto blanco sobre el color de marca */
+        .nav-pills .nav-link.active, .nav-pills .show > .nav-link,
+        .nav-tabs .nav-link.active { color: #FFFFFF !important; background-color: var(--brand-primary) !important; }
+        .nav-tabs .nav-link.active { border-color: var(--brand-primary) !important; }
+        .dropdown-item.active, .dropdown-item:active { background-color: var(--brand-primary); color: #FFFFFF !important; }
+        .list-group-item.active { background-color: var(--brand-primary); border-color: var(--brand-primary); color: #FFFFFF; }
+        .list-group-item.active * { color: #FFFFFF !important; }
+        .page-link { color: var(--brand-primary); }
+        .page-item.active .page-link { background-color: var(--brand-primary); border-color: var(--brand-primary); color: #FFFFFF; }
+        .btn-check:checked + .btn { color: #FFFFFF !important; }
+        /* Amarillos/celestes con texto legible */
+        .bg-warning, .badge.bg-warning, .btn-warning { color: #1F2937 !important; }
+        .bg-warning.text-white, .badge.bg-warning.text-white { color: #1F2937 !important; }
+        .bg-info, .badge.bg-info { color: #0B3B4F !important; }
+        .bg-light.text-white, .bg-white.text-white { color: var(--text-main) !important; }
+        .text-warning { color: #B45309 !important; }
+        .text-info { color: #0369A1 !important; }
+        .text-success { color: #15803D !important; }
+        .text-danger { color: #DC2626 !important; }
+        .bg-success, .bg-danger, .bg-primary, .bg-dark, .bg-secondary { color: #FFFFFF; }
+        :focus-visible { outline: 3px solid rgba(79, 70, 229, 0.45); outline-offset: 2px; }
+
+        /* Celular: inputs de 16px (evita el zoom automático de iOS) y
+           tablas que se deslizan en vez de romper la página */
+        @media (max-width: 576px) {
+            .form-control, .form-select { font-size: 16px; }
+            body { padding-top: 76px; }
+            .container, .container-fluid { padding-left: 12px; padding-right: 12px; }
+        }
+        .table-responsive { -webkit-overflow-scrolling: touch; }
+        @media (max-width: 576px) {
+            .btn-flotante-wsp { width: 46px; height: 46px; bottom: 16px; right: 14px; font-size: 22px; }
+            .main-content { overflow-x: clip; }
+        }
+
+        /* =========================================================
+           CONEXIÓN: aviso sin internet + botón "enviando"
+           ========================================================= */
+        #avisoConexion {
+            position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+            z-index: 2000; background: #111827; color: #FFFFFF; font-weight: 600;
+            padding: 0.7rem 1.1rem; border-radius: 999px; font-size: 0.9rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25); display: none; max-width: calc(100% - 32px);
+            text-align: center;
+        }
+        #avisoConexion.visible { display: block; }
+        .btn.enviando { pointer-events: none; opacity: 0.75; }
+        .btn.enviando::after {
+            content: ""; display: inline-block; width: 0.9em; height: 0.9em; margin-left: 0.5em;
+            border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+            vertical-align: -0.1em; animation: girar 0.7s linear infinite;
+        }
+        a.enviando { pointer-events: none; opacity: 0.6; }
+        @keyframes girar { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -614,14 +683,28 @@
                                 <li class="nav-item"><a class="nav-link text-warning fw-bold" href="{% url 'prueba_seleccionar_equipo' %}">🧪 Dirigente de Equipo</a></li>
                             {% endif %}
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Gestión</a>
+                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Competencia</a>
                                 <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_torneos' %}"><i class="bi bi-trophy me-2"></i>Torneos</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_categorias' %}"><i class="bi bi-tags me-2"></i>Categorías</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'programar_partidos' %}"><i class="bi bi-calendar-event me-2"></i>Campeonato y fixture</a></li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{% url 'gestionar_equipos' %}"><i class="bi bi-shield me-2"></i>Equipos</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'admin_gestion_jugadores' %}"><i class="bi bi-people me-2"></i>Jugadores</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Administración</a>
+                                <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{% url 'gestionar_finanzas' %}"><i class="bi bi-cash-stack me-2"></i>Finanzas</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'trazabilidad_financiera' %}"><i class="bi bi-journal-text me-2"></i>Trazabilidad financiera</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'cierre_diario_caja' %}"><i class="bi bi-clock-history me-2"></i>Caja diaria</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_usuarios' %}"><i class="bi bi-person-gear me-2"></i>Usuarios y roles</a></li>
                                 </ul>
                             </li>
 
-                        {% elif rol_nav_efectivo == 'DIR' %}
+                        {% elif rol_nav_efectivo == 'DIR' or rol_nav_efectivo == 'VOC' %}
                             <li class="nav-item"><a class="nav-link fw-semibold" href="{% url 'dashboard' %}"><i class="bi bi-house-door-fill me-1"></i>Inicio</a></li>
                         {% endif %}
 
@@ -694,9 +777,11 @@
     </div>
     {% endif %}
     
-    <div class="container main-content animate__animated animate__fadeIn">
+    <div class="container main-content">
         {% block contenido %}{% endblock %}
     </div>
+
+    <div id="avisoConexion" role="status" aria-live="polite"><i class="bi bi-wifi-off me-2"></i>Sin conexión a internet. Espera a que vuelva antes de guardar.</div>
 
     <footer class="footer-pro">
         <div class="container">
@@ -735,10 +820,72 @@
         document.addEventListener("DOMContentLoaded", function(){
             var toastElList = [].slice.call(document.querySelectorAll('.toast'))
             var toastList = toastElList.map(function(toastEl) {
-                return new bootstrap.Toast(toastEl, { delay: 4000 });
+                return new bootstrap.Toast(toastEl, { delay: 4500 });
             });
             toastList.forEach(toast => toast.show());
+
+            // 🔧 Pantalla oscura: las ventanas emergentes (modales) deben
+            // vivir directo en <body>; si quedan dentro de un contenedor con
+            // animación/transform, el fondo oscuro las tapa y no se puede
+            // tocar nada (pasaba al firmar el acta y al declarar W.O.).
+            document.querySelectorAll('.modal').forEach(function (m) {
+                if (m.parentElement !== document.body && !m.closest('form')) document.body.appendChild(m);
+            });
         });
+
+        (function () {
+            var csrf = document.querySelector('meta[name="csrf-token"]').content;
+
+            // Enlaces que modifican datos (borrar, sacar jugador, etc.) se
+            // envían como POST: así un doble toque, un "atrás" del navegador o
+            // una mala conexión no repiten la acción.
+            document.addEventListener('click', function (e) {
+                var a = e.target.closest('a[data-post]');
+                if (!a || e.defaultPrevented) return;
+                e.preventDefault();
+                if (a.dataset.confirm && !window.confirm(a.dataset.confirm)) return;
+                if (!navigator.onLine) { avisarSinConexion(); return; }
+                if (a.classList.contains('enviando')) return;
+                a.classList.add('enviando');
+                var f = document.createElement('form');
+                f.method = 'POST';
+                f.action = a.getAttribute('href');
+                var t = document.createElement('input');
+                t.type = 'hidden'; t.name = 'csrfmiddlewaretoken'; t.value = csrf;
+                f.appendChild(t);
+                document.body.appendChild(f);
+                f.submit();
+            });
+
+            // Evita envíos dobles de formularios (goles/cobros duplicados con
+            // internet lento) y bloquea el envío si no hay conexión.
+            document.addEventListener('submit', function (e) {
+                var f = e.target;
+                if (e.defaultPrevented || f.method.toLowerCase() !== 'post' || f.target === '_blank') return;
+                if (e.submitter && e.submitter.hasAttribute('data-descarga')) return;  // descargas (PDF) no bloquean
+                if (!navigator.onLine) { e.preventDefault(); avisarSinConexion(); return; }
+                if (f.dataset.enviando === '1') { e.preventDefault(); return; }
+                f.dataset.enviando = '1';
+                var boton = e.submitter;
+                setTimeout(function () { if (boton) boton.classList.add('enviando'); }, 0);
+                // Si la red se cuelga, se libera a los 20 s para poder reintentar
+                setTimeout(function () { f.dataset.enviando = ''; if (boton) boton.classList.remove('enviando'); }, 20000);
+            });
+
+            window.addEventListener('pageshow', function () {
+                document.querySelectorAll('form[data-enviando="1"]').forEach(function (f) { f.dataset.enviando = ''; });
+                document.querySelectorAll('.enviando').forEach(function (el) { el.classList.remove('enviando'); });
+            });
+
+            var aviso = document.getElementById('avisoConexion');
+            function avisarSinConexion() { aviso.classList.add('visible'); }
+            window.addEventListener('offline', avisarSinConexion);
+            window.addEventListener('online', function () {
+                aviso.innerHTML = '<i class="bi bi-wifi me-2"></i>Conexión restablecida';
+                setTimeout(function () { aviso.classList.remove('visible'); aviso.innerHTML = '<i class="bi bi-wifi-off me-2"></i>Sin conexión a internet. Espera a que vuelva antes de guardar.'; }, 2500);
+            });
+            if (!navigator.onLine) avisarSinConexion();
+        })();
     </script>
 
     {% block extra_js %}{% endblock %}

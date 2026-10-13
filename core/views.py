@@ -18,6 +18,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.utils.safestring import mark_safe
+from django.views.decorators.http import require_POST
 
 # Formularios
 from .forms import (
@@ -34,12 +35,15 @@ from .models import (
     Configuracion, Torneo, Equipo, Jugador, Partido, 
     DetallePartido, Pago, Perfil, Sancion, FotoGaleria, 
     AbonoSancion, ComplejoDeportivo, PlanSuscripcion, Categoria,
-    PagoSuscripcionSaaS, RolComplejo
+    PagoSuscripcionSaaS, RolComplejo, Llave, MovimientoFinanciero
 )
 
 from .utils import validar_cedula_ecuador, consultar_sri
 from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba, obtener_equipo_simulado, NOMBRE_PLAN_DEMO
 from .services.google_auth import verificar_token_google, obtener_o_crear_usuario_de_google, GoogleTokenInvalido
+from .services import campeonato as motor
+from .services.finanzas import registrar_movimiento
+from .imagenes import comprimir_firma
 
 # =========================================================
 # --- FUNCIONES DE CONTROL DE ACCESO (PERMISOS CONTEXTUALES) ---
@@ -71,6 +75,46 @@ def obtener_mi_complejo(user):
     rc = RolComplejo.objects.filter(usuario=user, rol='ORG').first()
     if rc: return rc.complejo
     return None
+
+def rol_en_complejo(user, complejo):
+    """Rol del usuario DENTRO de una cancha concreta (cada cancha es
+    independiente: ser vocal en una no da permisos en otra)."""
+    if not user.is_authenticated or complejo is None:
+        return None
+    if user.is_superuser or complejo.organizador_id == user.id:
+        return 'ORG'
+    rc = RolComplejo.objects.filter(usuario=user, complejo=complejo).only('rol').first()
+    if rc:
+        return rc.rol
+    if Equipo.objects.filter(dirigente=user, torneo__complejo=complejo).exists():
+        return 'DIR'
+    return None
+
+
+PRIORIDAD_ROL = {'FAN': 0, 'DIR': 1, 'VOC': 2, 'ORG': 3}
+
+
+def asegurar_rol_dirigente(user, complejo):
+    """Al tener un equipo, el usuario pasa a Dirigente en ESA cancha, pero
+    nunca se le baja un rol superior (un Vocal o el Staff no pierden su rol)."""
+    rc, creado = RolComplejo.objects.get_or_create(usuario=user, complejo=complejo, defaults={'rol': 'DIR'})
+    if not creado and PRIORIDAD_ROL.get(rc.rol, 0) < PRIORIDAD_ROL['DIR']:
+        rc.rol = 'DIR'
+        rc.save(update_fields=['rol'])
+    return rc
+
+
+def registrar_anulaciones(sanciones, usuario, motivo, origen='FINANZAS'):
+    """Deja en la bitácora cada deuda que se borra (sin FKs a lo que se va a
+    eliminar, para que el borrado en cascada no falle)."""
+    for s_ in sanciones:
+        MovimientoFinanciero.objects.create(
+            complejo=s_.torneo.complejo, tipo='ANULACION', monto=s_.monto,
+            usuario=usuario if usuario.is_authenticated else None,
+            equipo_nombre=s_.equipo.nombre, sancion_ref=s_.id, origen=origen,
+            descripcion=f"{motivo}: {s_.descripcion} (pagado ${s_.monto_pagado})"[:200],
+        )
+
 
 def limite_jugadores_alcanzado(complejo):
     """Cupo de jugadores inscritos del plan SaaS de esta cancha, independiente
@@ -143,7 +187,7 @@ def dashboard(request):
             ctx['equipos_pendientes'] = Equipo.objects.filter(torneo__complejo=mi_complejo, estado_inscripcion='PENDIENTE')
 
         elif rol == 'DIR':
-            mis_equipos = Equipo.objects.filter(dirigente=request.user)
+            mis_equipos = Equipo.objects.filter(dirigente=request.user).exclude(estado_inscripcion='RECHAZADO')
             if mis_equipos.exists():
                 ctx['mi_equipo'] = equipo_simulado or mis_equipos.first() 
                 mis_deudas = Sancion.objects.filter(equipo__in=mis_equipos, pagada=False).exclude(descripcion__icontains='Inscripci').select_related('partido', 'jugador').order_by('-partido__fecha_hora', '-id')
@@ -161,6 +205,12 @@ def dashboard(request):
             mis_canchas_vocal = RolComplejo.objects.filter(usuario=request.user, rol='VOC').values_list('complejo_id', flat=True)
             ctx['partidos_vocal'] = Partido.objects.filter(torneo__complejo_id__in=mis_canchas_vocal, estado__in=['PROG', 'VIVO']).select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
             ctx['actas_pendientes'] = Partido.objects.filter(torneo__complejo_id__in=mis_canchas_vocal, estado='ACTA').select_related('equipo_local', 'equipo_visita', 'torneo').order_by('fecha_hora')[:10]
+
+        if rol in ('FAN', 'DIR', 'VOC'):
+            mis_canchas_ids = list(RolComplejo.objects.filter(usuario=request.user).values_list('complejo_id', flat=True))
+            ctx['mis_canchas'] = ComplejoDeportivo.objects.filter(id__in=mis_canchas_ids, activo=True).order_by('nombre')
+            ctx['canchas_para_unirse'] = ComplejoDeportivo.objects.filter(
+                activo=True, es_demo=False).exclude(id__in=mis_canchas_ids).order_by('nombre')[:30]
 
     return render(request, 'core/dashboard.html', ctx)
 
@@ -199,8 +249,16 @@ def gestionar_usuarios(request):
     if request.method == 'POST':
         rol_cancha_id = request.POST.get('rol_cancha_id')
         nuevo_rol = request.POST.get('nuevo_rol')
-        if rol_cancha_id and nuevo_rol:
-            rc = RolComplejo.objects.get(id=rol_cancha_id, complejo=mi_complejo)
+        if rol_cancha_id and request.POST.get('quitar') == '1':
+            rc = get_object_or_404(RolComplejo, id=rol_cancha_id, complejo=mi_complejo)
+            if Equipo.objects.filter(dirigente=rc.usuario, torneo__complejo=mi_complejo, torneo__activo=True).exclude(estado_inscripcion='RECHAZADO').exists():
+                messages.error(request, f'⛔ {rc.usuario.username} dirige un equipo activo en esta cancha. Primero retira o reasigna el equipo.')
+            else:
+                rc.delete()
+                messages.warning(request, f'{rc.usuario.username} ya no pertenece a esta cancha.')
+            return redirect('gestionar_usuarios')
+        if rol_cancha_id and nuevo_rol in dict(RolComplejo.ROLES):
+            rc = get_object_or_404(RolComplejo, id=rol_cancha_id, complejo=mi_complejo)
             rc.rol = nuevo_rol
             rc.save()
             messages.success(request, f'Rol de {rc.usuario.username} actualizado a {rc.get_rol_display()} en esta cancha.')
@@ -215,10 +273,44 @@ def gestionar_usuarios(request):
             Q(usuario__email__icontains=query)
         )
 
-    paginator = Paginator(roles_cancha, 10)
+    filtro_rol = request.GET.get('rol', '')
+    if filtro_rol in dict(RolComplejo.ROLES):
+        roles_cancha = roles_cancha.filter(rol=filtro_rol)
+
+    paginator = Paginator(roles_cancha, 15)
     perfiles = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'core/gestionar_usuarios.html', {'perfiles': perfiles, 'query': query})
+    # Equipos que dirige cada usuario EN ESTA cancha (una sola consulta)
+    ids_pagina = [rc.usuario_id for rc in perfiles]
+    equipos_por_usuario = {}
+    for eq in Equipo.objects.filter(dirigente_id__in=ids_pagina, torneo__complejo=mi_complejo).exclude(
+            estado_inscripcion='RECHAZADO').select_related('torneo', 'torneo__categoria').order_by('-torneo__activo', 'nombre'):
+        equipos_por_usuario.setdefault(eq.dirigente_id, []).append(eq)
+    for rc in perfiles:
+        rc.equipos_dirigidos = equipos_por_usuario.get(rc.usuario_id, [])
+
+    conteo_roles = dict(RolComplejo.objects.filter(complejo=mi_complejo).exclude(usuario=request.user)
+                        .values_list('rol').annotate(n=Count('id')).values_list('rol', 'n'))
+
+    return render(request, 'core/gestionar_usuarios.html', {
+        'perfiles': perfiles, 'query': query, 'filtro_rol': filtro_rol,
+        'roles': [(v, n, conteo_roles.get(v, 0)) for v, n in RolComplejo.ROLES], 'mi_complejo': mi_complejo,
+    })
+
+
+@login_required
+@require_POST
+def unirse_cancha(request, slug_complejo):
+    """Un usuario se registra como AFICIONADO en una cancha. Así el
+    administrador lo ve en "Usuarios" y puede hacerlo Vocal, sin tener que
+    inventar un equipo."""
+    complejo = get_object_or_404(ComplejoDeportivo, slug=slug_complejo, activo=True, es_demo=False)
+    rc, creado = RolComplejo.objects.get_or_create(usuario=request.user, complejo=complejo, defaults={'rol': 'FAN'})
+    if creado:
+        messages.success(request, f"✅ Te uniste a {complejo.nombre} como Aficionado. Si vas a ser vocal, pide al administrador que cambie tu rol.")
+    else:
+        messages.info(request, f"Ya perteneces a {complejo.nombre} como {rc.get_rol_display()}.")
+    return redirect('dashboard')
 
 @login_required
 @user_passes_test(es_organizador)
@@ -299,16 +391,20 @@ def editar_torneo(request, torneo_id):
 
 @login_required
 @user_passes_test(es_organizador)
+@require_POST
 def eliminar_torneo(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     nombre_torneo = torneo.nombre
-    torneo.delete()
+    with transaction.atomic():
+        registrar_anulaciones(Sancion.objects.filter(torneo=torneo).select_related('torneo__complejo', 'equipo'), request.user, f"Torneo eliminado ({nombre_torneo})")
+        torneo.delete()
     messages.success(request, f'🗑️ El torneo "{nombre_torneo}" ha sido eliminado completamente.')
     return redirect('gestionar_torneos')
 
 @login_required
 @user_passes_test(es_organizador)
+@require_POST
 def cambiar_estado_torneo(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
@@ -336,9 +432,17 @@ def gestionar_equipos(request):
     mi_complejo = obtener_mi_complejo(request.user)
     
     # 🔥 OPTIMIZACIÓN DE DB
+    ver_retirados = request.GET.get('ver') == 'retirados'
     equipos_list = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).select_related(
         'torneo', 'torneo__categoria', 'dirigente'
     ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
+    # Los equipos RECHAZADOS / retirados no participan: no se mezclan con los
+    # que sí juegan (se pueden consultar aparte con ?ver=retirados).
+    retirados_count = equipos_list.filter(estado_inscripcion='RECHAZADO').count()
+    if ver_retirados:
+        equipos_list = equipos_list.filter(estado_inscripcion='RECHAZADO')
+    else:
+        equipos_list = equipos_list.exclude(estado_inscripcion='RECHAZADO')
     
     # --- PAGINACIÓN DE EQUIPOS ---
     paginator = Paginator(equipos_list, 10) # 10 Equipos por página
@@ -366,12 +470,14 @@ def gestionar_equipos(request):
         form = EquipoForm(request.POST, request.FILES)
         form.fields['torneo'].queryset = torneos_del_complejo
         form.fields['dirigente'].queryset = usuarios_del_complejo
+        if form.is_valid() and form.cleaned_data['torneo'].campeonato_iniciado and form.cleaned_data['estado_inscripcion'] == 'APROBADO':
+            messages.error(request, f"⛔ El campeonato «{form.cleaned_data['torneo'].nombre}» ya empezó: no se pueden sumar equipos aprobados (alteraría el fixture).")
+            return redirect('gestionar_equipos')
         if form.is_valid():
             nuevo_equipo = form.save()
-            # 🔥 Se fuerza rol='DIR' incluso si ya tenía otro rol en esta
-            # cancha (ej. FAN) — si no, obtener_rol_principal seguiría
-            # devolviendo el rol viejo y /jugadores/ le quedaría bloqueado.
-            RolComplejo.objects.update_or_create(usuario=nuevo_equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
+            # 🔥 El dirigente pasa a rol DIR en esta cancha (si era FAN), sin
+            # bajarle el rol si ya era Vocal/Staff.
+            asegurar_rol_dirigente(nuevo_equipo.dirigente, mi_complejo)
             if not nuevo_equipo.torneo.cobro_por_jugador:
                 costo_inscripcion = getattr(nuevo_equipo.torneo, 'costo_inscripcion', Decimal('0.00'))
                 Sancion.objects.create(
@@ -388,6 +494,7 @@ def gestionar_equipos(request):
 
     return render(request, 'core/gestionar_equipos.html', {
         'form': form, 'equipos': equipos, 'sin_usuarios_disponibles': not usuarios_del_complejo.exists(),
+        'ver_retirados': ver_retirados, 'retirados_count': retirados_count,
     })
 
 @login_required
@@ -403,18 +510,22 @@ def editar_equipo(request, equipo_id):
     ).distinct().order_by('username')
 
     if request.method == 'POST':
+        estado_previo, torneo_previo = equipo.estado_inscripcion, equipo.torneo_id
         form = EquipoForm(request.POST, request.FILES, instance=equipo)
         form.fields['torneo'].queryset = torneos_del_complejo
         form.fields['dirigente'].queryset = usuarios_del_complejo
         if form.is_valid():
+            t = form.cleaned_data['torneo']
+            entra_nuevo = form.cleaned_data['estado_inscripcion'] == 'APROBADO' and (estado_previo != 'APROBADO' or torneo_previo != t.id)
+            if t.campeonato_iniciado and entra_nuevo:
+                messages.error(request, f"⛔ El campeonato «{t.nombre}» ya empezó: no se puede aprobar ni mover equipos a él.")
+                return redirect('editar_equipo', equipo_id=equipo.id)
+            if torneo_previo != t.id and Partido.objects.filter(Q(equipo_local=equipo) | Q(equipo_visita=equipo)).exists():
+                messages.error(request, "⛔ Este equipo ya tiene partidos en su torneo: no se puede cambiar de torneo.")
+                return redirect('editar_equipo', equipo_id=equipo.id)
+        if form.is_valid():
             form.save()
-            # 🔥 MULTI-TENANCY: fuerza rol='DIR' aunque ya tuviera otro rol
-            # en esta cancha — ver nota equivalente en gestionar_equipos.
-            RolComplejo.objects.update_or_create(
-                usuario=equipo.dirigente,
-                complejo=mi_complejo,
-                defaults={'rol': 'DIR'}
-            )
+            asegurar_rol_dirigente(equipo.dirigente, mi_complejo)
             messages.success(request, 'Equipo actualizado correctamente.')
             return redirect('gestionar_equipos')
     else:
@@ -422,7 +533,8 @@ def editar_equipo(request, equipo_id):
         form.fields['torneo'].queryset = torneos_del_complejo
         form.fields['dirigente'].queryset = usuarios_del_complejo
 
-    equipos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).select_related(
+    equipos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).exclude(
+        estado_inscripcion='RECHAZADO').select_related(
         'torneo', 'torneo__categoria', 'dirigente'
     ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
 
@@ -430,10 +542,16 @@ def editar_equipo(request, equipo_id):
 
 @login_required
 @user_passes_test(es_organizador)
+@require_POST
 def eliminar_equipo(request, equipo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
-    equipo.delete()
+    if Partido.objects.filter(Q(equipo_local=equipo) | Q(equipo_visita=equipo)).exclude(estado='PROG').exists():
+        messages.error(request, f'⛔ {equipo.nombre} ya jugó partidos. Para sacarlo del torneo cambia su estado a "Rechazado" en vez de borrarlo (así no se pierde el historial).')
+        return redirect('gestionar_equipos')
+    with transaction.atomic():
+        registrar_anulaciones(equipo.sanciones.select_related('torneo__complejo', 'equipo'), request.user, f"Equipo eliminado ({equipo.nombre})")
+        equipo.delete()
     messages.success(request, 'Equipo eliminado. Los jugadores quedaron libres.')
     return redirect('gestionar_equipos')
 
@@ -451,7 +569,7 @@ def gestionar_jugadores(request):
     query = request.GET.get('q', '').strip()
 
     if rol_principal == 'DIR':
-        mis_equipos = Equipo.objects.filter(dirigente=request.user)
+        mis_equipos = Equipo.objects.filter(dirigente=request.user).exclude(estado_inscripcion='RECHAZADO')
         if not mis_equipos.exists():
             messages.error(request, 'No tienes un equipo inscrito. Inscríbete a un torneo primero.')
             return redirect('ver_torneos_activos')
@@ -486,7 +604,7 @@ def gestionar_jugadores(request):
                 messages.error(request, f'⛔ LÍMITE ALCANZADO: El equipo "{mi_equipo.nombre}" ya tiene el máximo de {mi_equipo.cupos_pagados} jugadores permitidos.')
                 return redirect(f"{request.path}?equipo={mi_equipo.id}")
 
-            form = JugadorForm(request.POST, request.FILES)
+            form = JugadorForm(request.POST, request.FILES, es_admin=False)
             form.fields['equipo'].queryset = mis_equipos
 
             if form.is_valid():
@@ -546,12 +664,13 @@ def gestionar_jugadores(request):
             else:
                 messages.error(request, "❌ Error en el formulario.")
         else:
-            form = JugadorForm(initial={'equipo': mi_equipo})
+            form = JugadorForm(initial={'equipo': mi_equipo}, es_admin=False)
             form.fields['equipo'].queryset = mis_equipos 
 
     elif rol_principal == 'ORG':
         mi_complejo = obtener_mi_complejo(request.user)
-        equipos_activos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
+        equipos_activos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).exclude(
+            estado_inscripcion='RECHAZADO').order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
         equipo_id = request.GET.get('equipo')
         mi_equipo = Equipo.objects.filter(id=equipo_id, torneo__complejo=mi_complejo).first() if equipo_id else equipos_activos.first()
             
@@ -565,7 +684,9 @@ def gestionar_jugadores(request):
             equipo_seleccionado = None
             
         if request.method == 'POST':
-            form = JugadorForm(request.POST, request.FILES)
+            form = JugadorForm(request.POST, request.FILES, es_admin=True)
+            # 🔥 AISLAMIENTO: solo equipos de ESTA cancha
+            form.fields['equipo'].queryset = equipos_activos
             if form.is_valid():
                 cedula_ingresada = form.cleaned_data.get('cedula')
                 equipo_destino = form.cleaned_data.get('equipo')
@@ -608,20 +729,22 @@ def gestionar_jugadores(request):
                         nuevo_jugador = form.save(commit=False)
                         if jugador_historial and not nuevo_jugador.foto and jugador_historial.foto:
                             nuevo_jugador.foto = jugador_historial.foto
-                            nuevo_jugador.rojas_directas_acumuladas = 0
-                            nuevo_jugador.partidos_suspension = 0
-                            nuevo_jugador.expulsado_torneo = False
                         nuevo_jugador.save()
                         messages.success(request, 'Jugador registrado en nueva categoría por Administración.')
                         
                 return redirect(f"{request.path}?equipo={form.cleaned_data['equipo'].id}")
+            else:
+                for campo, errores in form.errors.items():
+                    for error in errores:
+                        messages.error(request, f"❌ {error}")
         else:
-            form = JugadorForm()
+            form = JugadorForm(es_admin=True, initial={'equipo': mi_equipo})
+            form.fields['equipo'].queryset = equipos_activos
     else:
         messages.error(request, "Acceso denegado.")
         return redirect('dashboard')
 
-    if mi_equipo and 'jugadores' in locals() and jugadores: 
+    if mi_equipo and 'jugadores' in locals() and jugadores.exists(): 
         # (Nota interna: en tu código original tenías 'jugadores = Jugador.objects.filter...' arriba. Ahora lo paginaremos)
         paginator = Paginator(jugadores, 12) # 12 jugadores por página para diseño en cuadrícula
         page = request.GET.get('page')
@@ -632,13 +755,14 @@ def gestionar_jugadores(request):
         except EmptyPage:
             jugadores_paginados = paginator.page(paginator.num_pages)
             
+        # Otros equipos del mismo jugador en ESTA cancha: una sola consulta
+        cedulas = [j.cedula for j in jugadores_paginados]
+        otros = {}
+        for o in Jugador.objects.filter(cedula__in=cedulas, equipo__torneo__activo=True,
+                                        equipo__torneo__complejo=mi_equipo.torneo.complejo).select_related('equipo', 'equipo__torneo'):
+            otros.setdefault(o.cedula, []).append(o)
         for j in jugadores_paginados:
-            # Ahora esto procesa muy rápido porque solo lo hace 12 veces, no 100
-            j.otros_equipos = Jugador.objects.filter(
-                cedula=j.cedula,
-                equipo__torneo__activo=True,
-                equipo__torneo__complejo=j.equipo.torneo.complejo 
-            ).exclude(id=j.id)
+            j.otros_equipos = [o for o in otros.get(j.cedula, []) if o.id != j.id]
     else:
         jugadores_paginados = []
 
@@ -650,7 +774,8 @@ def gestionar_jugadores(request):
         'es_dirigente': (rol_principal == 'DIR'),
         'puede_fichar': puede_fichar,
         'equipo_obj': mi_equipo,
-        'query': query
+        'query': query,
+        'es_admin': rol_principal == 'ORG',
     })
 
 @login_required
@@ -667,18 +792,22 @@ def editar_jugador(request, jugador_id):
         messages.error(request, "Acceso denegado. Este jugador pertenece a otro complejo.")
         return redirect('dashboard')
 
+    equipos_activos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).exclude(
+        estado_inscripcion='RECHAZADO').order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
     if request.method == 'POST':
-        form = JugadorForm(request.POST, request.FILES, instance=jugador)
+        form = JugadorForm(request.POST, request.FILES, instance=jugador, es_admin=True)
+        form.fields['equipo'].queryset = equipos_activos
         if form.is_valid():
             form.save()
             messages.success(request, f'✅ Datos de {jugador.nombres} actualizados correctamente.')
             return redirect(f"/jugadores/?equipo={jugador.equipo.id}")
         else:
-            messages.error(request, "❌ Revisa los campos del formulario.")
+            for campo, errores in form.errors.items():
+                for error in errores:
+                    messages.error(request, f"❌ {error}")
     else:
-        form = JugadorForm(instance=jugador)
-
-    equipos_activos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
+        form = JugadorForm(instance=jugador, es_admin=True)
+        form.fields['equipo'].queryset = equipos_activos
 
     return render(request, 'core/gestionar_jugadores.html', {
         'form': form, 
@@ -688,10 +817,12 @@ def editar_jugador(request, jugador_id):
         'es_dirigente': False,
         'equipo_seleccionado': jugador.equipo.id,
         'equipo_obj': jugador.equipo, 
-        'puede_fichar': True 
+        'puede_fichar': True,
+        'es_admin': True,
     })
 
 @login_required
+@require_POST
 def eliminar_jugador(request, jugador_id):
     jugador = get_object_or_404(Jugador, id=jugador_id)
     rol_principal = obtener_rol_principal(request.user)
@@ -815,6 +946,110 @@ def sancionar_equipo(request, equipo_id):
         form = SancionListaNegraForm(instance=equipo)
     return render(request, 'core/sancionar_equipo.html', {'form': form, 'equipo': equipo})
 
+@login_required
+@user_passes_test(es_organizador)
+@require_POST
+def suspender_jugador(request, jugador_id):
+    """Sanción manual a un jugador por el administrador de la cancha:
+    - 'partidos': suma N partidos de suspensión (sirve también para AUMENTAR
+      una sanción que ya tenía),
+    - 'reducir': resta partidos (corrección),
+    - 'fecha': suspendido hasta una fecha (sanciones graves),
+    - 'expulsar': fuera del torneo,
+    - 'levantar': quita toda sanción manual."""
+    mi_complejo = obtener_mi_complejo(request.user)
+    jugador = get_object_or_404(Jugador, id=jugador_id, equipo__torneo__complejo=mi_complejo)
+    accion = request.POST.get('accion')
+    motivo = (request.POST.get('motivo') or '').strip()[:200]
+    volver = request.POST.get('next') or f"/jugadores/?equipo={jugador.equipo_id}"
+    if not volver.startswith('/'):
+        volver = '/jugadores/'
+
+    if accion in ('partidos', 'reducir'):
+        try:
+            n = int(request.POST.get('partidos', 0))
+        except ValueError:
+            n = 0
+        if n <= 0 or n > 50:
+            messages.error(request, "⛔ Indica un número de partidos entre 1 y 50.")
+            return redirect(volver)
+        if accion == 'partidos':
+            jugador.partidos_suspension = max(0, jugador.partidos_suspension) + n
+            texto = f"🚫 {jugador.nombres} suspendido {n} partido(s) más. Total pendiente: {jugador.partidos_suspension}."
+        else:
+            jugador.partidos_suspension = max(0, jugador.partidos_suspension - n)
+            texto = f"✅ Se redujo la suspensión de {jugador.nombres}. Pendiente: {jugador.partidos_suspension}."
+    elif accion == 'fecha':
+        try:
+            hasta = datetime.strptime(request.POST.get('hasta', ''), '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "⛔ Fecha inválida.")
+            return redirect(volver)
+        if hasta < timezone.localdate():
+            messages.error(request, "⛔ La fecha de la sanción debe ser futura.")
+            return redirect(volver)
+        jugador.sancionado_hasta = hasta
+        texto = f"🚫 {jugador.nombres} suspendido hasta el {hasta:%d/%m/%Y}."
+    elif accion == 'expulsar':
+        jugador.expulsado_torneo = True
+        texto = f"🟥 {jugador.nombres} fue expulsado del torneo."
+    elif accion == 'levantar':
+        jugador.partidos_suspension = 0
+        jugador.sancionado_hasta = None
+        jugador.expulsado_torneo = False
+        jugador.bloqueado_por_cuota = False
+        jugador.rojas_directas_acumuladas = min(jugador.rojas_directas_acumuladas, 2)
+        motivo = ''
+        texto = f"✅ Se levantaron las sanciones de {jugador.nombres}. Ya puede jugar."
+    else:
+        messages.error(request, "Acción no válida.")
+        return redirect(volver)
+
+    if motivo:
+        jugador.motivo_suspension = motivo
+    elif accion == 'levantar':
+        jugador.motivo_suspension = ''
+    jugador.save()
+    messages.success(request, texto)
+    return redirect(volver)
+
+
+@login_required
+@user_passes_test(es_organizador)
+@require_POST
+def suspender_por_cuota(request, torneo_id):
+    """Igual que en gestion_futbol: bloquea en ESTE torneo a los jugadores que
+    no alcanzaron el mínimo de partidos jugados (asistencias registradas)."""
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    try:
+        limite = int(request.POST.get('limite_partidos', 0))
+    except ValueError:
+        limite = 0
+    if limite < 1:
+        messages.error(request, "⛔ Indica un mínimo de partidos válido (1 o más).")
+        return redirect('reporte_estadisticas', torneo_id=torneo.id)
+
+    jugadores = Jugador.objects.filter(equipo__torneo=torneo, equipo__estado_inscripcion='APROBADO').annotate(
+        pj=Count('detallepartido', filter=Q(detallepartido__tipo='ASIS', detallepartido__partido__torneo=torneo))
+    )
+    ids = [j.id for j in jugadores if j.pj < limite]
+    bloqueados = Jugador.objects.filter(id__in=ids, bloqueado_por_cuota=False).update(bloqueado_por_cuota=True)
+    messages.success(request, f"¡Control aplicado! Se bloquearon {bloqueados} jugadores por no alcanzar el mínimo de {limite} partidos.")
+    return redirect('reporte_estadisticas', torneo_id=torneo.id)
+
+
+@login_required
+@user_passes_test(es_organizador)
+@require_POST
+def revertir_cuota(request, torneo_id):
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    liberados = Jugador.objects.filter(equipo__torneo=torneo, bloqueado_por_cuota=True).update(bloqueado_por_cuota=False)
+    messages.info(request, f"Reverso exitoso. Se han desbloqueado {liberados} jugadores.")
+    return redirect('reporte_estadisticas', torneo_id=torneo.id)
+
+
 def api_consultar_cedula(request):
     cedula = request.GET.get('cedula', '')
     if not validar_cedula_ecuador(cedula):
@@ -830,7 +1065,8 @@ def api_consultar_cedula(request):
 @login_required
 @user_passes_test(es_vocal_o_admin)
 def programar_partidos(request):
-    mis_canchas_ids = RolComplejo.objects.filter(usuario=request.user, rol__in=['ORG', 'VOC']).values_list('complejo_id', flat=True)
+    mis_canchas_ids = list(RolComplejo.objects.filter(usuario=request.user, rol__in=['ORG', 'VOC']).values_list('complejo_id', flat=True))
+    mis_canchas_ids += list(ComplejoDeportivo.objects.filter(organizador=request.user).values_list('id', flat=True))
     if request.user.is_superuser:
         torneos = Torneo.objects.filter(activo=True).order_by('-fecha_inicio')
     else:
@@ -841,14 +1077,17 @@ def programar_partidos(request):
     partidos = []
 
     if torneo_id_get:
-        torneo_obj = get_object_or_404(Torneo, id=torneo_id_get)
+        torneo_obj = get_object_or_404(Torneo, id=torneo_id_get) if str(torneo_id_get).isdigit() else None
+        if torneo_obj is None:
+            return redirect('programar_partidos')
         if not request.user.is_superuser and torneo_obj.complejo.id not in mis_canchas_ids:
             messages.error(request, "Acceso denegado a este complejo.")
             return redirect('dashboard')
             
-        partidos_qs = Partido.objects.filter(torneo=torneo_obj)\
-            .select_related('equipo_local', 'equipo_visita')\
-            .order_by('etapa', 'numero_fecha', 'fecha_hora')
+        orden_etapas = {e: i for i, (e, _) in enumerate(Partido.ETAPAS)}
+        partidos_qs = sorted(
+            Partido.objects.filter(torneo=torneo_obj).select_related('equipo_local', 'equipo_visita'),
+            key=lambda p: (orden_etapas.get(p.etapa, 99), p.numero_fecha, p.equipo_local.grupo, p.fecha_hora or timezone.now() + timedelta(days=3650), p.id))
             
         partidos_lista = list(partidos_qs)
         total_equipos = Equipo.objects.filter(torneo=torneo_obj, estado_inscripcion='APROBADO').count()
@@ -862,6 +1101,12 @@ def programar_partidos(request):
         partidos = partidos_lista
 
     if request.method == 'POST' and es_organizador(request.user):
+        t_post = Torneo.objects.filter(id=request.POST.get('torneo'), complejo_id__in=mis_canchas_ids).first()
+        if t_post is None or t_post.formato != 'CLASICO':
+            # 🔒 Sin atajos: en las modalidades nuevas los partidos solo los
+            # crea "Empezar campeonato" y las llaves avanzan solas.
+            messages.error(request, "⛔ Los partidos de este torneo se generan con «Empezar campeonato». No se pueden crear cruces a mano.")
+            return redirect(f"{request.path}?torneo={t_post.id}" if t_post else request.path)
         form = ProgramarPartidoForm(request.POST)
         if 'torneo' in form.fields:
             if request.user.is_superuser:
@@ -937,12 +1182,20 @@ def programar_partidos(request):
             if 'equipo_visita' in form.fields:
                 form.fields['equipo_visita'].queryset = equipos_aprobados
 
+    ctx_camp = {}
+    if torneo_obj:
+        ctx_camp = {
+            'puede_cerrar_fase': torneo_obj.formato in ('LIGA', 'LIGA_PLAYOFF', 'GRUPOS') and not torneo_obj.fase_regular_cerrada and motor.fase_regular_completa(torneo_obj),
+            'equipos_aprobados_count': Equipo.objects.filter(torneo=torneo_obj, estado_inscripcion='APROBADO').count(),
+            'es_admin_torneo': rol_en_complejo(request.user, torneo_obj.complejo) == 'ORG',
+        }
     return render(request, 'core/programar_partidos.html', {
         'partidos': partidos, 
         'form': form, 
         'torneos': torneos,
-        'torneo_actual': int(torneo_id_get) if torneo_id_get else None,
-        'torneo': torneo_obj
+        'torneo_actual': int(torneo_id_get) if torneo_id_get and str(torneo_id_get).isdigit() else None,
+        'torneo': torneo_obj,
+        **ctx_camp,
     })
 
 @login_required
@@ -952,8 +1205,22 @@ def editar_partido(request, partido_id):
     mi_complejo = obtener_mi_complejo(request.user)
     if partido.torneo.complejo != mi_complejo and not request.user.is_superuser:
         return redirect('dashboard')
-        
+
+    # En las modalidades nuevas los cruces los decide el sistema: aquí solo
+    # se programa el día, la hora y la cancha (nada de cambiar equipos).
+    solo_horario = partido.torneo.formato != 'CLASICO'
     if request.method == 'POST':
+        if solo_horario:
+            valor = request.POST.get('fecha_hora') or ''
+            try:
+                partido.fecha_hora = timezone.make_aware(datetime.strptime(valor, '%Y-%m-%dT%H:%M')) if valor else None
+            except ValueError:
+                messages.error(request, "⛔ Fecha u hora inválida.")
+                return redirect('editar_partido', partido_id=partido.id)
+            partido.cancha = (request.POST.get('cancha') or partido.cancha)[:100]
+            partido.save(update_fields=['fecha_hora', 'cancha'])
+            messages.success(request, 'Horario del partido actualizado.')
+            return redirect(f"/programar/?torneo={partido.torneo.id}")
         form = ProgramarPartidoForm(request.POST, instance=partido)
         if form.is_valid():
             form.save()
@@ -961,47 +1228,66 @@ def editar_partido(request, partido_id):
             return redirect(f"/programar/?torneo={partido.torneo.id}")
     else:
         form = ProgramarPartidoForm(instance=partido)
-    return render(request, 'core/editar_partido.html', {'form': form, 'partido': partido})
+    return render(request, 'core/editar_partido.html', {'form': form, 'partido': partido, 'solo_horario': solo_horario})
 
 @login_required
 @user_passes_test(es_organizador)
+@require_POST
 def eliminar_partido(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
     mi_complejo = obtener_mi_complejo(request.user)
     if partido.torneo.complejo != mi_complejo and not request.user.is_superuser:
         return redirect('dashboard')
-        
     torneo_id = partido.torneo.id
+    if partido.torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ En esta modalidad los partidos los genera el sistema y no se pueden borrar sueltos. Si nada se ha jugado puedes reiniciar el campeonato completo.")
+        return redirect(f"/programar/?torneo={torneo_id}")
+    if partido.estado != 'PROG' or partido.detalles.exists():
+        messages.error(request, "⛔ Este partido ya tiene datos registrados. Reinícialo primero si necesitas borrarlo.")
+        return redirect(f"/programar/?torneo={torneo_id}")
     partido.delete()
     messages.warning(request, 'Partido eliminado del calendario.')
     return redirect(f"/programar/?torneo={torneo_id}")
 
 @login_required
 @user_passes_test(es_organizador)
+@require_POST
 def reiniciar_partido(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
     mi_complejo = obtener_mi_complejo(request.user)
     if partido.torneo.complejo != mi_complejo and not request.user.is_superuser:
         return redirect('dashboard')
-        
-    partido.detalles.all().delete()
-    Sancion.objects.filter(partido=partido).delete() 
-    
-    partido.goles_local = 0
-    partido.goles_visita = 0
-    partido.estado = 'PROG'
-    partido.informe_vocal = ""
-    partido.informe_arbitro = ""
-    partido.validado_local = False
-    partido.validado_visita = False
-    partido.hubo_penales = False
-    partido.penales_local = 0
-    partido.penales_visita = 0
-    partido.ganador_wo = None
-    partido.sanciones_aplicadas = False
-    partido.firma_local_base64 = None
-    partido.firma_visita_base64 = None
-    partido.save()
+
+    try:
+        with transaction.atomic():
+            if partido.llave_id:
+                motor.revertir_llave(partido.llave)
+            sanciones = list(Sancion.objects.filter(partido=partido).select_related('torneo__complejo', 'equipo'))
+            registrar_anulaciones(sanciones, request.user, "Partido reiniciado", origen='VOCALIA')
+            # Devolver las suspensiones que generó este partido
+            if partido.sanciones_aplicadas and partido.estado == 'JUG':
+                revertir_suspensiones_partido(partido)
+            partido.detalles.all().delete()
+            Sancion.objects.filter(partido=partido).delete()
+
+            partido.goles_local = 0
+            partido.goles_visita = 0
+            partido.estado = 'PROG'
+            partido.informe_vocal = ""
+            partido.informe_arbitro = ""
+            partido.validado_local = False
+            partido.validado_visita = False
+            partido.hubo_penales = False
+            partido.penales_local = 0
+            partido.penales_visita = 0
+            partido.ganador_wo = None
+            partido.sanciones_aplicadas = False
+            partido.firma_local_base64 = None
+            partido.firma_visita_base64 = None
+            partido.save()
+    except motor.CampeonatoError as e:
+        messages.error(request, f"⛔ {e}")
+        return redirect(f"/programar/?torneo={partido.torneo.id}")
 
     messages.info(request, 'El partido ha sido reiniciado. Ahora está pendiente de juego.')
     return redirect(f"/programar/?torneo={partido.torneo.id}")
@@ -1011,18 +1297,120 @@ def reiniciar_partido(request, partido_id):
 # =========================================================
 
 def verificar_acceso_partido(user, partido):
-    if user.is_superuser: return True
-    rc = RolComplejo.objects.filter(usuario=user, complejo=partido.torneo.complejo).first()
-    if rc and rc.rol in ['ORG', 'VOC']: return True
-    return False
+    return rol_en_complejo(user, partido.torneo.complejo) in ('ORG', 'VOC')
 
 def verificar_acceso_complejo(user, complejo):
     """Igual que verificar_acceso_partido pero para objetos (como Sancion)
     que pueden no estar ligados a un Partido."""
-    if user.is_superuser: return True
-    if complejo == obtener_mi_complejo(user): return True
-    rc = RolComplejo.objects.filter(usuario=user, complejo=complejo).first()
-    return bool(rc and rc.rol in ['ORG', 'VOC'])
+    return rol_en_complejo(user, complejo) in ('ORG', 'VOC')
+
+
+def partido_bloqueado(request, partido):
+    """Un partido FINALIZADO o por W.O. ya no se modifica desde la mesa (evita
+    cambiar resultados a escondidas). El administrador puede reiniciarlo."""
+    if partido.estado in ('JUG', 'WO'):
+        messages.error(request, "🔒 Este partido ya está cerrado. Para corregirlo, el administrador debe reiniciarlo desde el calendario.")
+        return True
+    return False
+
+
+def _monto_abono(request, sancion):
+    """Lee el abono del formulario: debe ser > 0 y no mayor al saldo."""
+    abono_str = (request.POST.get('monto_abono') or '').strip()
+    try:
+        abono = Decimal(abono_str) if abono_str else sancion.saldo
+    except Exception:
+        return None
+    if abono <= 0 or abono > sancion.saldo:
+        return None
+    return abono.quantize(Decimal('0.01'))
+
+
+def aplicar_sanciones_partido(partido):
+    """Descuenta suspensiones cumplidas y genera tarjetas/multas del partido."""
+    jugadores_ambos_equipos = Jugador.objects.filter(equipo__in=[partido.equipo_local, partido.equipo_visita], partidos_suspension__gt=0)
+    detalles = list(DetallePartido.objects.filter(partido=partido).select_related('jugador', 'jugador__equipo'))
+    con_roja = {d.jugador_id for d in detalles if d.tipo in ('DA', 'TR')}
+
+    for j in jugadores_ambos_equipos:
+        if j.id not in con_roja:
+            j.partidos_suspension -= 1
+            j.save(update_fields=['partidos_suspension'])
+
+    if partido.etapa in ('F1', 'GRP'):
+        fases_validas = [partido.etapa]
+    elif partido.etapa == 'F2':
+        fases_validas = ['F2']
+    else:
+        fases_validas = Partido.ETAPAS_ELIMINATORIAS
+
+    por_jugador = {}
+    for d in detalles:
+        por_jugador.setdefault(d.jugador_id, (d.jugador, []))[1].append(d.tipo)
+
+    for j, tipos in por_jugador.values():
+        ta_partido = tipos.count('TA')
+        da_partido = tipos.count('DA')
+        tr_partido = tipos.count('TR')
+        if tr_partido > 0:
+            j.partidos_suspension += 2
+            j.rojas_directas_acumuladas += 1
+            if j.rojas_directas_acumuladas >= 3:
+                j.expulsado_torneo = True
+                desc_roja = f"Expulsión Definitiva del Torneo (Límite 3 Rojas) - {j.nombres}"
+            else:
+                desc_roja = f"Roja Directa - {j.nombres}"
+            j.save()
+            Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='ROJA', monto=partido.torneo.costo_roja, descripcion=desc_roja)
+        if da_partido > 0:
+            j.partidos_suspension += 1
+            j.save()
+            Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='ROJA', monto=partido.torneo.costo_roja, descripcion=f"Roja por Acumulación - {j.nombres}")
+        if ta_partido > 0:
+            Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='AMARILLA', monto=partido.torneo.costo_amarilla, descripcion=f"Tarjeta Amarilla - {j.nombres}")
+            total_ta_fase = DetallePartido.objects.filter(
+                jugador=j, partido__torneo=partido.torneo, partido__etapa__in=fases_validas, tipo='TA'
+            ).count()
+            if total_ta_fase > 0 and total_ta_fase % 4 == 0:
+                j.partidos_suspension += 1
+                j.save()
+
+    partido.sanciones_aplicadas = True
+    partido.save(update_fields=['sanciones_aplicadas'])
+
+
+def revertir_suspensiones_partido(partido):
+    """Al reiniciar un partido finalizado se devuelven las suspensiones que
+    generó (rojas y amarillas acumuladas) para no castigar dos veces."""
+    detalles = list(DetallePartido.objects.filter(partido=partido).select_related('jugador'))
+    fases = [partido.etapa] if partido.etapa in ('F1', 'GRP', 'F2') else Partido.ETAPAS_ELIMINATORIAS
+    vistos = {}
+    for d in detalles:
+        vistos.setdefault(d.jugador_id, (d.jugador, []))[1].append(d.tipo)
+    for j, tipos in vistos.values():
+        cambios = 0
+        if 'TR' in tipos:
+            cambios += 2
+            j.rojas_directas_acumuladas = max(0, j.rojas_directas_acumuladas - 1)
+            if j.rojas_directas_acumuladas < 3:
+                j.expulsado_torneo = False
+        if 'DA' in tipos:
+            cambios += 1
+        if 'TA' in tipos:
+            total_ta = DetallePartido.objects.filter(jugador=j, partido__torneo=partido.torneo,
+                                                     partido__etapa__in=fases, tipo='TA').count()
+            if total_ta > 0 and total_ta % 4 == 0:
+                cambios += 1
+        j.partidos_suspension = max(0, j.partidos_suspension - cambios)
+        j.save()
+
+
+def cerrar_partido(partido):
+    """Pasa el partido a finalizado y, si es de llaves, mueve al ganador."""
+    if partido.estado == 'JUG' and not partido.sanciones_aplicadas:
+        aplicar_sanciones_partido(partido)
+    motor.procesar_partido_cerrado(partido)
+
 
 @login_required
 @user_passes_test(es_vocal_o_admin)
@@ -1031,20 +1419,25 @@ def registrar_resultado(request, partido_id):
     if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
 
     if request.method == 'POST':
-        goles_local = request.POST.get('goles_local')
-        goles_visita = request.POST.get('goles_visita')
+        if partido_bloqueado(request, partido):
+            return redirect(f"/programar/?torneo={partido.torneo.id}")
         wo = request.POST.get('wo')
-
         if wo == 'on':
             partido.estado = 'WO'
             partido.goles_local = 3
             partido.goles_visita = 0
+            partido.ganador_wo = partido.equipo_local
         else:
-            partido.goles_local = int(goles_local)
-            partido.goles_visita = int(goles_visita)
-            partido.estado = 'JUG' 
+            try:
+                partido.goles_local = max(0, int(request.POST.get('goles_local')))
+                partido.goles_visita = max(0, int(request.POST.get('goles_visita')))
+            except (TypeError, ValueError):
+                messages.error(request, "⛔ Marcador inválido.")
+                return redirect('registrar_resultado', partido_id=partido.id)
+            partido.estado = 'JUG'
 
         partido.save()
+        cerrar_partido(partido)
         messages.success(request, f'Resultado registrado: {partido.equipo_local} ({partido.goles_local}) - ({partido.goles_visita}) {partido.equipo_visita}')
         return redirect(f"/programar/?torneo={partido.torneo.id}")
     return render(request, 'core/registrar_resultado.html', {'partido': partido})
@@ -1052,98 +1445,107 @@ def registrar_resultado(request, partido_id):
 @login_required
 @user_passes_test(es_vocal_o_admin)
 def gestionar_vocalia(request, partido_id):
-    partido = get_object_or_404(Partido, id=partido_id)
+    partido = get_object_or_404(Partido.objects.select_related('torneo', 'torneo__complejo', 'equipo_local', 'equipo_visita'), id=partido_id)
     if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
-    
-    jugadores_local = Jugador.objects.filter(equipo=partido.equipo_local).annotate(
-        goles_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='GOL')),
-        ta_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TA')),
-        tr_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TR')),
-        da_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='DA')),
-        star_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='STAR'))
-    ).order_by('dorsal')
 
-    jugadores_visita = Jugador.objects.filter(equipo=partido.equipo_visita).annotate(
-        goles_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='GOL')),
-        ta_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TA')),
-        tr_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TR')),
-        da_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='DA')),
-        star_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='STAR')) 
-    ).order_by('dorsal')
+    def jugadores_con_conteo(equipo):
+        return Jugador.objects.filter(equipo=equipo).annotate(
+            goles_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='GOL')),
+            ta_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TA')),
+            tr_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='TR')),
+            da_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='DA')),
+            star_match=Count('detallepartido', filter=Q(detallepartido__partido=partido, detallepartido__tipo='STAR'))
+        ).order_by('dorsal')
+
+    jugadores_local = jugadores_con_conteo(partido.equipo_local)
+    jugadores_visita = jugadores_con_conteo(partido.equipo_visita)
 
     deudas_pendientes = Sancion.objects.filter(
-        equipo__in=[partido.equipo_local, partido.equipo_visita], 
+        equipo__in=[partido.equipo_local, partido.equipo_visita],
         pagada=False
     ).select_related('equipo', 'jugador').order_by('equipo__nombre')
 
     asistencias_ids = list(DetallePartido.objects.filter(partido=partido, tipo='ASIS').values_list('jugador_id', flat=True))
-    multas = Sancion.objects.filter(partido=partido).order_by('-id')
-    eventos = DetallePartido.objects.filter(partido=partido).exclude(tipo='ASIS').select_related('jugador').order_by('-id')[:15]
+    multas = Sancion.objects.filter(partido=partido, tipo='ADMIN').select_related('equipo').order_by('-id')
+    # Visor de eventos: TODOS los eventos (no solo los últimos) en una lista
+    # compacta con scroll + un resumen por tipo, para que no se sature aunque
+    # haya muchos goles.
+    eventos = list(DetallePartido.objects.filter(partido=partido).exclude(tipo='ASIS')
+                   .select_related('jugador').order_by('-id'))
+    resumen_eventos = {
+        'goles_local': sum(1 for e in eventos if e.tipo == 'GOL' and e.equipo_incidencia_id == partido.equipo_local_id),
+        'goles_visita': sum(1 for e in eventos if e.tipo == 'GOL' and e.equipo_incidencia_id == partido.equipo_visita_id),
+        'amarillas': sum(1 for e in eventos if e.tipo == 'TA'),
+        'rojas': sum(1 for e in eventos if e.tipo in ('TR', 'DA')),
+        'figuras': sum(1 for e in eventos if e.tipo == 'STAR'),
+    }
 
     if request.method == 'POST':
         if 'cobrar_deuda' in request.POST:
-            from decimal import Decimal
-            sancion_id = request.POST.get('sancion_id')
-            abono_str = request.POST.get('monto_abono')
-            sancion = get_object_or_404(Sancion, id=sancion_id, torneo=partido.torneo)
-            abono = Decimal(abono_str) if abono_str else sancion.saldo
-            
-            sancion.monto_pagado += abono
-            if sancion.monto_pagado >= sancion.monto:
-                sancion.pagada = True
-                sancion.monto_pagado = sancion.monto
-                messages.success(request, f"✅ ¡Deuda de {sancion.equipo.nombre} cancelada en su totalidad!")
-            else:
-                messages.success(request, f"✅ Abono de ${abono} registrado para {sancion.equipo.nombre}.")
-            sancion.save()
-            AbonoSancion.objects.create(sancion=sancion, monto=abono, partido=partido)
+            sancion = get_object_or_404(Sancion, id=request.POST.get('sancion_id'), torneo=partido.torneo,
+                                        equipo__in=[partido.equipo_local, partido.equipo_visita])
+            abono = _monto_abono(request, sancion)
+            if abono is None:
+                messages.error(request, f"⛔ Monto inválido. Debe ser mayor a $0 y máximo ${sancion.saldo}.")
+                return redirect('gestionar_vocalia', partido_id=partido.id)
+            with transaction.atomic():
+                sancion.monto_pagado += abono
+                if sancion.monto_pagado >= sancion.monto:
+                    sancion.pagada = True
+                    sancion.monto_pagado = sancion.monto
+                    messages.success(request, f"✅ ¡Deuda de {sancion.equipo.nombre} cancelada en su totalidad!")
+                else:
+                    messages.success(request, f"✅ Abono de ${abono} registrado para {sancion.equipo.nombre}.")
+                sancion.save()
+                AbonoSancion.objects.create(sancion=sancion, monto=abono, partido=partido)
             return redirect('gestionar_vocalia', partido_id=partido.id)
 
         elif 'declarar_wo' in request.POST:
+            if partido_bloqueado(request, partido):
+                return redirect('gestionar_vocalia', partido_id=partido.id)
             tipo_wo = request.POST.get('tipo_wo')
-            if tipo_wo == 'LOCAL':
+            if tipo_wo not in ('LOCAL', 'VISITA', 'DOBLE'):
+                messages.error(request, "⛔ Elige a favor de quién es el W.O.")
+                return redirect('gestionar_vocalia', partido_id=partido.id)
+            if tipo_wo == 'DOBLE' and partido.llave_id:
+                messages.error(request, "⛔ En una llave eliminatoria no puede haber doble W.O.: alguien debe avanzar. Declara el W.O. a favor del equipo que se presentó.")
+                return redirect('gestionar_vocalia', partido_id=partido.id)
+            with transaction.atomic():
                 partido.estado = 'WO'
-                partido.goles_local = 3
-                partido.goles_visita = 0
-                partido.ganador_wo = partido.equipo_local
-            elif tipo_wo == 'VISITA':
-                partido.estado = 'WO'
-                partido.goles_local = 0
-                partido.goles_visita = 3
-                partido.ganador_wo = partido.equipo_visita
-            elif tipo_wo == 'DOBLE':
-                partido.estado = 'WO'
-                partido.goles_local = 0
-                partido.goles_visita = 0
-                partido.ganador_wo = None
-            
-            partido.validado_local = True
-            partido.validado_visita = True
-            partido.sanciones_aplicadas = True 
-            partido.save()
+                if tipo_wo == 'LOCAL':
+                    partido.goles_local, partido.goles_visita, partido.ganador_wo = 3, 0, partido.equipo_local
+                elif tipo_wo == 'VISITA':
+                    partido.goles_local, partido.goles_visita, partido.ganador_wo = 0, 3, partido.equipo_visita
+                else:
+                    partido.goles_local, partido.goles_visita, partido.ganador_wo = 0, 0, None
+                partido.validado_local = True
+                partido.validado_visita = True
+                partido.sanciones_aplicadas = True
+                partido.save()
+                motor.procesar_partido_cerrado(partido)
             messages.success(request, '🚨 Partido finalizado por W.O. exitosamente.')
             return redirect(f"/programar/?torneo={partido.torneo.id}")
 
         elif 'guardar_informe' in request.POST:
-            partido.informe_vocal = request.POST.get('informe_vocal')
-            partido.informe_arbitro = request.POST.get('informe_arbitro')
-            partido.validado_local = request.POST.get('validado_local') == 'on'
-            partido.validado_visita = request.POST.get('validado_visita') == 'on'
+            if partido_bloqueado(request, partido):
+                return redirect('gestionar_vocalia', partido_id=partido.id)
+            partido.informe_vocal = (request.POST.get('informe_vocal') or '')[:4000]
+            partido.informe_arbitro = (request.POST.get('informe_arbitro') or '')[:4000]
 
-            firma_local = request.POST.get('firma_local_base64')
-            if firma_local:
-                partido.firma_local_base64 = firma_local.replace(' ', '+')
+            # Firmas: se comprimen (recorte + blanco y negro) => ~3 KB c/u
+            for campo, clave in (('firma_local_base64', 'firma_local_base64'), ('firma_visita_base64', 'firma_visita_base64')):
+                valor = request.POST.get(clave)
+                if valor and valor != getattr(partido, campo):
+                    setattr(partido, campo, comprimir_firma(valor))
+            partido.validado_local = bool(partido.firma_local_base64) and request.POST.get('validado_local') == 'on'
+            partido.validado_visita = bool(partido.firma_visita_base64) and request.POST.get('validado_visita') == 'on'
 
-            firma_visita = request.POST.get('firma_visita_base64')
-            if firma_visita:
-                partido.firma_visita_base64 = firma_visita.replace(' ', '+')
-            
-            if partido.etapa in ['4TOS', 'SEMI', 'TERC', 'FINAL']:
-                p_local = request.POST.get('penales_local', 0)
-                p_visita = request.POST.get('penales_visita', 0)
-                p_local = int(p_local) if p_local else 0
-                p_visita = int(p_visita) if p_visita else 0
-
+            if partido.etapa in Partido.ETAPAS_ELIMINATORIAS:
+                try:
+                    p_local = max(0, int(request.POST.get('penales_local') or 0))
+                    p_visita = max(0, int(request.POST.get('penales_visita') or 0))
+                except ValueError:
+                    p_local = p_visita = 0
                 if p_local > 0 or p_visita > 0:
                     partido.hubo_penales = True
                     partido.penales_local = p_local
@@ -1153,96 +1555,59 @@ def gestionar_vocalia(request, partido_id):
                     partido.penales_local = 0
                     partido.penales_visita = 0
 
-            if partido.validado_local and partido.validado_visita:
+            quiere_finalizar = 'guardar_y_volver' not in request.POST
+            finalizar = quiere_finalizar and partido.validado_local and partido.validado_visita
+            if quiere_finalizar and not finalizar:
+                partido.estado = 'ACTA'
+                partido.save()
+                messages.warning(request, '⚠️ Faltan las firmas de ambos capitanes para finalizar el partido. El acta quedó guardada.')
+                return redirect('gestionar_vocalia', partido_id=partido.id)
+            if finalizar and partido.llave_id:
+                # Una llave no puede quedar empatada: si es el último partido
+                # de la llave y hay empate global, se exigen penales.
+                otros = [p for p in partido.llave.partidos.all() if p.id != partido.id]
+                if all(p.estado in ('JUG', 'WO') for p in otros):
+                    a = partido.llave.equipo_a_id
+                    goles = {partido.equipo_local_id: partido.goles_local, partido.equipo_visita_id: partido.goles_visita}
+                    for p in otros:
+                        goles[p.equipo_local_id] += p.goles_local
+                        goles[p.equipo_visita_id] += p.goles_visita
+                    if len(set(goles.values())) == 1 and (not partido.hubo_penales or partido.penales_local == partido.penales_visita):
+                        partido.estado = 'ACTA'
+                        partido.save()
+                        messages.error(request, "⚖️ La llave está empatada en el global: registra el resultado de los penales para poder finalizar.")
+                        return redirect('gestionar_vocalia', partido_id=partido.id)
+
+            if finalizar:
                 partido.estado = 'JUG'
             else:
                 partido.estado = 'ACTA'
-            
             partido.save()
 
-            if partido.estado == 'JUG' and not partido.sanciones_aplicadas:
-                jugadores_ambos_equipos = Jugador.objects.filter(equipo__in=[partido.equipo_local, partido.equipo_visita], partidos_suspension__gt=0)
-                detalles = DetallePartido.objects.filter(partido=partido)
-                
-                for j in jugadores_ambos_equipos:
-                    if not detalles.filter(jugador=j, tipo__in=['DA', 'TR']).exists():
-                        j.partidos_suspension -= 1
-                        j.save()
-
-                jugadores_con_eventos = set([d.jugador for d in detalles])
-                for j in jugadores_con_eventos:
-                    eventos_j = detalles.filter(jugador=j)
-                    ta_partido = eventos_j.filter(tipo='TA').count()
-                    da_partido = eventos_j.filter(tipo='DA').count()
-                    tr_partido = eventos_j.filter(tipo='TR').count()
-
-                    if tr_partido > 0:
-                        j.partidos_suspension += 2
-                        j.rojas_directas_acumuladas += 1
-                        
-                        if j.rojas_directas_acumuladas >= 3:
-                            j.expulsado_torneo = True
-                            desc_roja = f"Expulsión Definitiva del Torneo (Límite 3 Rojas) - {j.nombres}"
-                        else:
-                            desc_roja = f"Roja Directa - {j.nombres}"
-                            
-                        j.save()
-                        Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='ROJA', monto=partido.torneo.costo_roja, descripcion=desc_roja)
-                    
-                    if da_partido > 0:
-                        j.partidos_suspension += 1
-                        j.save()
-                        Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='ROJA', monto=partido.torneo.costo_roja, descripcion=f"Roja por Acumulación - {j.nombres}")
-                    
-                    if ta_partido > 0:
-                        Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='AMARILLA', monto=partido.torneo.costo_amarilla, descripcion=f"Tarjeta Amarilla - {j.nombres}")
-                        
-                        if partido.etapa == 'F1':
-                            fases_validas = ['F1']
-                        elif partido.etapa == 'F2':
-                            fases_validas = ['F2']
-                        else:
-                            fases_validas = ['4TOS', 'SEMI', 'TERC', 'FINAL']
-                        
-                        total_ta_fase = DetallePartido.objects.filter(
-                            jugador=j, 
-                            partido__torneo=partido.torneo, 
-                            partido__etapa__in=fases_validas,
-                            tipo='TA'
-                        ).count()
-                        
-                        if total_ta_fase > 0 and total_ta_fase % 4 == 0:
-                            j.partidos_suspension += 1
-                            j.save()
-
-                partido.sanciones_aplicadas = True
-                partido.save()
-
+            if partido.estado == 'JUG':
+                with transaction.atomic():
+                    cerrar_partido(partido)
                 messages.success(request, '✅ Acta firmada por ambos equipos. Partido Finalizado y Sanciones aplicadas.')
                 return redirect(f"/programar/?torneo={partido.torneo.id}")
-            
-            else:
-                if 'guardar_y_volver' in request.POST:
-                    messages.info(request, '📋 Partido guardado en Actas. (Aún faltan firmas para cerrarlo).')
-                    return redirect(f"/programar/?torneo={partido.torneo.id}")
-                else:
-                    if partido.estado == 'JUG':
-                         messages.success(request, '✅ Acta actualizada con éxito (Evitando cobros duplicados).')
-                         return redirect(f"/programar/?torneo={partido.torneo.id}")
-                    else:
-                         messages.warning(request, '⚠️ Faltan las firmas de ambos equipos para Finalizar el partido oficialmente.')
-                         return redirect('gestionar_vocalia', partido_id=partido_id)
-        
+            messages.info(request, '📋 Partido guardado en Actas. (Aún no se ha finalizado).')
+            return redirect(f"/programar/?torneo={partido.torneo.id}")
+
         elif 'nueva_multa' in request.POST:
             equipo_id = request.POST.get('equipo_multa')
-            motivo = request.POST.get('motivo_multa')
-            monto = request.POST.get('monto_multa')
-            equipo_valido = equipo_id and Equipo.objects.filter(id=equipo_id, torneo=partido.torneo).exists()
-            if equipo_valido and motivo and monto:
+            motivo = (request.POST.get('motivo_multa') or '').strip()[:200]
+            try:
+                monto = Decimal(request.POST.get('monto_multa') or '0')
+            except Exception:
+                monto = Decimal('0')
+            equipo_valido = equipo_id and str(equipo_id) in (str(partido.equipo_local_id), str(partido.equipo_visita_id))
+            if equipo_valido and motivo and Decimal('0') < monto <= Decimal('1000'):
                 Sancion.objects.create(
                     torneo=partido.torneo, equipo_id=equipo_id, partido=partido,
                     tipo='ADMIN', monto=monto, descripcion=motivo, pagada=False
                 )
+                messages.success(request, "Multa aplicada.")
+            else:
+                messages.error(request, "⛔ Revisa la multa: equipo del partido, motivo y un monto entre $0.01 y $1000.")
             return redirect('gestionar_vocalia', partido_id=partido_id)
 
     return render(request, 'core/gestionar_vocalia.html', {
@@ -1252,42 +1617,56 @@ def gestionar_vocalia(request, partido_id):
         'asistencias_ids': asistencias_ids,
         'multas': multas,
         'deudas_pendientes': deudas_pendientes,
-        'eventos': eventos
+        'eventos': eventos,
+        'resumen_eventos': resumen_eventos,
+        'cerrado': partido.estado in ('JUG', 'WO'),
+        'es_admin_cancha': rol_en_complejo(request.user, partido.torneo.complejo) == 'ORG',
     })
 
 @login_required
 @user_passes_test(es_vocal_o_admin)
+@require_POST
 def registrar_incidencia(request, partido_id):
     partido = get_object_or_404(Partido, id=partido_id)
     if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
+    if partido_bloqueado(request, partido):
+        return redirect('gestionar_vocalia', partido_id=partido.id)
 
-    if request.method == 'POST':
-        jugador_id = request.POST.get('jugador_id')
-        tipo_evento = request.POST.get('tipo') 
-        minuto = request.POST.get('minuto', 0)
-        
-        jugador = get_object_or_404(
-            Jugador, id=jugador_id,
-            equipo__in=[partido.equipo_local, partido.equipo_visita],
-        )
+    jugador_id = request.POST.get('jugador_id')
+    tipo_evento = request.POST.get('tipo')
+    minuto = request.POST.get('minuto', 0)
+    try:
+        minuto = max(0, min(int(minuto or 0), 200))
+    except ValueError:
+        minuto = 0
 
+    jugador = get_object_or_404(
+        Jugador, id=jugador_id,
+        equipo__in=[partido.equipo_local, partido.equipo_visita],
+    )
+    if not DetallePartido.objects.filter(partido=partido, jugador=jugador, tipo='ASIS').exists():
+        messages.error(request, f"⛔ {jugador.nombres} no está en cancha. Ingrésalo primero desde la banca.")
+        return redirect('gestionar_vocalia', partido_id=partido.id)
+
+    with transaction.atomic():
+        partido = Partido.objects.select_for_update().get(id=partido.id)
         if tipo_evento == 'TA':
             amarilla_previa = DetallePartido.objects.filter(partido=partido, jugador=jugador, tipo='TA').first()
             if amarilla_previa:
                 amarilla_previa.delete()
-                DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='DA', observacion="Roja por Acum.", equipo_incidencia=jugador.equipo)
+                DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='DA', minuto=minuto, observacion="Roja por Acum.", equipo_incidencia=jugador.equipo)
                 messages.error(request, f'🟥 ¡ROJA POR ACUMULACIÓN para {jugador.nombres}!')
             else:
-                DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='TA', minuto=int(minuto) if minuto else 0, equipo_incidencia=jugador.equipo)
+                DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='TA', minuto=minuto, equipo_incidencia=jugador.equipo)
                 messages.warning(request, f'🟨 Tarjeta Amarilla registrada a {jugador.nombres}.')
 
         elif tipo_evento == 'TR':
-            DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='TR', minuto=int(minuto) if minuto else 0, equipo_incidencia=jugador.equipo)
+            DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='TR', minuto=minuto, equipo_incidencia=jugador.equipo)
             messages.error(request, f'🟥 ¡ROJA DIRECTA para {jugador.nombres}!')
 
         elif tipo_evento == 'GOL':
-            DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='GOL', minuto=int(minuto) if minuto else 0, equipo_incidencia=jugador.equipo)
-            if jugador.equipo == partido.equipo_local:
+            DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='GOL', minuto=minuto, equipo_incidencia=jugador.equipo)
+            if jugador.equipo_id == partido.equipo_local_id:
                 partido.goles_local += 1
             else:
                 partido.goles_visita += 1
@@ -1300,108 +1679,121 @@ def registrar_incidencia(request, partido_id):
             else:
                 DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='STAR', equipo_incidencia=jugador.equipo)
                 messages.success(request, f'⭐ ¡{jugador.nombres} fue elegido como Figura del Partido!')
-        
+
         if partido.estado == 'PROG':
             partido.estado = 'VIVO'
-        
         partido.save()
 
     return redirect('gestionar_vocalia', partido_id=partido.id)
 
+
+def _quitar_evento(partido, evento):
+    if evento.tipo == 'GOL':
+        if evento.equipo_incidencia_id == partido.equipo_local_id:
+            partido.goles_local = max(0, partido.goles_local - 1)
+        else:
+            partido.goles_visita = max(0, partido.goles_visita - 1)
+        partido.save(update_fields=['goles_local', 'goles_visita'])
+    evento.delete()
+
+
 @login_required
 @user_passes_test(es_vocal_o_admin)
+@require_POST
 def eliminar_evento_ultimo(request, partido_id, jugador_id, tipo):
     partido = get_object_or_404(Partido, id=partido_id)
     if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
-    
-    if tipo == 'TA':
-        evento_da = DetallePartido.objects.filter(partido_id=partido_id, jugador_id=jugador_id, tipo='DA').last()
-        if evento_da:
-            jugador_obj = evento_da.jugador
-            evento_da.delete()
-            DetallePartido.objects.create(partido_id=partido_id, jugador_id=jugador_id, tipo='TA', equipo_incidencia=jugador_obj.equipo)
-            messages.success(request, "Corrección: Roja por Acumulación anulada. Se restauró 1 Amarilla.")
-            return redirect('gestionar_vocalia', partido_id=partido_id)
+    if partido_bloqueado(request, partido):
+        return redirect('gestionar_vocalia', partido_id=partido.id)
 
-    evento = DetallePartido.objects.filter(
-        partido_id=partido_id, 
-        jugador_id=jugador_id, 
-        tipo=tipo
-    ).last()
-    
-    if evento:
-        if tipo == 'GOL':
-            if evento.equipo_incidencia == partido.equipo_local:
-                partido.goles_local = max(0, partido.goles_local - 1)
-            else:
-                partido.goles_visita = max(0, partido.goles_visita - 1)
-            partido.save()
-        
-        evento.delete()
-        messages.warning(request, f"Corrección: Se eliminó el último registro de {tipo} para {evento.jugador.nombres}.")
-    
+    with transaction.atomic():
+        if tipo == 'TA':
+            evento_da = DetallePartido.objects.filter(partido_id=partido_id, jugador_id=jugador_id, tipo='DA').last()
+            if evento_da:
+                jugador_obj = evento_da.jugador
+                evento_da.delete()
+                DetallePartido.objects.create(partido_id=partido_id, jugador_id=jugador_id, tipo='TA', equipo_incidencia=jugador_obj.equipo)
+                messages.success(request, "Corrección: Roja por Acumulación anulada. Se restauró 1 Amarilla.")
+                return redirect('gestionar_vocalia', partido_id=partido_id)
+
+        evento = DetallePartido.objects.filter(partido_id=partido_id, jugador_id=jugador_id, tipo=tipo).last()
+        if evento:
+            nombre = evento.jugador.nombres
+            _quitar_evento(partido, evento)
+            messages.warning(request, f"Corrección: Se eliminó el último registro de {evento.get_tipo_display()} para {nombre}.")
+
     return redirect('gestionar_vocalia', partido_id=partido_id)
 
 @login_required
 @user_passes_test(es_vocal_o_admin)
+@require_POST
 def eliminar_evento(request, evento_id):
-    evento = DetallePartido.objects.get(id=evento_id)
+    evento = get_object_or_404(DetallePartido, id=evento_id)
     partido = evento.partido
     if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
-    
-    if evento.tipo == 'GOL':
-        if evento.equipo_incidencia == partido.equipo_local:
-            partido.goles_local = max(0, partido.goles_local - 1)
-        else:
-            partido.goles_visita = max(0, partido.goles_visita - 1)
-        partido.save()
-    
-    evento.delete()
+    if partido_bloqueado(request, partido):
+        return redirect('gestionar_vocalia', partido_id=partido.id)
+    with transaction.atomic():
+        _quitar_evento(partido, evento)
     messages.success(request, 'Corrección realizada: Evento eliminado.')
     return redirect('gestionar_vocalia', partido_id=partido.id)
 
 
 @login_required
 @user_passes_test(es_vocal_o_admin)
+@require_POST
 def eliminar_multa(request, multa_id):
     sancion = get_object_or_404(Sancion, id=multa_id)
     if not verificar_acceso_complejo(request.user, sancion.torneo.complejo):
         return redirect('dashboard')
 
     partido_id = sancion.partido.id if sancion.partido else None
-    sancion.delete()
-    messages.success(request, 'Sanción administrativa eliminada correctamente.')
-    
+    if sancion.monto_pagado > 0:
+        messages.error(request, "⛔ Esta multa ya tiene cobros. Primero reversa los abonos y luego podrás eliminarla.")
+    else:
+        origen = 'VOCALIA' if rol_en_complejo(request.user, sancion.torneo.complejo) == 'VOC' else 'FINANZAS'
+        with transaction.atomic():
+            registrar_anulaciones([sancion], request.user, "Multa eliminada", origen=origen)
+            sancion.delete()
+        messages.success(request, 'Sanción administrativa eliminada (queda registrada en la trazabilidad financiera).')
+
     if partido_id:
         return redirect('gestionar_vocalia', partido_id=partido_id)
-    return redirect('dashboard')
+    return redirect('gestionar_finanzas')
 
 
 @login_required
 @user_passes_test(es_vocal_o_admin)
+@require_POST
 def toggle_asistencia(request, partido_id, jugador_id):
     partido = get_object_or_404(Partido, id=partido_id)
     if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
-    jugador = get_object_or_404(Jugador, id=jugador_id)
-    
+    if partido_bloqueado(request, partido):
+        return redirect('gestionar_vocalia', partido_id=partido.id)
+    # 🔥 Solo jugadores de los DOS equipos de este partido
+    jugador = get_object_or_404(Jugador, id=jugador_id, equipo__in=[partido.equipo_local, partido.equipo_visita])
+
     asistencia = DetallePartido.objects.filter(partido=partido, jugador=jugador, tipo='ASIS').first()
-    
+
     if asistencia:
         with transaction.atomic():
             goles_jugador = DetallePartido.objects.filter(partido=partido, jugador=jugador, tipo='GOL').count()
             if goles_jugador > 0:
-                if jugador.equipo == partido.equipo_local:
+                if jugador.equipo_id == partido.equipo_local_id:
                     partido.goles_local = max(0, partido.goles_local - goles_jugador)
                 else:
                     partido.goles_visita = max(0, partido.goles_visita - goles_jugador)
                 partido.save()
-                
+
             DetallePartido.objects.filter(partido=partido, jugador=jugador).delete()
             messages.warning(request, f'Se retiró a {jugador.nombres}. Historial del partido limpiado.')
     else:
+        if not jugador.esta_habilitado:
+            messages.error(request, f"⛔ {jugador.nombres} no puede jugar: {jugador.motivo_inhabilitacion}.")
+            return redirect('gestionar_vocalia', partido_id=partido.id)
         DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='ASIS', equipo_incidencia=jugador.equipo)
         messages.success(request, f'{jugador.nombres} ingresó a la cancha.')
-        
+
     return redirect('gestionar_vocalia', partido_id=partido.id)
 
 # =========================================================
@@ -1409,57 +1801,18 @@ def toggle_asistencia(request, partido_id, jugador_id):
 # =========================================================
 
 def tabla_posiciones(request, torneo_id):
-    torneo = Torneo.objects.get(id=torneo_id)
-    equipos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO')
-    tabla = []
-
-    for equipo in equipos:
-        partidos = Partido.objects.filter(
-            Q(equipo_local=equipo) | Q(equipo_visita=equipo),
-            estado__in=['JUG', 'WO', 'FINALIZADO'], 
-            etapa='F1' 
-        )
-        
-        pj = 0; pg = 0; pe = 0; pp = 0; gf = 0; gc = 0
-        
-        for p in partidos:
-            pj += 1
-            es_local = (p.equipo_local == equipo)
-            goles_propios = p.goles_local if es_local else p.goles_visita
-            goles_rival = p.goles_visita if es_local else p.goles_local
-            
-            gf += goles_propios
-            gc += goles_rival
-            
-            if p.estado == 'WO':
-                if p.ganador_wo == equipo:
-                    pg += 1  
-                else:
-                    pp += 1  
-            else:
-                if goles_propios > goles_rival: pg += 1
-                elif goles_propios < goles_rival: pp += 1
-                else: pe += 1
-        
-        puntos = (pg * 3) + (pe * 1)
-        gol_diferencia = gf - gc
-        
-        tabla.append({
-            'equipo': equipo,
-            'pj': pj, 'pg': pg, 'pe': pe, 'pp': pp,
-            'gf': gf, 'gc': gc, 'gd': gol_diferencia,
-            'pts': puntos,
-            'bono': 0
-        })
-    
-    tabla_ordenada = sorted(tabla, key=lambda x: (x['pts'], x['gd'], x['gf']), reverse=True)
-    fase2_ya_generada = equipos.filter(grupo_fase2__in=['A', 'B']).exists()
+    torneo = get_object_or_404(Torneo, id=torneo_id)
+    if torneo.formato != 'CLASICO':
+        return redirect('ver_campeonato', torneo_id=torneo.id)
+    tabla_ordenada = motor.tabla_liga(torneo, 'F1')
+    fase2_ya_generada = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO', grupo_fase2__in=['A', 'B']).exists()
 
     return render(request, 'core/tabla_posiciones.html', {
         'torneo': torneo, 
         'tabla': tabla_ordenada, 
         'fase': 1,
-        'fase2_ya_generada': fase2_ya_generada
+        'fase2_ya_generada': fase2_ya_generada,
+        'es_org': rol_en_complejo(request.user, torneo.complejo) == 'ORG',
     })
 
 @login_required
@@ -1467,29 +1820,20 @@ def tabla_posiciones(request, torneo_id):
 def generar_fase2(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     equipos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO')
     
     ida_y_vuelta = request.POST.get('ida_y_vuelta') == 'on'
     torneo.fase2_ida_vuelta = ida_y_vuelta
     torneo.save()
 
-    tabla = []
-    for equipo in equipos:
-        partidos = Partido.objects.filter(Q(equipo_local=equipo) | Q(equipo_visita=equipo), estado__in=['JUG', 'WO', 'FINALIZADO'], etapa='F1')
-        puntos = 0; gf = 0; gc = 0
-        for p in partidos:
-            es_local = (p.equipo_local == equipo)
-            goles_pro = p.goles_local if es_local else p.goles_visita
-            goles_riv = p.goles_visita if es_local else p.goles_local
-            gf += goles_pro; gc += goles_riv
-            if goles_pro > goles_riv: puntos += 3
-            elif goles_pro == goles_riv: puntos += 1
-        gd = gf - gc
-        tabla.append({'equipo': equipo, 'pts': puntos, 'gd': gd, 'gf': gf})
-
-    tabla_ordenada = sorted(tabla, key=lambda x: (x['pts'], x['gd'], x['gf']), reverse=True)
+    excluidos = _excluidos_post(request, torneo)
+    tabla_ordenada = obtener_clasificados_fase1(torneo, excluidos)
 
     with transaction.atomic():
+        Equipo.objects.filter(id__in=excluidos).update(grupo_fase2=None, puntos_bonificacion=0)
         for index, fila in enumerate(tabla_ordenada):
             equipo = fila['equipo']
             posicion = index + 1
@@ -1511,50 +1855,15 @@ def generar_fase2(request, torneo_id):
     return redirect('tabla_posiciones_f2', torneo_id=torneo.id)
 
 def tabla_posiciones_f2(request, torneo_id):
-    torneo = Torneo.objects.get(id=torneo_id)
-    
-    def calcular_grupo(letra_grupo):
-        equipos_grupo = Equipo.objects.filter(torneo=torneo, grupo_fase2=letra_grupo, estado_inscripcion='APROBADO')
-        lista_tabla = []
-        
-        for equipo in equipos_grupo:
-            partidos = Partido.objects.filter(
-                Q(equipo_local=equipo) | Q(equipo_visita=equipo),
-                estado__in=['JUG', 'WO', 'FINALIZADO'],
-                etapa='F2' 
-            )
-            
-            pj=0; pg=0; pe=0; pp=0; gf=0; gc=0
-            for p in partidos:
-                pj+=1
-                es_local = (p.equipo_local == equipo)
-                goles_pro = p.goles_local if es_local else p.goles_visita
-                goles_rival = p.goles_visita if es_local else p.goles_local
-                gf+=goles_pro; gc+=goles_rival
-                
-                if goles_pro > goles_rival: pg+=1
-                elif goles_pro < goles_rival: pp+=1
-                else: pe+=1
-            
-            puntos = (pg * 3) + (pe * 1) + equipo.puntos_bonificacion
-            gd = gf - gc
-            
-            lista_tabla.append({
-                'equipo': equipo, 
-                'pj': pj, 'pg': pg, 'pe': pe, 'pp': pp,
-                'gf': gf, 'gc': gc, 'gd': gd, 
-                'pts': puntos,
-                'bono': equipo.puntos_bonificacion
-            })
-        
-        return sorted(lista_tabla, key=lambda x: (x['pts'], x['gd'], x['gf']), reverse=True)
-
-    tabla_a = calcular_grupo('A')
-    tabla_b = calcular_grupo('B')
-    
+    torneo = get_object_or_404(Torneo, id=torneo_id)
+    if torneo.formato != 'CLASICO':
+        return redirect('ver_campeonato', torneo_id=torneo.id)
+    equipos = list(Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO', grupo_fase2__in=['A', 'B']))
+    partidos = list(Partido.objects.filter(torneo=torneo, etapa='F2'))
+    tabla_a = motor.calcular_tabla([e for e in equipos if e.grupo_fase2 == 'A'], partidos, con_bono=True)
+    tabla_b = motor.calcular_tabla([e for e in equipos if e.grupo_fase2 == 'B'], partidos, con_bono=True)
     cuartos_generados = Partido.objects.filter(torneo=torneo, etapa='4TOS').exists()
-
-    es_org = request.user.is_authenticated and obtener_rol_principal(request.user) == 'ORG'
+    es_org = rol_en_complejo(request.user, torneo.complejo) == 'ORG'
 
     return render(request, 'core/tabla_posiciones_f2.html', {
         'torneo': torneo, 
@@ -1582,125 +1891,61 @@ def seleccionar_reporte(request):
 
 @login_required
 def reporte_estadisticas(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
-    rol = obtener_rol_principal(request.user)
+    torneo = get_object_or_404(Torneo.objects.select_related('complejo'), id=torneo_id)
+    # 🔥 El rol se mide EN LA CANCHA DEL TORNEO (ser vocal en otra cancha no
+    # da acceso a los datos de esta).
+    rol = rol_en_complejo(request.user, torneo.complejo) or 'FAN'
 
-    hay_fase1 = Partido.objects.filter(torneo=torneo, etapa='F1').exists()
     hay_fase2 = Partido.objects.filter(torneo=torneo, etapa='F2').exists()
-    hay_llaves = Partido.objects.filter(torneo=torneo, etapa__in=['4TOS', 'SEMI', 'TERC', 'FINAL']).exists()
+    hay_llaves = Partido.objects.filter(torneo=torneo, etapa__in=Partido.ETAPAS_ELIMINATORIAS).exists()
 
     fase_forzada = request.GET.get('fase')
-    fase_actual = 1
-
-    if rol == 'ORG' and fase_forzada:
+    if rol == 'ORG' and fase_forzada in ('1', '2'):
         fase_actual = int(fase_forzada)
     else:
-        if hay_fase2 or hay_llaves:
-            fase_actual = 2
-        else:
-            fase_actual = 1
+        fase_actual = 2 if (hay_fase2 or (hay_llaves and torneo.formato == 'CLASICO')) else 1
 
-    tabla_fase1 = []
-    tabla_a = []
-    tabla_b = []
+    tabla_fase1, tabla_a, tabla_b, tablas_grupos = [], [], [], {}
+    if torneo.formato == 'GRUPOS':
+        tablas_grupos = motor.tablas_grupos(torneo)
+    elif fase_actual == 1:
+        tabla_fase1 = motor.tabla_liga(torneo, 'F1')
+    else:
+        equipos = list(Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO', grupo_fase2__in=['A', 'B']))
+        partidos = list(Partido.objects.filter(torneo=torneo, etapa='F2'))
+        tabla_a = motor.calcular_tabla([e for e in equipos if e.grupo_fase2 == 'A'], partidos, con_bono=True)
+        tabla_b = motor.calcular_tabla([e for e in equipos if e.grupo_fase2 == 'B'], partidos, con_bono=True)
+
     equipos_todos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO')
 
-    if fase_actual == 1:
-        for equipo in equipos_todos:
-            partidos = Partido.objects.filter(
-                Q(equipo_local=equipo) | Q(equipo_visita=equipo),
-                estado__in=['JUG', 'WO', 'FINALIZADO'], etapa='F1'
-            )
-            pj=0; pg=0; pe=0; pp=0; gf=0; gc=0
-            for p in partidos:
-                pj += 1
-                es_local = (p.equipo_local == equipo)
-                goles_pro = p.goles_local if es_local else p.goles_visita
-                goles_riv = p.goles_visita if es_local else p.goles_local
-                gf += goles_pro; gc += goles_riv
-                if goles_pro > goles_riv: pg += 1
-                elif goles_pro < goles_riv: pp += 1
-                else: pe += 1
-            tabla_fase1.append({
-                'equipo': equipo, 'pj': pj, 'pg': pg, 'pe': pe, 'pp': pp,
-                'gf': gf, 'gc': gc, 'gd': gf - gc, 'pts': (pg * 3) + (pe * 1)
-            })
-        tabla_fase1 = sorted(tabla_fase1, key=lambda x: (x['pts'], x['gd'], x['gf']), reverse=True)
-
-    elif fase_actual == 2:
-        def calcular_grupo(letra_grupo):
-            equipos_grupo = equipos_todos.filter(grupo_fase2=letra_grupo)
-            lista_tabla = []
-            for equipo in equipos_grupo:
-                partidos = Partido.objects.filter(
-                    Q(equipo_local=equipo) | Q(equipo_visita=equipo),
-                    estado__in=['JUG', 'WO', 'FINALIZADO'], etapa='F2'
-                )
-                pj=0; pg=0; pe=0; pp=0; gf=0; gc=0
-                for p in partidos:
-                    pj+=1
-                    es_local = (p.equipo_local == equipo)
-                    goles_pro = p.goles_local if es_local else p.goles_visita
-                    goles_riv = p.goles_visita if es_local else p.goles_local
-                    gf+=goles_pro; gc+=goles_riv
-                    if goles_pro > goles_riv: pg+=1
-                    elif goles_pro < goles_riv: pp+=1
-                    else: pe+=1
-                pts = (pg * 3) + (pe * 1) + equipo.puntos_bonificacion
-                lista_tabla.append({
-                    'equipo': equipo, 'pj': pj, 'pg': pg, 'pe': pe, 'pp': pp,
-                    'gf': gf, 'gc': gc, 'gd': gf-gc, 'pts': pts, 'bono': equipo.puntos_bonificacion
-                })
-            return sorted(lista_tabla, key=lambda x: (x['pts'], x['gd'], x['gf']), reverse=True)
-        
-        tabla_a = calcular_grupo('A')
-        tabla_b = calcular_grupo('B')
-
     goleadores = DetallePartido.objects.filter(
-        partido__torneo=torneo, 
-        tipo='GOL',
-        equipo_incidencia=F('jugador__equipo') 
-    ).values(
-        'jugador__nombres', 'jugador__equipo__nombre', 'jugador__equipo__escudo'
-    ).annotate(
-        total_goles=Count('id')
-    ).order_by('-total_goles', 'jugador__nombres')[:15]
+        partido__torneo=torneo, tipo='GOL', equipo_incidencia=F('jugador__equipo')
+    ).values('jugador__nombres', 'jugador__equipo__nombre', 'jugador__equipo__escudo').annotate(
+        total_goles=Count('id')).order_by('-total_goles', 'jugador__nombres')[:15]
 
-    top_mvps = DetallePartido.objects.filter(
-        partido__torneo=torneo,
-        tipo='STAR'
-    ).values(
+    top_mvps = DetallePartido.objects.filter(partido__torneo=torneo, tipo='STAR').values(
         'jugador__nombres', 'jugador__equipo__nombre', 'jugador__equipo__escudo'
-    ).annotate(
-        total_stars=Count('id')
-    ).order_by('-total_stars')[:15]
+    ).annotate(total_stars=Count('id')).order_by('-total_stars')[:15]
 
+    # Jugadores que NO pueden jugar (por cualquier motivo) con su razón
     sancionados_activos = []
-    jugadores_suspendidos = Jugador.objects.filter(equipo__in=equipos_todos, partidos_suspension__gt=0)
-    for j in jugadores_suspendidos:
-        detalles = DetallePartido.objects.filter(jugador=j, partido__torneo=torneo).order_by('partido__fecha_hora')
-        motivo = "Suspensión Disciplinaria"
-        ultimo_fuerte = detalles.filter(tipo__in=['TR', 'DA', 'EBRI', 'AZUL']).last()
-        amarillas_totales = detalles.filter(tipo='TA')
-        cantidad_ta = amarillas_totales.count()
-        
-        ultima_amarilla_sancionable = None
-        if cantidad_ta > 0 and cantidad_ta % 4 == 0:
-            ultima_amarilla_sancionable = amarillas_totales.last()
-
-        if ultima_amarilla_sancionable and ultimo_fuerte:
-            if ultima_amarilla_sancionable.partido.fecha_hora > ultimo_fuerte.partido.fecha_hora: motivo = "Acumulación 4 Amarillas"
-            else:
-                if ultimo_fuerte.tipo == 'TR': motivo = "Roja Directa"
-                elif ultimo_fuerte.tipo == 'DA': motivo = "Roja por Acumulación (DA)"
-                else: motivo = f"Sanción Especial ({ultimo_fuerte.tipo})"
-        elif ultima_amarilla_sancionable: motivo = "Acumulación 4 Amarillas"
-        elif ultimo_fuerte:
-            if ultimo_fuerte.tipo == 'TR': motivo = "Roja Directa"
-            elif ultimo_fuerte.tipo == 'DA': motivo = "Roja por Acumulación (DA)"
-            else: motivo = f"Sanción Especial ({ultimo_fuerte.tipo})"
-
-        sancionados_activos.append({'jugador': j, 'motivo': motivo, 'restantes': f"Debe {j.partidos_suspension} fecha(s)"})
+    hoy = timezone.localdate()
+    inhabilitados = Jugador.objects.filter(equipo__in=equipos_todos).filter(
+        Q(partidos_suspension__gt=0) | Q(bloqueado_por_cuota=True) | Q(expulsado_torneo=True) |
+        Q(rojas_directas_acumuladas__gte=3) | Q(sancionado_hasta__gte=hoy)
+    ).select_related('equipo').distinct()
+    for j in inhabilitados:
+        if j.expulsado_torneo or j.rojas_directas_acumuladas >= 3:
+            motivo, restantes = "Expulsado del Torneo", "Definitivo"
+        elif j.bloqueado_por_cuota:
+            motivo, restantes = "No cumplió el mínimo de partidos jugados", "Inhabilitado"
+        elif j.sancionado_hasta and j.sancionado_hasta >= hoy:
+            motivo, restantes = "Sanción administrativa", f"Hasta {j.sancionado_hasta:%d/%m/%Y}"
+        else:
+            motivo, restantes = "Suspensión disciplinaria", f"Debe {j.partidos_suspension} fecha(s)"
+        if j.motivo_suspension:
+            motivo = f"{motivo} · {j.motivo_suspension}"
+        sancionados_activos.append({'jugador': j, 'motivo': motivo, 'restantes': restantes})
 
     if rol in ['ORG', 'VOC']:
         equipos_permitidos = equipos_todos
@@ -1712,51 +1957,36 @@ def reporte_estadisticas(request, torneo_id):
     equipo_id = request.GET.get('equipo')
     jugadores_detalle = []
     equipo_seleccionado = None
-
     if not equipo_id and rol == 'DIR' and equipos_permitidos.count() == 1:
         equipo_seleccionado = equipos_permitidos.first()
     elif equipo_id and equipo_id.isdigit():
-        try:
-            equipo_seleccionado = equipos_permitidos.get(id=equipo_id)
-        except Equipo.DoesNotExist:
-            equipo_seleccionado = None
+        equipo_seleccionado = equipos_permitidos.filter(id=equipo_id).first()
 
     if equipo_seleccionado:
-        jugadores_actuales = list(Jugador.objects.filter(equipo=equipo_seleccionado).values_list('id', flat=True))
-        jugadores_historicos = list(DetallePartido.objects.filter(equipo_incidencia=equipo_seleccionado).values_list('jugador_id', flat=True))
-        
-        ids_unicos = set(jugadores_actuales + jugadores_historicos)
-        roster = Jugador.objects.filter(id__in=ids_unicos)
+        actuales = set(Jugador.objects.filter(equipo=equipo_seleccionado).values_list('id', flat=True))
+        # Estadísticas de todo el plantel en UNA consulta agrupada
+        stats = DetallePartido.objects.filter(partido__torneo=torneo, equipo_incidencia=equipo_seleccionado).values(
+            'jugador_id').annotate(
+            pj=Count('id', filter=Q(tipo='ASIS')), ta=Count('id', filter=Q(tipo='TA')),
+            da=Count('id', filter=Q(tipo='DA')), tr=Count('id', filter=Q(tipo='TR')),
+            goles=Count('id', filter=Q(tipo='GOL')), stars=Count('id', filter=Q(tipo='STAR')))
+        por_jugador = {r['jugador_id']: r for r in stats}
+        for j in Jugador.objects.filter(id__in=actuales | set(por_jugador)).order_by('dorsal', 'nombres'):
+            r = por_jugador.get(j.id, {})
+            jugadores_detalle.append({
+                'nombre': j.nombres + ("" if j.id in actuales else " (Transferido)"),
+                'pj': r.get('pj', 0), 'ta': r.get('ta', 0) % 4, 'da': r.get('da', 0),
+                'tr': r.get('tr', 0), 'goles': r.get('goles', 0), 'stars': r.get('stars', 0),
+                'habilitado': j.esta_habilitado,
+            })
 
-        for j in roster:
-            stats = DetallePartido.objects.filter(
-                jugador=j, 
-                partido__torneo=torneo, 
-                equipo_incidencia=equipo_seleccionado
-            )
-            
-            nota_transferido = "" if j.id in jugadores_actuales else " (Transferido)"
-
-            total_ta = stats.filter(tipo='TA').count()
-            ta_mostrar = total_ta % 4 
-            
-            if j.id in jugadores_actuales or stats.exists():
-                jugadores_detalle.append({
-                    'nombre': j.nombres + nota_transferido, 
-                    'pj': stats.filter(tipo='ASIS').count(), 
-                    'ta': ta_mostrar, 
-                    'da': stats.filter(tipo='DA').count(),
-                    'tr': stats.filter(tipo='TR').count(), 
-                    'goles': stats.filter(tipo='GOL').count(),
-                    'stars': stats.filter(tipo='STAR').count()
-                })
-                
     return render(request, 'core/reporte_estadisticas.html', {
         'torneo': torneo, 
         'fase_actual': fase_actual,
         'tabla_fase1': tabla_fase1,
         'tabla_a': tabla_a,
         'tabla_b': tabla_b,
+        'tablas_grupos': tablas_grupos,
         'goleadores': goleadores, 
         'equipos_permitidos': equipos_permitidos, 
         'equipo_seleccionado': equipo_seleccionado, 
@@ -1965,7 +2195,9 @@ def ver_torneos_activos(request):
     # de los complejos donde él ya tiene un equipo o ha jugado.
     mis_complejos = []
     if request.user.is_authenticated:
-        mis_complejos = list(Equipo.objects.filter(dirigente=request.user).values_list('torneo__complejo_id', flat=True))
+        # Canchas donde el usuario ya pertenece (como aficionado, dirigente...)
+        mis_complejos = set(Equipo.objects.filter(dirigente=request.user).values_list('torneo__complejo_id', flat=True))
+        mis_complejos |= set(RolComplejo.objects.filter(usuario=request.user).values_list('complejo_id', flat=True))
     
     # Filtramos la vista global para que no salgan todos los clientes mezclados
     torneos_activos = Torneo.objects.filter(activo=True, complejo_id__in=mis_complejos).order_by('categoria__nombre', 'fecha_inicio')
@@ -1983,9 +2215,9 @@ def ver_torneos_activos(request):
 
 @login_required
 def solicitar_inscripcion(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
+    torneo = get_object_or_404(Torneo, id=torneo_id, activo=True, complejo__activo=True)
     
-    if not torneo.inscripcion_abierta:
+    if not torneo.inscripcion_abierta or torneo.campeonato_iniciado:
         messages.error(request, f'Lo sentimos, las inscripciones para el torneo {torneo.nombre} ya están cerradas.')
         return redirect('ver_torneos_activos')
     
@@ -2018,13 +2250,7 @@ def solicitar_inscripcion(request, torneo_id):
                     }
                 )
             
-            # 🔥 MULTI-TENANCY: al inscribirse se fuerza rol='DIR' en esta
-            # cancha, aunque ya tuviera otro rol — ver nota en gestionar_equipos.
-            RolComplejo.objects.update_or_create(
-                usuario=request.user,
-                complejo=torneo.complejo,
-                defaults={'rol': 'DIR'}
-            )
+            asegurar_rol_dirigente(request.user, torneo.complejo)
             
             # --- INICIO DEL NUEVO BLOQUE DE CORREO Y WHATSAPP ---
             try:
@@ -2106,10 +2332,13 @@ def gestionar_solicitudes(request):
         accion = request.POST.get('accion') 
         equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
         
+        if accion == 'APROBAR' and equipo.torneo.campeonato_iniciado:
+            messages.error(request, f'⛔ El campeonato "{equipo.torneo.nombre}" ya empezó: no se pueden sumar equipos nuevos (alteraría el fixture).')
+            return redirect('gestionar_solicitudes')
         if accion == 'APROBAR':
             equipo.estado_inscripcion = 'APROBADO'
             equipo.save()
-            RolComplejo.objects.update_or_create(usuario=equipo.dirigente, complejo=mi_complejo, defaults={'rol': 'DIR'})
+            asegurar_rol_dirigente(equipo.dirigente, mi_complejo)
             
             # Notificación de aprobación
             try:
@@ -2195,24 +2424,20 @@ def cobrar_sancion(request, sancion_id):
     sancion = get_object_or_404(Sancion, id=sancion_id, torneo__complejo=mi_complejo)
     
     if request.method == 'POST':
-        abono_str = request.POST.get('monto_abono')
-        abono = Decimal(abono_str) if abono_str else sancion.saldo
-        
-        sancion.monto_pagado += abono
-        
-        if sancion.monto_pagado >= sancion.monto:
-            sancion.pagada = True
-            sancion.monto_pagado = sancion.monto 
-            messages.success(request, f"¡Deuda de {sancion.equipo.nombre} cancelada en su totalidad!")
-        else:
-            messages.success(request, f"Abono de ${abono} registrado. Saldo pendiente: ${sancion.saldo}")
-            
-        sancion.save()
-
-        AbonoSancion.objects.create(
-            sancion=sancion,
-            monto=abono
-        )
+        abono = _monto_abono(request, sancion)
+        if abono is None:
+            messages.error(request, f"⛔ Monto inválido. Debe ser mayor a $0 y máximo ${sancion.saldo}.")
+            return redirect(request.META.get('HTTP_REFERER', 'gestionar_finanzas'))
+        with transaction.atomic():
+            sancion.monto_pagado += abono
+            if sancion.monto_pagado >= sancion.monto:
+                sancion.pagada = True
+                sancion.monto_pagado = sancion.monto 
+                messages.success(request, f"¡Deuda de {sancion.equipo.nombre} cancelada en su totalidad!")
+            else:
+                messages.success(request, f"Abono de ${abono} registrado. Saldo pendiente: ${sancion.saldo}")
+            sancion.save()
+            AbonoSancion.objects.create(sancion=sancion, monto=abono)
         
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
@@ -2224,8 +2449,15 @@ def gestionar_finanzas(request):
         
     if request.method == 'POST' and 'agregar_sancion_manual' in request.POST:
         form_sancion = SancionManualForm(request.POST)
+        form_sancion.fields['torneo'].queryset = Torneo.objects.filter(complejo=mi_complejo)
         form_sancion.fields['equipo'].queryset = Equipo.objects.filter(torneo__complejo=mi_complejo)
         
+        if form_sancion.is_valid() and form_sancion.cleaned_data['equipo'].torneo_id != form_sancion.cleaned_data['torneo'].id:
+            messages.error(request, "⛔ El equipo no pertenece a ese torneo.")
+            return redirect('gestionar_finanzas')
+        if form_sancion.is_valid() and form_sancion.cleaned_data['monto'] <= 0:
+            messages.error(request, "⛔ El monto debe ser mayor a $0.")
+            return redirect('gestionar_finanzas')
         if form_sancion.is_valid():
             nueva_sancion = form_sancion.save(commit=False)
             nueva_sancion.tipo = 'ADMIN'
@@ -2271,14 +2503,14 @@ def gestionar_finanzas(request):
     multas_pendientes = multas.filter(pagada=False).aggregate(Sum('monto'))['monto__sum'] or Decimal('0.00')
     saldo_real_multas = multas_pendientes - abonos_multas
     
-    lista_sanciones = Sancion.objects.filter(torneo__complejo=mi_complejo).select_related('equipo').order_by('pagada', '-id')
+    lista_sanciones = Sancion.objects.filter(torneo__complejo=mi_complejo).select_related('equipo', 'torneo').order_by('pagada', '-id')
 
     query = request.GET.get('q')
     if query:
         lista_sanciones = lista_sanciones.filter(equipo__nombre__icontains=query)
 
     torneo_filtro_id = request.GET.get('torneo')
-    if torneo_filtro_id:
+    if torneo_filtro_id and torneo_filtro_id.isdigit():
         lista_sanciones = lista_sanciones.filter(torneo_id=torneo_filtro_id)
 
     torneos_lista = Torneo.objects.filter(complejo=mi_complejo)
@@ -2298,6 +2530,51 @@ def gestionar_finanzas(request):
         'sanciones': lista_sanciones
     }
     return render(request, 'core/gestionar_finanzas.html', ctx)
+
+@login_required
+@user_passes_test(es_organizador)
+def trazabilidad_financiera(request):
+    """Historial completo de movimientos de dinero de ESTA cancha: quién
+    cobró, quién reversó, qué multa se borró y desde dónde (mesa o finanzas)."""
+    mi_complejo = obtener_mi_complejo(request.user)
+    movimientos = MovimientoFinanciero.objects.filter(complejo=mi_complejo).select_related('usuario', 'torneo', 'partido')
+
+    f = {k: request.GET.get(k, '') for k in ('tipo', 'origen', 'usuario', 'torneo', 'desde', 'hasta', 'q')}
+    if f['tipo'] in dict(MovimientoFinanciero.TIPOS):
+        movimientos = movimientos.filter(tipo=f['tipo'])
+    if f['origen'] in dict(MovimientoFinanciero.ORIGENES):
+        movimientos = movimientos.filter(origen=f['origen'])
+    if f['usuario'].isdigit():
+        movimientos = movimientos.filter(usuario_id=f['usuario'])
+    if f['torneo'].isdigit():
+        movimientos = movimientos.filter(torneo_id=f['torneo'])
+    for clave, lookup in (('desde', 'fecha__date__gte'), ('hasta', 'fecha__date__lte')):
+        try:
+            if f[clave]:
+                movimientos = movimientos.filter(**{lookup: datetime.strptime(f[clave], '%Y-%m-%d').date()})
+        except ValueError:
+            f[clave] = ''
+    if f['q']:
+        movimientos = movimientos.filter(Q(equipo_nombre__icontains=f['q']) | Q(descripcion__icontains=f['q']))
+
+    totales = {r['tipo']: r['total'] for r in movimientos.values('tipo').annotate(total=Sum('monto'))}
+    cobrado = (totales.get('ABONO') or 0) + (totales.get('PAGO') or 0)
+    reversado = totales.get('REVERSO') or 0
+
+    pagina = Paginator(movimientos, 30).get_page(request.GET.get('page'))
+    usuarios = User.objects.filter(id__in=MovimientoFinanciero.objects.filter(complejo=mi_complejo).exclude(
+        usuario=None).values('usuario_id').distinct()).order_by('username')
+    query_sin_pagina = request.GET.copy()
+    query_sin_pagina.pop('page', None)
+    return render(request, 'core/trazabilidad_financiera.html', {
+        'movimientos': pagina, 'f': f, 'totales': totales,
+        'cobrado': cobrado, 'reversado': reversado, 'neto': cobrado - reversado,
+        'cargos': totales.get('CARGO') or 0, 'anulado': totales.get('ANULACION') or 0,
+        'tipos': MovimientoFinanciero.TIPOS, 'origenes': MovimientoFinanciero.ORIGENES,
+        'usuarios': usuarios, 'torneos': Torneo.objects.filter(complejo=mi_complejo).order_by('-id'),
+        'query_string': query_sin_pagina.urlencode(),
+    })
+
 
 @login_required
 @user_passes_test(es_organizador)
@@ -2511,6 +2788,7 @@ def gestionar_medios(request):
 
 @login_required
 @user_passes_test(es_organizador)
+@require_POST
 def eliminar_foto(request, foto_id):
     mi_complejo = obtener_mi_complejo(request.user)
     foto = get_object_or_404(FotoGaleria, id=foto_id, complejo=mi_complejo)
@@ -2598,6 +2876,9 @@ def proxima_jornada(request, torneo_id):
 def generar_fixture(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     equipos = list(Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO'))
     
     if len(equipos) < 2:
@@ -2675,41 +2956,22 @@ def generar_fixture(request, torneo_id):
 # 9. MAGIA: TRANSICIONES Y LLAVES ELIMINATORIAS 
 # =========================================================
 
-def obtener_clasificados_fase1(torneo):
-    equipos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO')
-    lista_tabla = []
-    for equipo in equipos:
-        partidos = Partido.objects.filter(Q(equipo_local=equipo) | Q(equipo_visita=equipo), estado__in=['JUG', 'WO', 'FINALIZADO'], etapa='F1')
-        pj=0; pg=0; pe=0; gf=0; gc=0
-        for p in partidos:
-            pj+=1
-            es_local = (p.equipo_local == equipo)
-            goles_pro = p.goles_local if es_local else p.goles_visita
-            goles_rival = p.goles_visita if es_local else p.goles_local
-            gf+=goles_pro; gc+=goles_rival
-            if goles_pro > goles_rival: pg+=1
-            elif goles_pro == goles_rival: pe+=1
-        pts = (pg * 3) + (pe * 1)
-        lista_tabla.append({'equipo': equipo, 'pts': pts, 'gd': gf-gc, 'gf': gf})
-    return sorted(lista_tabla, key=lambda x: (x['pts'], x['gd'], x['gf']), reverse=True)
+def obtener_clasificados_fase1(torneo, excluidos=frozenset()):
+    tabla = [f for f in motor.tabla_liga(torneo, 'F1') if f['equipo'].id not in excluidos]
+    for i, f in enumerate(tabla, start=1):
+        f['pos'] = i
+    return tabla
+
+
+def _excluidos_post(request, torneo):
+    """Equipos que el organizador saca de la siguiente fase (formato clásico)."""
+    validos = set(Equipo.objects.filter(torneo=torneo).values_list('id', flat=True))
+    return {int(x) for x in request.POST.getlist('excluir') if x.isdigit() and int(x) in validos}
 
 def obtener_clasificados_fase2(torneo, letra_grupo):
-    equipos_grupo = Equipo.objects.filter(torneo=torneo, grupo_fase2=letra_grupo, estado_inscripcion='APROBADO')
-    lista_tabla = []
-    for equipo in equipos_grupo:
-        partidos = Partido.objects.filter(Q(equipo_local=equipo) | Q(equipo_visita=equipo), estado__in=['JUG', 'WO', 'FINALIZADO'], etapa='F2')
-        pj=0; pg=0; pe=0; gf=0; gc=0
-        for p in partidos:
-            pj+=1
-            es_local = (p.equipo_local == equipo)
-            goles_pro = p.goles_local if es_local else p.goles_visita
-            goles_rival = p.goles_visita if es_local else p.goles_local
-            gf+=goles_pro; gc+=goles_rival
-            if goles_pro > goles_rival: pg+=1
-            elif goles_pro == goles_rival: pe+=1
-        pts = (pg * 3) + (pe * 1) + equipo.puntos_bonificacion
-        lista_tabla.append({'equipo': equipo, 'pts': pts, 'gd': gf-gc, 'gf': gf})
-    return sorted(lista_tabla, key=lambda x: (x['pts'], x['gd'], x['gf']), reverse=True)[:4]
+    equipos = list(Equipo.objects.filter(torneo=torneo, grupo_fase2=letra_grupo, estado_inscripcion='APROBADO'))
+    partidos = list(Partido.objects.filter(torneo=torneo, etapa='F2'))
+    return motor.calcular_tabla(equipos, partidos, con_bono=True)[:4]
 
 def obtener_ganador_llave(torneo, etapa, eq1, eq2):
     partidos = Partido.objects.filter(torneo=torneo, etapa=etapa, equipo_local__in=[eq1, eq2], equipo_visita__in=[eq1, eq2])
@@ -2742,9 +3004,17 @@ def obtener_ganador_llave(torneo, etapa, eq1, eq2):
 def generar_cuartos_directos(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
-    ida_y_vuelta = request.POST.get('ida_y_vuelta') == 'on'
-
-    clasificados = obtener_clasificados_fase1(torneo) 
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
+    if 'ida_y_vuelta' in request.POST and request.POST.get('accion') not in ('guardar_db', 'descargar_pdf'):
+        torneo.fase3_ida_vuelta = request.POST.get('ida_y_vuelta') == 'on'
+        torneo.save(update_fields=['fase3_ida_vuelta'])
+    elif request.POST.get('accion') is None and request.method == 'POST':
+        torneo.fase3_ida_vuelta = False
+        torneo.save(update_fields=['fase3_ida_vuelta'])
+    excluidos = _excluidos_post(request, torneo)
+    clasificados = obtener_clasificados_fase1(torneo, excluidos)
     
     if len(clasificados) < 8:
         messages.error(request, "⚠️ Mínimo 8 equipos registrados con resultados para hacer Cuartos de Final.")
@@ -2772,24 +3042,30 @@ def generar_cuartos_directos(request, torneo_id):
         formato = "Ida y Vuelta" if torneo.fase3_ida_vuelta else "Partido Único"
         messages.success(request, f"✅ Cuartos de final ({formato}) generados y guardados en el calendario.")
         return redirect('llaves_eliminatorias', torneo_id=torneo.id)
+    if request.POST.get('accion') == 'descargar_pdf':
+        return _pdf_fixture(torneo, [{'titulo': j['numero_fecha'], 'partidos': j['partidos']} for j in fixture], 'Cuartos de final', f"Cuartos_{torneo.nombre}")
 
-    return render(request, 'core/generar_fixture.html', {'torneo': torneo, 'fixture': fixture, 'total_equipos': 8})
+    return render(request, 'core/generar_fixture.html', {'torneo': torneo, 'fixture': fixture, 'total_equipos': 8, 'excluidos': excluidos})
 
 @login_required
 @user_passes_test(es_organizador)
 def generar_semis_directas(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     
     if Partido.objects.filter(torneo=torneo, etapa='SEMI').exists():
         messages.error(request, "Las Semifinales ya fueron generadas.")
         return redirect(f"/programar/?torneo={torneo.id}")
 
-    if 'ida_y_vuelta' in request.POST and request.POST.get('accion') != 'guardar_db':
+    if request.method == 'POST' and request.POST.get('accion') not in ('guardar_db', 'descargar_pdf'):
         torneo.fase3_ida_vuelta = request.POST.get('ida_y_vuelta') == 'on'
         torneo.save()
 
-    clasificados = obtener_clasificados_fase1(torneo)
+    excluidos = _excluidos_post(request, torneo)
+    clasificados = obtener_clasificados_fase1(torneo, excluidos)
     if len(clasificados) < 4:
         messages.error(request, "⚠️ Mínimo 4 equipos con resultados para generar Semifinales.")
         return redirect('tabla_posiciones', torneo_id=torneo.id)
@@ -2814,8 +3090,10 @@ def generar_semis_directas(request, torneo_id):
         formato = "Ida y Vuelta" if torneo.fase3_ida_vuelta else "Partido Único"
         messages.success(request, f"✅ Semifinales ({formato}) generadas y guardadas en el calendario.")
         return redirect('llaves_eliminatorias', torneo_id=torneo.id)
+    if request.POST.get('accion') == 'descargar_pdf':
+        return _pdf_fixture(torneo, [{'titulo': j['numero_fecha'], 'partidos': j['partidos']} for j in fixture], 'Semifinales', f"Semifinales_{torneo.nombre}")
         
-    return render(request, 'core/generar_fixture.html', {'torneo': torneo, 'fixture': fixture, 'total_equipos': 4})
+    return render(request, 'core/generar_fixture.html', {'torneo': torneo, 'fixture': fixture, 'total_equipos': 4, 'excluidos': excluidos})
 
 
 @login_required
@@ -2823,6 +3101,9 @@ def generar_semis_directas(request, torneo_id):
 def generar_cuartos_final(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     
     if Partido.objects.filter(torneo=torneo, etapa='4TOS').exists():
         messages.error(request, "Los Cuartos de Final ya fueron generados.")
@@ -2870,6 +3151,9 @@ def generar_cuartos_final(request, torneo_id):
 def generar_semifinales(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     
     if Partido.objects.filter(torneo=torneo, etapa='SEMI').exists():
         messages.error(request, "Las Semifinales ya fueron generadas.")
@@ -2917,6 +3201,9 @@ def generar_semifinales(request, torneo_id):
 def generar_finales(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     
     if Partido.objects.filter(torneo=torneo, etapa='FINAL').exists():
         messages.error(request, "Las Finales ya fueron generadas.")
@@ -2953,8 +3240,378 @@ def generar_finales(request, torneo_id):
     return render(request, 'core/generar_fixture.html', {'torneo': torneo, 'fixture': fixture, 'total_equipos': 4})
 
 
+# =========================================================
+# ✨ CAMPEONATO: MODALIDADES, GRUPOS Y LLAVES TRANSPARENTES
+# =========================================================
+
+def _leer_config_campeonato(post):
+    def entero(clave):
+        try:
+            return max(0, int(post.get(clave) or 0))
+        except ValueError:
+            return 0
+    return {
+        'formato': post.get('formato', ''),
+        'ida_vuelta_liga': post.get('ida_vuelta_liga') == 'on',
+        'num_grupos': entero('num_grupos'),
+        'clasifican': entero('clasifican'),
+        'mejores': entero('mejores'),
+        'clasifican_liga': entero('clasifican_liga'),
+        'ida_vuelta_llaves': post.get('ida_vuelta_llaves') == 'on',
+        'final_ida_vuelta': post.get('final_ida_vuelta') == 'on',
+        'tercer_lugar': post.get('tercer_lugar') == 'on',
+    }
+
+
+@login_required
+@user_passes_test(es_organizador)
+def iniciar_campeonato(request, torneo_id):
+    """Asistente "Empezar campeonato": 1) elegir modalidad, 2) ver la vista
+    previa (grupos sorteados con semilla visible + cuadro de llaves con los
+    cruces fijos), 3) confirmar. Nada se crea hasta confirmar."""
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.campeonato_iniciado:
+        messages.info(request, "Este campeonato ya está en marcha.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
+
+    equipos = motor.equipos_participantes(torneo)
+    pendientes = Equipo.objects.filter(torneo=torneo, estado_inscripcion='PENDIENTE').count()
+    cfg = _leer_config_campeonato(request.POST) if request.method == 'POST' else {
+        'formato': '', 'ida_vuelta_liga': False, 'num_grupos': 0, 'clasifican': 2, 'mejores': 0,
+        'clasifican_liga': 4, 'ida_vuelta_llaves': False, 'final_ida_vuelta': False, 'tercer_lugar': True}
+    ctx = {'torneo': torneo, 'equipos': equipos, 'n_equipos': len(equipos), 'pendientes': pendientes,
+           'cfg': cfg, 'sugerencias': motor.sugerencias_grupos(len(equipos)),
+           'formatos': [f for f in Torneo.FORMATOS if f[0] != 'CLASICO'], 'letras': motor.LETRAS}
+
+    if request.method == 'POST':
+        errores, resumen = motor.validar_configuracion(
+            cfg['formato'], len(equipos), cfg['num_grupos'], cfg['clasifican'], cfg['mejores'],
+            cfg['clasifican_liga'], cfg['ida_vuelta_liga'])
+        ctx.update({'errores': errores, 'resumen': resumen})
+        if errores:
+            return render(request, 'core/iniciar_campeonato.html', ctx)
+
+        try:
+            semilla = int(request.POST.get('semilla') or 0)
+        except ValueError:
+            semilla = 0
+        if not semilla or request.POST.get('accion') == 'resortear':
+            import random as _random
+            semilla = _random.SystemRandom().randint(1000, 999999)
+
+        grupos_manual = None
+        if cfg['formato'] == 'GRUPOS' and request.POST.get('ajuste_manual') == '1' and request.POST.get('accion') != 'resortear':
+            grupos_manual = {}
+            for e in equipos:
+                letra = (request.POST.get(f'grupo_{e.id}') or '').upper()
+                if letra:
+                    grupos_manual[e.id] = letra
+
+        if request.POST.get('accion') == 'confirmar':
+            try:
+                motor.iniciar_campeonato(
+                    torneo, cfg['formato'], ida_vuelta_liga=cfg['ida_vuelta_liga'], num_grupos=cfg['num_grupos'],
+                    clasifican=cfg['clasifican'], mejores=cfg['mejores'], clasifican_liga=cfg['clasifican_liga'],
+                    ida_vuelta_llaves=cfg['ida_vuelta_llaves'], final_ida_vuelta=cfg['final_ida_vuelta'],
+                    tercer_lugar=cfg['tercer_lugar'], semilla=semilla, grupos_manual=grupos_manual)
+            except motor.CampeonatoError as e:
+                ctx['errores'] = [str(e)]
+                ctx['semilla'] = semilla
+                return render(request, 'core/iniciar_campeonato.html', ctx)
+            messages.success(request, f"🏆 ¡Campeonato iniciado! Modalidad: {dict(Torneo.FORMATOS)[cfg['formato']]}. Ya puedes programar fechas y horas de cada partido.")
+            return redirect('ver_campeonato', torneo_id=torneo.id)
+
+        # --- Vista previa (no guarda nada) ---
+        ctx['semilla'] = semilla
+        if request.POST.get('accion') == 'pdf':
+            return _pdf_preview_inicio(torneo, cfg, equipos, semilla, grupos_manual)
+        if cfg['formato'] == 'GRUPOS':
+            try:
+                grupos = motor.armar_grupos(equipos, cfg['num_grupos'], semilla, grupos_manual)
+            except motor.CampeonatoError as e:
+                ctx['errores'] = [str(e)]
+                grupos = motor.sortear_grupos(equipos, cfg['num_grupos'], semilla)
+            ctx['grupos_preview'] = [
+                {'letra': l, 'equipos': m, 'jornadas': motor.round_robin(m, cfg['ida_vuelta_liga'])}
+                for l, m in grupos.items()]
+            ctx['ajuste_manual'] = bool(grupos_manual)
+            slots = motor.semillas_grupos(cfg['num_grupos'], cfg['clasifican'], cfg['mejores'])
+        elif cfg['formato'] == 'LIGA_PLAYOFF':
+            slots = motor.semillas_liga(cfg['clasifican_liga'])
+        elif cfg['formato'] == 'ELIMINACION':
+            import random as _random
+            orden = sorted(equipos, key=lambda e: e.id)
+            _random.Random(semilla).shuffle(orden)
+            slots = [(f"E{e.id}", e.nombre) for e in orden]
+        else:
+            slots = []
+        if cfg['formato'] in ('LIGA', 'LIGA_PLAYOFF'):
+            ctx['jornadas_preview'] = motor.round_robin(equipos, cfg['ida_vuelta_liga'])
+        if slots:
+            ctx['cuadro_preview'] = _preview_cuadro(slots, cfg)
+        ctx['preview'] = True
+    return render(request, 'core/iniciar_campeonato.html', ctx)
+
+
+def _pdf_preview_inicio(torneo, cfg, equipos, semilla, grupos_manual):
+    """PDF del fixture de la PRIMERA fase tal como se va a guardar."""
+    fixture = []
+    if cfg['formato'] == 'GRUPOS':
+        try:
+            grupos = motor.armar_grupos(equipos, cfg['num_grupos'], semilla, grupos_manual)
+        except motor.CampeonatoError:
+            grupos = motor.sortear_grupos(equipos, cfg['num_grupos'], semilla)
+        por_fecha = {}
+        for letra, miembros in grupos.items():
+            for n, jornada in enumerate(motor.round_robin(miembros, cfg['ida_vuelta_liga']), start=1):
+                por_fecha.setdefault(n, []).extend({'local': a, 'visita': b, 'detalle': f"Grupo {letra}"} for a, b in jornada)
+        fixture = [{'titulo': f"FECHA {n}", 'partidos': ps} for n, ps in sorted(por_fecha.items())]
+        titulo = 'Fase de grupos'
+    elif cfg['formato'] in ('LIGA', 'LIGA_PLAYOFF'):
+        fixture = [{'titulo': f"FECHA {n}", 'partidos': [{'local': a, 'visita': b} for a, b in j]}
+                   for n, j in enumerate(motor.round_robin(equipos, cfg['ida_vuelta_liga']), start=1)]
+        titulo = 'Fase regular (liga)'
+    else:
+        import random as _random
+        orden = sorted(equipos, key=lambda e: e.id)
+        _random.Random(semilla).shuffle(orden)
+        rondas = _preview_cuadro([(f"E{e.id}", e.nombre) for e in orden], cfg)
+        fixture = [{'titulo': rondas[0]['nombre'].upper(), 'partidos': [{'local': c['a'], 'visita': c['b']} for c in rondas[0]['cruces']]}]
+        titulo = rondas[0]['nombre']
+    return _pdf_fixture(torneo, fixture, f"{titulo} · Sorteo #{semilla}", f"Fixture_{torneo.nombre}_{titulo}".replace(' ', '_'))
+
+
+def _preview_cuadro(slots, cfg):
+    """Cuadro de llaves solo para mostrar (sin guardar)."""
+    tam = motor.siguiente_potencia_2(len(slots))
+    slots = list(slots) + [('BYE', 'Pase directo')] * (tam - len(slots))
+    orden = motor.orden_semillas(tam)
+    rondas = []
+    m, idx = tam, 0
+    while m >= 2:
+        codigo = motor.RONDA_POR_EQUIPOS[m]
+        cruces = []
+        for i in range(m // 2):
+            if idx == 0:
+                a, b = slots[orden[2 * i] - 1][1], slots[orden[2 * i + 1] - 1][1]
+            else:
+                previa = motor.NOMBRE_RONDA[rondas[-1]['codigo']]
+                a, b = f"Ganador {previa} {2 * i + 1}", f"Ganador {previa} {2 * i + 2}"
+            cruces.append({'numero': i + 1, 'a': a, 'b': b})
+        rondas.append({'codigo': codigo, 'nombre': motor.NOMBRE_RONDA[codigo], 'cruces': cruces})
+        m //= 2
+        idx += 1
+    return rondas
+
+
+def ver_campeonato(request, torneo_id):
+    """Vista pública del campeonato: tablas de grupos/liga con zonas de
+    clasificación, cuadro de llaves completo y fixture por jornada."""
+    torneo = get_object_or_404(Torneo.objects.select_related('complejo', 'categoria'), id=torneo_id)
+    complejo = torneo.complejo
+    rol = rol_en_complejo(request.user, complejo) if request.user.is_authenticated else None
+    if complejo and complejo.es_demo and rol != 'ORG' and not request.user.is_superuser:
+        raise Http404()
+    ctx = {'torneo': torneo, 'es_admin': rol == 'ORG', 'rol': rol}
+    if torneo.formato == 'CLASICO':
+        return redirect('reporte_estadisticas', torneo_id=torneo.id)
+
+    if torneo.formato == 'GRUPOS':
+        tablas = motor.tablas_grupos(torneo)
+        k, m = torneo.clasifican_por_grupo, torneo.mejores_extra
+        mejores_ids = {f['equipo'].id for f in motor.ranking_mejores(tablas, k + 1)[:m]} if m else set()
+        for tabla in tablas.values():
+            for f in tabla:
+                f['zona'] = 'clasifica' if f['pos'] <= k else ('mejor' if f['equipo'].id in mejores_ids else '')
+        ctx['tablas_grupos'] = tablas
+        if m:
+            ranking = motor.ranking_mejores(tablas, k + 1)
+            for i, f in enumerate(ranking, start=1):
+                f['rank'] = i
+                f['zona'] = 'mejor' if i <= m else ''
+            ctx['ranking_mejores'] = ranking
+            ctx['posicion_mejores'] = k + 1
+    elif torneo.formato in ('LIGA', 'LIGA_PLAYOFF'):
+        tabla = motor.tabla_liga(torneo)
+        for f in tabla:
+            f['zona'] = 'clasifica' if torneo.formato == 'LIGA_PLAYOFF' and f['pos'] <= torneo.clasifican_liga else ''
+        ctx['tabla_liga'] = tabla
+        if torneo.formato == 'LIGA' and torneo.fase_regular_cerrada and tabla:
+            ctx['campeon_liga'] = tabla[0]['equipo']
+
+    if torneo.formato in ('LIGA_PLAYOFF', 'GRUPOS', 'ELIMINACION'):
+        ctx['cuadro'] = motor.datos_cuadro(torneo)
+
+    etapa = motor.etapa_regular(torneo) if torneo.formato else None
+    if etapa and torneo.formato != 'ELIMINACION':
+        jornadas = {}
+        for p in Partido.objects.filter(torneo=torneo, etapa=etapa).select_related('equipo_local', 'equipo_visita').order_by('numero_fecha', 'equipo_local__grupo', 'id'):
+            jornadas.setdefault(p.numero_fecha, []).append(p)
+        ctx['jornadas'] = sorted(jornadas.items())
+    if torneo.campeonato_iniciado:
+        ctx['puede_cerrar_fase'] = (rol == 'ORG' and torneo.formato in ('LIGA', 'LIGA_PLAYOFF', 'GRUPOS')
+                                    and not torneo.fase_regular_cerrada and motor.fase_regular_completa(torneo))
+        ctx['puede_reiniciar'] = rol == 'ORG' and not motor.hay_partidos_jugados(torneo)
+        etapa_q = Partido.objects.filter(torneo=torneo, etapa=etapa) if etapa else Partido.objects.none()
+        ctx['avance'] = {'jugados': etapa_q.filter(estado__in=['JUG', 'WO']).count(), 'total': etapa_q.count()}
+    return render(request, 'core/campeonato.html', ctx)
+
+
+def _pdf_fixture(torneo, fixture, fase_titulo, nombre_archivo):
+    """PDF del fixture de UNA fase (para imprimir o mandar por WhatsApp)."""
+    html = get_template('core/fixture_pdf.html').render({'torneo': torneo, 'fixture': fixture, 'fase_titulo': fase_titulo})
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}.pdf"'
+    if pisa.CreatePDF(html, dest=response).err:
+        return HttpResponse('Error al generar el PDF', status=500)
+    return response
+
+
+def _fixture_cruces(titulo, cruces):
+    return [{'titulo': titulo, 'partidos': [
+        {'local': c['a'] or c['etiqueta_a'], 'visita': c['b'] or c['etiqueta_b']} for c in cruces]}]
+
+
+def fixture_pdf_campeonato(request, torneo_id):
+    """Descarga el fixture de una fase ya guardada: ?fase=regular o el código
+    de la ronda (8VOS, 4TOS, SEMI, FINAL...)."""
+    torneo = get_object_or_404(Torneo, id=torneo_id)
+    if torneo.complejo and torneo.complejo.es_demo and rol_en_complejo(request.user, torneo.complejo) != 'ORG':
+        raise Http404()
+    fase = request.GET.get('fase', 'regular')
+    if fase == 'regular':
+        etapa = motor.etapa_regular(torneo)
+        jornadas = {}
+        for p in Partido.objects.filter(torneo=torneo, etapa=etapa).select_related('equipo_local', 'equipo_visita').order_by('numero_fecha', 'equipo_local__grupo', 'id'):
+            jornadas.setdefault(p.numero_fecha, []).append({
+                'local': p.equipo_local, 'visita': p.equipo_visita,
+                'detalle': ' · '.join(x for x in [f"Grupo {p.equipo_local.grupo}" if p.equipo_local.grupo else '',
+                                                  timezone.localtime(p.fecha_hora).strftime('%d/%m %H:%M') if p.fecha_hora else ''] if x)})
+        fixture = [{'titulo': f"FECHA {n}", 'partidos': ps} for n, ps in sorted(jornadas.items())]
+        titulo = 'Fase de grupos' if etapa == 'GRP' else 'Fase regular (liga)'
+    elif fase in motor.NOMBRE_RONDA:
+        datos = motor.datos_cuadro(torneo)
+        rondas = [r for r in datos['rondas'] if r['codigo'] == fase]
+        if fase == 'TERC' and datos['tercer']:
+            cruces = [datos['tercer']]
+        elif rondas:
+            cruces = rondas[0]['llaves']
+        else:
+            raise Http404()
+        fixture = []
+        for c in cruces:
+            partidos = c['partidos'] or [None]
+            for p in partidos:
+                fixture.append({
+                    'local': (p.equipo_local if p else c['a']) or c['etiqueta_a'],
+                    'visita': (p.equipo_visita if p else c['b']) or c['etiqueta_b'],
+                    'detalle': ' · '.join(x for x in [f"Llave {c['numero']}", ('Vuelta' if p and p.numero_fecha == 2 else ('Ida' if p and len(c['partidos']) > 1 else '')),
+                                                      timezone.localtime(p.fecha_hora).strftime('%d/%m %H:%M') if p and p.fecha_hora else ''] if x)})
+        fixture = [{'titulo': motor.NOMBRE_RONDA[fase].upper(), 'partidos': fixture}]
+        titulo = motor.NOMBRE_RONDA[fase]
+    else:
+        raise Http404()
+    return _pdf_fixture(torneo, fixture, titulo, f"Fixture_{torneo.nombre}_{titulo}".replace(' ', '_'))
+
+
+@login_required
+@user_passes_test(es_organizador)
+def cerrar_fase_regular(request, torneo_id):
+    """Paso a la siguiente fase en 3 pasos: revisar los cruces, excluir
+    equipos si hace falta (sancionados/retirados: sube el siguiente de la
+    tabla) y luego guardar en el sistema o descargar el PDF."""
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.fase_regular_cerrada:
+        messages.info(request, "La fase regular ya fue cerrada.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
+    if not motor.fase_regular_completa(torneo):
+        messages.error(request, "⛔ Aún hay partidos de la fase regular sin finalizar.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
+
+    participantes = motor.equipos_participantes(torneo)
+    ids_validos = {e.id for e in participantes}
+    excluidos = {int(x) for x in request.POST.getlist('excluir') if x.isdigit() and int(x) in ids_validos}
+    accion = request.POST.get('accion') if request.method == 'POST' else None
+
+    if torneo.formato == 'LIGA':
+        if accion == 'confirmar':
+            motor.cerrar_fase_regular(torneo)
+            messages.success(request, "🏆 Liga cerrada. ¡Ya tenemos campeón!")
+            return redirect('ver_campeonato', torneo_id=torneo.id)
+        return render(request, 'core/cerrar_fase.html', {'torneo': torneo, 'es_liga': True,
+                                                          'tabla': motor.tabla_liga(torneo)})
+
+    if len(excluidos) >= len(participantes) - 1:
+        messages.error(request, "⛔ No puedes excluir a casi todos los equipos.")
+        excluidos = set()
+    cruces = motor.previa_siguiente_fase(torneo, excluidos)
+    ronda = cruces[0]['llave'].ronda if cruces else ''
+    nombre_ronda = motor.NOMBRE_RONDA.get(ronda, 'Eliminatorias')
+
+    if accion == 'pdf':
+        return _pdf_fixture(torneo, _fixture_cruces(nombre_ronda.upper(), cruces), nombre_ronda,
+                            f"Fixture_{torneo.nombre}_{nombre_ronda}".replace(' ', '_'))
+    if accion == 'confirmar':
+        try:
+            motor.cerrar_fase_regular(torneo, excluidos)
+        except motor.CampeonatoError as e:
+            messages.error(request, f"⛔ {e}")
+            return redirect('cerrar_fase_regular', torneo_id=torneo.id)
+        nombres = ", ".join(e.nombre for e in participantes if e.id in excluidos)
+        messages.success(request, f"✅ {nombre_ronda} generada y guardada en el sistema." + (f" Equipos excluidos: {nombres}." if nombres else ""))
+        return redirect('ver_campeonato', torneo_id=torneo.id)
+
+    if torneo.formato == 'GRUPOS':
+        tablas = motor.tablas_grupos(torneo)
+    else:
+        tablas = {'Liga': motor.tabla_liga(torneo)}
+    clasificados_ids = {c['a'].id for c in cruces if c['a']} | {c['b'].id for c in cruces if c['b']}
+    return render(request, 'core/cerrar_fase.html', {
+        'torneo': torneo, 'cruces': cruces, 'nombre_ronda': nombre_ronda, 'tablas': tablas,
+        'excluidos': excluidos, 'clasificados_ids': clasificados_ids,
+    })
+
+
+@login_required
+@user_passes_test(es_organizador)
+@require_POST
+def retirar_equipo_llave(request, llave_id, equipo_id):
+    mi_complejo = obtener_mi_complejo(request.user)
+    llave = get_object_or_404(Llave, id=llave_id, torneo__complejo=mi_complejo)
+    equipo = get_object_or_404(Equipo, id=equipo_id, torneo=llave.torneo)
+    try:
+        rival = motor.retirar_equipo_de_llave(llave, equipo)
+    except motor.CampeonatoError as e:
+        messages.error(request, f"⛔ {e}")
+    else:
+        messages.warning(request, f"{equipo.nombre} fue retirado de la llave. {rival.nombre} avanza por W.O.")
+    return redirect('ver_campeonato', torneo_id=llave.torneo_id)
+
+
+@login_required
+@user_passes_test(es_organizador)
+@require_POST
+def reiniciar_campeonato(request, torneo_id):
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if request.POST.get('confirmacion', '').strip().upper() != 'REINICIAR':
+        messages.error(request, "Escribe REINICIAR para confirmar.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
+    try:
+        motor.reiniciar_campeonato(torneo)
+    except motor.CampeonatoError as e:
+        messages.error(request, f"⛔ {e}")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
+    messages.warning(request, "🔄 Campeonato reiniciado. Puedes elegir la modalidad otra vez.")
+    return redirect('iniciar_campeonato', torneo_id=torneo.id)
+
+
 def llaves_eliminatorias(request, torneo_id):
     torneo = get_object_or_404(Torneo, id=torneo_id)
+    if torneo.formato != 'CLASICO':
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     cuartos = Partido.objects.filter(torneo=torneo, etapa='4TOS').order_by('numero_fecha', 'id')
     semis = Partido.objects.filter(torneo=torneo, etapa='SEMI').order_by('numero_fecha', 'id')
     tercer = Partido.objects.filter(torneo=torneo, etapa='TERC').first()
@@ -3003,7 +3660,7 @@ def importar_equipo_existente(request, torneo_nuevo_id):
 
                 # 🔥 MULTI-TENANCY: fuerza rol='DIR' en la nueva cancha aunque
                 # ya tuviera otro rol — ver nota en gestionar_equipos.
-                RolComplejo.objects.update_or_create(usuario=request.user, complejo=torneo_nuevo.complejo, defaults={'rol': 'DIR'})
+                asegurar_rol_dirigente(request.user, torneo_nuevo.complejo)
 
                 costo_inscripcion = getattr(torneo_nuevo, 'costo_inscripcion', Decimal('0.00')) 
                 if not torneo_nuevo.cobro_por_jugador:
@@ -3047,6 +3704,9 @@ def importar_equipo_existente(request, torneo_nuevo_id):
 def revertir_transicion(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     
     with transaction.atomic():
         Partido.objects.filter(torneo=torneo, etapa__in=['F2', '4TOS', 'SEMI', 'TERC', 'FINAL']).delete()
@@ -3065,6 +3725,9 @@ def revertir_transicion(request, torneo_id):
 def activar_vuelta_f1(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     torneo.fase1_ida_vuelta = True
     torneo.save()
     messages.success(request, "🔄 Formato actualizado: Ahora puedes programar partidos de Vuelta en la Fase 1.")
@@ -3075,6 +3738,9 @@ def activar_vuelta_f1(request, torneo_id):
 def cambiar_formato_fase1(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    if torneo.formato != 'CLASICO':
+        messages.error(request, "⛔ Este torneo usa el nuevo sistema de campeonato. Usa «Empezar campeonato» y la vista de grupos y llaves.")
+        return redirect('ver_campeonato', torneo_id=torneo.id)
     
     if torneo.fase1_ida_vuelta:
         total_equipos = Equipo.objects.filter(torneo=torneo, estado_inscripcion='APROBADO').count()
@@ -3183,6 +3849,7 @@ def editar_categoria(request, categoria_id):
 
 @login_required
 @user_passes_test(es_organizador)
+@require_POST
 def eliminar_categoria(request, categoria_id):
     mi_complejo = obtener_mi_complejo(request.user)
     categoria = get_object_or_404(Categoria, id=categoria_id, complejo=mi_complejo) # 🔥 Bloquea acceso ajeno
@@ -3248,6 +3915,7 @@ def gestionar_configuracion(request):
     return render(request, 'core/gestionar_configuracion.html', {'form': form})
 
 @login_required
+@require_POST
 def revertir_cobro_sancion(request, sancion_id):
     sancion = get_object_or_404(Sancion, id=sancion_id)
     if not verificar_acceso_complejo(request.user, sancion.torneo.complejo):
@@ -3268,6 +3936,11 @@ def revertir_cobro_sancion(request, sancion_id):
                         
                     sancion.pagada = False
                     sancion.save()
+                    registrar_movimiento(
+                        complejo=sancion.torneo.complejo, tipo='REVERSO', monto=monto_a_reversar,
+                        usuario=request.user, sancion=sancion, partido=ultimo_abono.partido,
+                        descripcion=f"Reverso del abono del {timezone.localtime(ultimo_abono.fecha):%d/%m/%Y %H:%M}: {sancion.descripcion}",
+                        origen='VOCALIA' if rol_en_complejo(request.user, sancion.torneo.complejo) == 'VOC' else 'FINANZAS')
                     ultimo_abono.delete()
                     
                     messages.success(request, f"🔄 Reverso exitoso: Se anuló el último abono de ${monto_a_reversar} para {sancion.equipo.nombre}.")
@@ -3315,10 +3988,14 @@ def portal_complejo(request, slug_complejo):
         mensaje_codificado = urllib.parse.quote(mensaje)
         url_whatsapp = f"https://wa.me/{complejo.telefono_contacto}?text={mensaje_codificado}"
 
+    es_miembro = request.user.is_authenticated and (
+        complejo.organizador_id == request.user.id or
+        RolComplejo.objects.filter(usuario=request.user, complejo=complejo).exists())
     return render(request, 'core/portal_publico.html', {
         'complejo': complejo, 
         'torneos': torneos_activos,
-        'url_whatsapp': url_whatsapp
+        'url_whatsapp': url_whatsapp,
+        'es_miembro': es_miembro or complejo.es_demo,
     })
 
 from django.core.mail import send_mail

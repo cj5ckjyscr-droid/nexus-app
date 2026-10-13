@@ -334,6 +334,33 @@
 </div>
 {% endif %}
 
+{% if user.is_authenticated and not rol_nav_efectivo == 'ORG' %}
+<!-- MIS CANCHAS / UNIRME COMO AFICIONADO -->
+<div class="container-fluid px-2 mb-4">
+    {% if mis_canchas %}
+    <h6 class="fw-bold text-muted text-uppercase small mb-2 ps-1">Mis canchas</h6>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        {% for c in mis_canchas %}<a href="{% url 'portal_complejo' c.slug %}" class="btn btn-outline-primary btn-sm rounded-pill"><i class="bi bi-geo-alt me-1"></i>{{ c.nombre }}</a>{% endfor %}
+    </div>
+    {% endif %}
+    {% if canchas_para_unirse %}
+    <div class="card p-3">
+        <div class="fw-bold mb-1"><i class="bi bi-person-plus me-1 text-primary"></i>Únete a una cancha como aficionado</div>
+        <div class="small mb-2" style="color: var(--text-soft);">Así el administrador de la cancha te verá en su lista de usuarios y podrá asignarte como <strong>vocal de mesa</strong> si corresponde. No necesitas crear un equipo.</div>
+        <div class="d-flex flex-column gap-2">
+            {% for c in canchas_para_unirse %}
+            <form method="post" action="{% url 'unirse_cancha' c.slug %}" class="d-flex align-items-center justify-content-between gap-2 border rounded-3 px-3 py-2 m-0">
+                {% csrf_token %}
+                <span class="fw-semibold text-truncate">{{ c.nombre }}</span>
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill text-nowrap">Unirme</button>
+            </form>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
 {% if user.is_authenticated and rol_nav_efectivo == 'VOC' %}
 <!-- Panel Vocal Omitido visualmente aquí para brevedad, PERO SE MANTIENE EL CÓDIGO -->
 <div class="container-fluid px-2 animate__animated animate__fadeInUp mb-4">
@@ -395,8 +422,9 @@
         <div class="text-muted fw-bold small mb-2 ps-1">Competición</div>
         <div class="admin-grid">
             <a href="{% url 'gestionar_torneos' %}" class="admin-btn"><i class="bi bi-trophy text-primary"></i><span>Torneos</span></a>
+            <a href="{% url 'gestionar_categorias' %}" class="admin-btn"><i class="bi bi-tags" style="color:#7C3AED;"></i><span>Categorías</span></a>
             <a href="{% url 'gestionar_equipos' %}" class="admin-btn"><i class="bi bi-shield text-info"></i><span>Equipos</span></a>
-            <a href="{% url 'programar_partidos' %}" class="admin-btn"><i class="bi bi-calendar-event text-warning"></i><span>Fixture</span></a>
+            <a href="{% url 'programar_partidos' %}" class="admin-btn"><i class="bi bi-calendar-event text-warning"></i><span>Campeonato</span></a>
             <a href="{% url 'admin_gestion_jugadores' %}" class="admin-btn"><i class="bi bi-people text-primary"></i><span>Jugadores</span></a>
         </div>
     </div>
@@ -407,6 +435,7 @@
             <a href="{% url 'gestionar_jugadores' %}" class="admin-btn"><i class="bi bi-person-plus text-success"></i><span>Fichar</span></a>
             <a href="{% url 'gestionar_finanzas' %}" class="admin-btn"><i class="bi bi-cash-stack text-success"></i><span>Finanzas</span></a>
             <a href="{% url 'cierre_diario_caja' %}" class="admin-btn"><i class="bi bi-clock-history text-secondary"></i><span>Caja Diaria</span></a>
+            <a href="{% url 'trazabilidad_financiera' %}" class="admin-btn"><i class="bi bi-journal-text" style="color:#0369A1;"></i><span>Trazabilidad</span></a>
         </div>
     </div>
 

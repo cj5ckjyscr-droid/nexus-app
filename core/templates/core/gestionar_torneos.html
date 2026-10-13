@@ -15,9 +15,9 @@
         --text-muted: #8E8E93;
         
         --apple-blue: #007AFF;
-        --apple-green: #34C759;
-        --apple-red: #FF3B30;
-        --apple-orange: #FF9500;
+        --apple-green: #15803D;
+        --apple-red: #DC2626;
+        --apple-orange: #C2410C;
         --apple-gray: #8E8E93;
     }
 
@@ -264,13 +264,20 @@
                         <span class="text-muted fw-bold small d-md-none">Acciones:</span>
                         <div class="row-actions">
                             
+                            <!-- CAMPEONATO -->
+                            {% if t.activo and not t.formato %}
+                                <a href="{% url 'iniciar_campeonato' t.id %}" class="btn btn-primary btn-sm rounded-pill fw-bold text-nowrap" title="Elegir modalidad y generar fixture"><i class="bi bi-play-fill"></i> Empezar</a>
+                            {% elif t.formato and t.formato != 'CLASICO' %}
+                                <a href="{% url 'ver_campeonato' t.id %}" class="btn btn-outline-primary btn-sm rounded-pill fw-bold text-nowrap" title="Grupos, llaves y fixture"><i class="bi bi-diagram-3"></i> Campeonato</a>
+                            {% endif %}
+
                             <!-- BOTÓN DE ARCHIVAR / REABRIR -->
                             {% if t.activo %}
-                                <a href="{% url 'cambiar_estado_torneo' t.id %}" class="btn-circle-ios btn-finish-ios" title="Finalizar y Archivar Torneo" onclick="return confirm('¿Seguro que deseas FINALIZAR este torneo?\n\nPasará al historial y se cerrarán las inscripciones automáticamente.');">
+                                <a href="{% url 'cambiar_estado_torneo' t.id %}" data-post class="btn-circle-ios btn-finish-ios" title="Finalizar y Archivar Torneo" onclick="return confirm('¿Seguro que deseas FINALIZAR este torneo?\n\nPasará al historial y se cerrarán las inscripciones automáticamente.');">
                                     <i class="bi bi-archive-fill"></i>
                                 </a>
                             {% else %}
-                                <a href="{% url 'cambiar_estado_torneo' t.id %}" class="btn-circle-ios btn-open-ios" title="Reabrir Torneo" onclick="return confirm('¿Deseas REABRIR este torneo y pasarlo a estado Activo?');">
+                                <a href="{% url 'cambiar_estado_torneo' t.id %}" data-post class="btn-circle-ios btn-open-ios" title="Reabrir Torneo" onclick="return confirm('¿Deseas REABRIR este torneo y pasarlo a estado Activo?');">
                                     <i class="bi bi-box-arrow-up"></i>
                                 </a>
                             {% endif %}
@@ -279,7 +286,7 @@
                             <a href="{% url 'editar_torneo' t.id %}" class="btn-circle-ios btn-edit-ios" title="Editar Torneo">
                                 <i class="bi bi-pencil-fill"></i>
                             </a>
-                            <a href="{% url 'eliminar_torneo' t.id %}" class="btn-circle-ios btn-delete-ios" title="Eliminar Definitivamente" onclick="return confirm('¡PELIGRO!\n\n¿Seguro que deseas ELIMINAR COMPLETAMENTE el torneo \'{{ t.nombre }}\'? Esto borrará sus datos permanentemente.');">
+                            <a href="{% url 'eliminar_torneo' t.id %}" data-post class="btn-circle-ios btn-delete-ios" title="Eliminar Definitivamente" onclick="return confirm('¡PELIGRO!\n\n¿Seguro que deseas ELIMINAR COMPLETAMENTE el torneo \'{{ t.nombre }}\'? Esto borrará sus datos permanentemente.');">
                                 <i class="bi bi-trash3-fill"></i>
                             </a>
                         </div>

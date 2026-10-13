@@ -145,9 +145,33 @@
             <button onclick="window.print()" class="btn-dash" style="background: #FEF2F2; color: #DC2626; border-color: #FECACA;">
                 <i class="bi bi-file-earmark-pdf-fill"></i> PDF
             </button>
+            {% if torneo.formato == 'CLASICO' %}
             <a href="?fase=1" class="btn-dash {% if fase_actual == 1 %}active{% else %}inactive{% endif %}"><i class="bi bi-1-circle"></i> Fase 1</a>
             <a href="?fase=2" class="btn-dash {% if fase_actual == 2 %}active{% else %}inactive{% endif %}"><i class="bi bi-2-circle"></i> Fase 2</a>
-            <a href="{% url 'llaves_eliminatorias' torneo.id %}" class="btn-dash" style="background: #FFFBEB; color: #D97706; border-color: #FDE68A;"><i class="bi bi-diagram-3-fill"></i> Llaves Finales</a>
+            <a href="{% url 'llaves_eliminatorias' torneo.id %}" class="btn-dash" style="background: #FFFBEB; color: #92400E; border-color: #FDE68A;"><i class="bi bi-diagram-3-fill"></i> Llaves Finales</a>
+            {% else %}
+            <a href="{% url 'ver_campeonato' torneo.id %}" class="btn-dash" style="background: #FFFBEB; color: #92400E; border-color: #FDE68A;"><i class="bi bi-diagram-3-fill"></i> Grupos y llaves</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- CONTROL DE CUOTA DE PARTIDOS (igual que gestion_futbol) -->
+    <div class="fey-card mb-4 p-3 p-md-4 no-print" style="border-top: 4px solid #DC2626;">
+        <div class="d-flex align-items-center mb-2">
+            <i class="bi bi-shield-lock-fill text-danger fs-4 me-2"></i>
+            <h6 class="fw-bold m-0">Control de cuota de partidos</h6>
+        </div>
+        <p class="small mb-3" style="color: var(--text-soft);">Bloquea en <strong>este torneo</strong> a los jugadores que no alcanzaron el mínimo de partidos jugados (asistencias registradas en la mesa). No afecta otras categorías ni otras canchas.</p>
+        <div class="d-flex gap-2 flex-wrap">
+            <form method="POST" action="{% url 'suspender_por_cuota' torneo.id %}" class="d-flex gap-2 flex-grow-1 m-0">
+                {% csrf_token %}
+                <input type="number" name="limite_partidos" class="form-control fw-bold" placeholder="Mínimo PJ" min="1" required style="max-width: 130px;">
+                <button type="submit" class="btn btn-danger fw-bold flex-grow-1" onclick="return confirm('¿Bloquear a los que no cumplan la cuota?');"><i class="bi bi-person-x-fill"></i> Bloquear</button>
+            </form>
+            <form method="POST" action="{% url 'revertir_cuota' torneo.id %}" class="flex-grow-1 m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-light border fw-bold w-100" onclick="return confirm('¿Revertir todos los bloqueos por cuota?');"><i class="bi bi-arrow-counterclockwise"></i> Revertir</button>
+            </form>
         </div>
     </div>
     {% else %}
@@ -162,8 +186,8 @@
             <button onclick="window.print()" class="btn-dash" style="background: #FFFFFF; color: #DC2626; border-color: #E2E8F0;">
                 <i class="bi bi-printer-fill"></i> Imprimir Reporte
             </button>
-            {% if hay_llaves %}
-            <a href="{% url 'llaves_eliminatorias' torneo.id %}" class="btn-dash" style="background: #FFFBEB; color: #D97706; border-color: #FDE68A;">
+            {% if hay_llaves or torneo.formato and torneo.formato != 'CLASICO' %}
+            <a href="{% if torneo.formato == 'CLASICO' %}{% url 'llaves_eliminatorias' torneo.id %}{% else %}{% url 'ver_campeonato' torneo.id %}{% endif %}" class="btn-dash" style="background: #FFFBEB; color: #92400E; border-color: #FDE68A;">
                 <i class="bi bi-diagram-3-fill"></i> Ver Llaves
             </a>
             {% endif %}
@@ -172,7 +196,19 @@
     {% endif %}
 
 
-    {% if fase_actual == 1 %}
+    {% if tablas_grupos %}
+        {% include 'core/_estilos_campeonato.html' %}
+        <div class="row g-3 mb-4">
+            {% for letra, tabla in tablas_grupos.items %}
+            <div class="col-12 col-lg-6 col-xxl-4">
+                <div class="camp-card h-100">
+                    <div class="camp-card-h"><span class="camp-titulo">Grupo {{ letra }}</span></div>
+                    <div class="table-responsive border-0">{% include 'core/_tabla_pos.html' with tabla=tabla %}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% elif fase_actual == 1 %}
         <div class="fey-card mb-4 reveal-up" style="animation-delay: 0.1s; border-top: 5px solid var(--brand-primary);">
             <div class="fey-card-header">
                 <div class="d-flex align-items-center gap-3">

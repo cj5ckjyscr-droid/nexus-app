@@ -104,7 +104,7 @@
                 <i class="bi bi-shield-lock-fill me-1"></i> Panel de Seguridad
             </span>
             <h3 class="mb-0 text-dark fw-bold" style="letter-spacing: -0.5px;">Gestión de Usuarios</h3>
-            <p class="text-muted small mt-1 mb-0 fw-medium">Administra los accesos y roles de toda la plataforma.</p>
+            <p class="text-muted small mt-1 mb-0 fw-medium">Usuarios de <strong>{{ mi_complejo.nombre }}</strong>. Cada cancha es independiente: los roles de aquí no valen en otras canchas.</p>
         </div>
         <div>
             <a href="{% url 'crear_usuario' %}" class="btn rounded-pill px-4 shadow-sm" style="background: #2B6CB0; color: white; font-weight: 600;">
@@ -117,8 +117,15 @@
     <form method="GET" class="search-box-ios">
         <i class="bi bi-search"></i>
         <input type="text" name="q" value="{{ query }}" placeholder="Buscar por usuario, nombre, apellido o correo..." autocomplete="off">
+        {% if filtro_rol %}<input type="hidden" name="rol" value="{{ filtro_rol }}">{% endif %}
         <button type="submit" class="d-none"></button>
     </form>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a href="?{% if query %}q={{ query|urlencode }}{% endif %}" class="btn btn-sm rounded-pill {% if not filtro_rol %}btn-primary{% else %}btn-outline-secondary{% endif %}">Todos</a>
+        {% for valor, nombre, cuenta in roles %}
+        <a href="?rol={{ valor }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="btn btn-sm rounded-pill {% if filtro_rol == valor %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ nombre }} <span class="badge bg-light text-dark ms-1">{{ cuenta }}</span></a>
+        {% endfor %}
+    </div>
 
     <!-- 🌟 TABLA DE USUARIOS CON COLORES -->
     <div class="card-pro">
@@ -172,6 +179,12 @@
                             {% else %}
                                 <span class="badge-role" style="background: var(--role-fan-bg); color: var(--role-fan-text);"><i class="bi bi-person me-1"></i> Aficionado</span>
                             {% endif %}
+                            {% for eq in p.equipos_dirigidos %}
+                                <div class="small mt-1" style="white-space: normal; max-width: 260px; color: var(--text-main);">
+                                    <i class="bi bi-shield-fill me-1" style="color:#0369A1;"></i>Dirige <strong>{{ eq.nombre }}</strong>
+                                    <span style="color: var(--text-soft);">· {{ eq.torneo.nombre }}{% if not eq.torneo.activo %} (finalizado){% elif eq.estado_inscripcion == 'PENDIENTE' %} (pendiente){% endif %}</span>
+                                </div>
+                            {% endfor %}
                         </td>
                         
                         <!-- Estado -->
@@ -205,6 +218,12 @@
                                     <i class="bi bi-arrow-repeat"></i>
                                 </button>
                             </form>
+                            <form method="post" action="{% url 'gestionar_usuarios' %}" class="d-inline m-0 mt-1">
+                                {% csrf_token %}
+                                <input type="hidden" name="rol_cancha_id" value="{{ p.id }}">
+                                <input type="hidden" name="quitar" value="1">
+                                <button type="submit" class="btn btn-link btn-sm text-danger p-0 mt-1" onclick="return confirm('¿Quitar a @{{ p.usuario.username }} de esta cancha?');">Quitar de la cancha</button>
+                            </form>
                         </td>
                     </tr>
                     {% empty %}
@@ -228,7 +247,7 @@
     {% if perfiles.has_other_pages %}
     <div class="pagination-ios">
         {% if perfiles.has_previous %}
-            <a href="?page={{ perfiles.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="page-ios-btn"><i class="bi bi-chevron-left"></i></a>
+            <a href="?page={{ perfiles.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if filtro_rol %}&rol={{ filtro_rol }}{% endif %}" class="page-ios-btn"><i class="bi bi-chevron-left"></i></a>
         {% else %}
             <span class="page-ios-btn disabled"><i class="bi bi-chevron-left"></i></span>
         {% endif %}
@@ -238,13 +257,13 @@
                 <span class="page-ios-btn active">{{ i }}</span>
             {% else %}
                 {% if i > perfiles.number|add:"-3" and i < perfiles.number|add:"3" %}
-                    <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}" class="page-ios-btn">{{ i }}</a>
+                    <a href="?page={{ i }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if filtro_rol %}&rol={{ filtro_rol }}{% endif %}" class="page-ios-btn">{{ i }}</a>
                 {% endif %}
             {% endif %}
         {% endfor %}
 
         {% if perfiles.has_next %}
-            <a href="?page={{ perfiles.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="page-ios-btn"><i class="bi bi-chevron-right"></i></a>
+            <a href="?page={{ perfiles.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if filtro_rol %}&rol={{ filtro_rol }}{% endif %}" class="page-ios-btn"><i class="bi bi-chevron-right"></i></a>
         {% else %}
             <span class="page-ios-btn disabled"><i class="bi bi-chevron-right"></i></span>
         {% endif %}

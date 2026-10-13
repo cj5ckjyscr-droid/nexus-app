@@ -171,7 +171,9 @@
                     </div>
                     <div class="flex-grow-1 min-w-0">
                         <h6 class="fw-bold mb-0 text-dark text-truncate" style="font-size: 0.95rem;">{{ jugador.nombres }}</h6>
-                        <small class="text-muted fw-medium" style="font-size: 0.7rem;"><i class="bi bi-upc-scan me-1"></i>{{ jugador.cedula }}</small>
+                        <small class="text-muted fw-medium" style="font-size: 0.7rem;"><i class="bi bi-upc-scan me-1"></i>{% if jugador.tipo_documento != 'EC' %}{{ jugador.tipo_documento }} · {% endif %}{{ jugador.cedula }}</small>
+                        {% if not jugador.esta_habilitado %}<span class="badge bg-danger ms-1" style="font-size: 0.62rem;" title="{{ jugador.motivo_suspension }}"><i class="bi bi-slash-circle"></i> {{ jugador.motivo_inhabilitacion }}</span>{% endif %}
+                        {% if es_admin and not es_dirigente %}{% with j=jugador volver=request.get_full_path %}{% include 'core/_suspender_jugador.html' %}{% endwith %}{% endif %}
                         {% if jugador.otros_equipos %}
                             <div class="d-flex flex-wrap gap-1 mt-2">
                                 {% for otro in jugador.otros_equipos %}
@@ -188,7 +190,7 @@
                             <a href="{% url 'editar_jugador' jugador.id %}" class="action-btn bg-primary bg-opacity-10 text-primary"><i class="bi bi-pencil-fill"></i></a>
                             {% endif %}
                             {% if not es_dirigente %}
-                            <a href="{% url 'eliminar_jugador' jugador.id %}" class="action-btn bg-danger bg-opacity-10 text-danger" onclick="return confirm('¿Eliminar ficha?');"><i class="bi bi-trash-fill"></i></a>
+                            <a href="{% url 'eliminar_jugador' jugador.id %}" data-post class="action-btn bg-danger bg-opacity-10 text-danger" onclick="return confirm('¿Eliminar ficha?');"><i class="bi bi-trash-fill"></i></a>
                             {% endif %}
                         {% endif %}
                     </div>
