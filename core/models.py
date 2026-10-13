@@ -586,6 +586,20 @@ class AbonoSancion(models.Model):
     def __str__(self):
         return f"Abono ${self.monto} - {self.sancion.equipo.nombre}"
     
+class EdicionPartido(models.Model):
+    """Registro de cada cambio que el ADMINISTRADOR hace a un partido que ya
+    estaba finalizado. Se muestra al final de la hoja de vocalía y del acta."""
+    partido = models.ForeignKey(Partido, on_delete=models.CASCADE, related_name='ediciones')
+    usuario = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    fecha = models.DateTimeField(auto_now_add=True)
+    detalle = models.CharField(max_length=300)
+
+    class Meta:
+        ordering = ['fecha', 'id']
+
+    def __str__(self):
+        return f"{self.partido} · {self.detalle}"
+
 # =====================================================
 # 11-B. LLAVES ELIMINATORIAS (estructura fija y transparente)
 # =====================================================

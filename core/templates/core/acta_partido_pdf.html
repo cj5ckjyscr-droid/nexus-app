@@ -420,6 +420,22 @@
         </tr>
     </table>
 
+    {% if ediciones %}
+    <div class="section-title" style="background-color: #7C2D12;">✏️ Ediciones del administrador después de finalizar el partido</div>
+    <table>
+        <thead><tr><th style="width: 22%;">Fecha</th><th style="width: 22%;">Administrador</th><th>Qué se modificó</th></tr></thead>
+        <tbody>
+            {% for e in ediciones %}
+            <tr>
+                <td>{{ e.fecha|date:"d/m/Y H:i" }}</td>
+                <td>{% if e.usuario %}{{ e.usuario.get_full_name|default:e.usuario.username }}{% else %}—{% endif %}</td>
+                <td>{{ e.detalle }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
     <div class="footer">
         <strong>NEXT LEVEL</strong> - Documento de validación deportiva. | Teléfono Administrativo: 0963395614<br>
         Desarrollado por Deyvi Rivera - Soporte Técnico: 0987408528

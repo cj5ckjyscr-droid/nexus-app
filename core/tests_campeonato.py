@@ -264,3 +264,20 @@ class ExclusionesYRetirosTest(CampeonatoBase):
         self.assertEqual(semi.ganador, rival)
         final = Llave.objects.get(torneo=self.torneo, ronda='FINAL')
         self.assertIn(rival.id, (final.equipo_a_id, final.equipo_b_id))
+
+
+class EdicionLlaveTest(CampeonatoBase):
+    def test_admin_corrige_marcador_y_cambia_quien_avanza(self):
+        from django.test import Client
+        self.crear_equipos(4)
+        c.iniciar_campeonato(self.torneo, 'ELIMINACION', semilla=8)
+        semi = Partido.objects.filter(torneo=self.torneo, etapa='SEMI').first()
+        self.cerrar(semi, 2, 0)
+        final = Llave.objects.get(torneo=self.torneo, ronda='FINAL')
+        slot = 'equipo_a_id' if semi.llave.slot_siguiente == 'A' else 'equipo_b_id'
+        self.assertEqual(getattr(final, slot), semi.equipo_local_id)
+        cli = Client(); cli.login(username="org", password="pass12345")
+        cli.post(f"/partido/resultado/{semi.id}/", {"goles_local": "0", "goles_visita": "1"})
+        final.refresh_from_db()
+        self.assertEqual(getattr(final, slot), semi.equipo_visita_id)
+        self.assertTrue(semi.ediciones.filter(detalle__contains="2-0 → 0-1").exists())

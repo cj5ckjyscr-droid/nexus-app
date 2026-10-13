@@ -35,7 +35,7 @@ from .models import (
     Configuracion, Torneo, Equipo, Jugador, Partido, 
     DetallePartido, Pago, Perfil, Sancion, FotoGaleria, 
     AbonoSancion, ComplejoDeportivo, PlanSuscripcion, Categoria,
-    PagoSuscripcionSaaS, RolComplejo, Llave, MovimientoFinanciero
+    PagoSuscripcionSaaS, RolComplejo, Llave, MovimientoFinanciero, EdicionPartido
 )
 
 from .utils import validar_cedula_ecuador, consultar_sri
@@ -1219,11 +1219,18 @@ def editar_partido(request, partido_id):
                 return redirect('editar_partido', partido_id=partido.id)
             partido.cancha = (request.POST.get('cancha') or partido.cancha)[:100]
             partido.save(update_fields=['fecha_hora', 'cancha'])
+            if es_edicion_post_cierre(partido):
+                EdicionPartido.objects.create(partido=partido, usuario=request.user,
+                    detalle=f"Cambió fecha/cancha: {timezone.localtime(partido.fecha_hora):%d/%m/%Y %H:%M} · {partido.cancha}" if partido.fecha_hora else f"Cambió la cancha: {partido.cancha}")
             messages.success(request, 'Horario del partido actualizado.')
             return redirect(f"/programar/?torneo={partido.torneo.id}")
+        estaba_cerrado = es_edicion_post_cierre(partido)
         form = ProgramarPartidoForm(request.POST, instance=partido)
         if form.is_valid():
             form.save()
+            if estaba_cerrado and form.changed_data:
+                EdicionPartido.objects.create(partido=partido, usuario=request.user,
+                    detalle="Editó datos del partido: " + ", ".join(form.fields[c].label or c for c in form.changed_data))
             messages.success(request, 'Datos del partido actualizados.')
             return redirect(f"/programar/?torneo={partido.torneo.id}")
     else:
@@ -1285,6 +1292,8 @@ def reiniciar_partido(request, partido_id):
             partido.firma_local_base64 = None
             partido.firma_visita_base64 = None
             partido.save()
+            EdicionPartido.objects.create(partido=partido, usuario=request.user,
+                detalle="Reinició el partido: se borraron goles, tarjetas, firmas y multas automáticas")
     except motor.CampeonatoError as e:
         messages.error(request, f"⛔ {e}")
         return redirect(f"/programar/?torneo={partido.torneo.id}")
@@ -1306,12 +1315,46 @@ def verificar_acceso_complejo(user, complejo):
 
 
 def partido_bloqueado(request, partido):
-    """Un partido FINALIZADO o por W.O. ya no se modifica desde la mesa (evita
-    cambiar resultados a escondidas). El administrador puede reiniciarlo."""
+    """Un partido FINALIZADO o por W.O. solo lo puede modificar el
+    ADMINISTRADOR de la cancha (y cada cambio queda registrado en la hoja de
+    vocalía). El vocal ya no puede tocarlo."""
     if partido.estado in ('JUG', 'WO'):
-        messages.error(request, "🔒 Este partido ya está cerrado. Para corregirlo, el administrador debe reiniciarlo desde el calendario.")
+        if rol_en_complejo(request.user, partido.torneo.complejo) == 'ORG':
+            return False
+        messages.error(request, "🔒 Este partido ya está finalizado. Solo el administrador de la cancha puede modificarlo.")
         return True
     return False
+
+
+def es_edicion_post_cierre(partido):
+    return partido.estado in ('JUG', 'WO')
+
+
+def preparar_edicion(partido, usuario):
+    """Antes de modificar un partido finalizado se deshacen sus efectos
+    automáticos (suspensiones y multas por tarjetas aún no cobradas) para
+    volver a calcularlos con los datos corregidos."""
+    if partido.estado == 'JUG' and partido.sanciones_aplicadas:
+        revertir_suspensiones_partido(partido)
+        auto = list(Sancion.objects.filter(partido=partido, tipo__in=['AMARILLA', 'ROJA'], monto_pagado=0)
+                    .select_related('torneo__complejo', 'equipo'))
+        registrar_anulaciones(auto, usuario, "Recalculo por edición del administrador", origen='VOCALIA')
+        Sancion.objects.filter(id__in=[x.id for x in auto]).delete()
+
+
+def cerrar_edicion(request, partido, detalle):
+    """Después de modificar un partido finalizado: vuelve a aplicar sanciones,
+    corrige la llave si cambió el ganador y deja constancia del cambio."""
+    partido.refresh_from_db()
+    if partido.estado == 'JUG' and partido.sanciones_aplicadas:
+        aplicar_sanciones_partido(partido, descontar_cumplidas=False)
+    if partido.llave_id:
+        llave = partido.llave
+        nuevo = motor.ganador_llave(llave)
+        if (nuevo.id if nuevo else None) != llave.ganador_id:
+            motor.revertir_llave(llave)   # falla si la ronda siguiente ya se jugó
+            motor.avanzar_llave(llave)
+    EdicionPartido.objects.create(partido=partido, usuario=request.user, detalle=detalle[:300])
 
 
 def _monto_abono(request, sancion):
@@ -1326,16 +1369,25 @@ def _monto_abono(request, sancion):
     return abono.quantize(Decimal('0.01'))
 
 
-def aplicar_sanciones_partido(partido):
-    """Descuenta suspensiones cumplidas y genera tarjetas/multas del partido."""
-    jugadores_ambos_equipos = Jugador.objects.filter(equipo__in=[partido.equipo_local, partido.equipo_visita], partidos_suspension__gt=0)
+def aplicar_sanciones_partido(partido, descontar_cumplidas=True):
+    """Descuenta suspensiones cumplidas y genera tarjetas/multas del partido.
+    descontar_cumplidas=False al recalcular tras una edición del administrador
+    (las fechas cumplidas ya se descontaron al finalizar)."""
     detalles = list(DetallePartido.objects.filter(partido=partido).select_related('jugador', 'jugador__equipo'))
     con_roja = {d.jugador_id for d in detalles if d.tipo in ('DA', 'TR')}
 
-    for j in jugadores_ambos_equipos:
-        if j.id not in con_roja:
-            j.partidos_suspension -= 1
-            j.save(update_fields=['partidos_suspension'])
+    if descontar_cumplidas:
+        jugadores_ambos_equipos = Jugador.objects.filter(equipo__in=[partido.equipo_local, partido.equipo_visita], partidos_suspension__gt=0)
+        for j in jugadores_ambos_equipos:
+            if j.id not in con_roja:
+                j.partidos_suspension -= 1
+                j.save(update_fields=['partidos_suspension'])
+
+    def multar(j, tipo, monto, descripcion):
+        # Si ya existe (p. ej. ya estaba cobrada) no se duplica
+        if not Sancion.objects.filter(partido=partido, jugador=j, tipo=tipo, descripcion=descripcion).exists():
+            Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido,
+                                   tipo=tipo, monto=monto, descripcion=descripcion)
 
     if partido.etapa in ('F1', 'GRP'):
         fases_validas = [partido.etapa]
@@ -1361,13 +1413,13 @@ def aplicar_sanciones_partido(partido):
             else:
                 desc_roja = f"Roja Directa - {j.nombres}"
             j.save()
-            Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='ROJA', monto=partido.torneo.costo_roja, descripcion=desc_roja)
+            multar(j, 'ROJA', partido.torneo.costo_roja, desc_roja)
         if da_partido > 0:
             j.partidos_suspension += 1
             j.save()
-            Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='ROJA', monto=partido.torneo.costo_roja, descripcion=f"Roja por Acumulación - {j.nombres}")
+            multar(j, 'ROJA', partido.torneo.costo_roja, f"Roja por Acumulación - {j.nombres}")
         if ta_partido > 0:
-            Sancion.objects.create(torneo=partido.torneo, equipo=j.equipo, jugador=j, partido=partido, tipo='AMARILLA', monto=partido.torneo.costo_amarilla, descripcion=f"Tarjeta Amarilla - {j.nombres}")
+            multar(j, 'AMARILLA', partido.torneo.costo_amarilla, f"Tarjeta Amarilla - {j.nombres}")
             total_ta_fase = DetallePartido.objects.filter(
                 jugador=j, partido__torneo=partido.torneo, partido__etapa__in=fases_validas, tipo='TA'
             ).count()
@@ -1412,6 +1464,43 @@ def cerrar_partido(partido):
     motor.procesar_partido_cerrado(partido)
 
 
+def _editar_acta_cerrada(request, partido):
+    """El administrador corrige informes, penales o firmas de un partido ya
+    finalizado. Se registra exactamente qué cambió."""
+    def accion():
+        cambios = []
+        for campo, nombre in (('informe_vocal', 'informe del vocal'), ('informe_arbitro', 'informe del árbitro')):
+            nuevo = (request.POST.get(campo) or '')[:4000]
+            if nuevo.strip() != (getattr(partido, campo) or '').strip():
+                setattr(partido, campo, nuevo)
+                cambios.append(f"Modificó el {nombre}")
+        for campo, nombre in (('firma_local_base64', 'firma local'), ('firma_visita_base64', 'firma visitante')):
+            valor = request.POST.get(campo)
+            if valor and valor != getattr(partido, campo):
+                comprimida = comprimir_firma(valor)
+                if comprimida:
+                    setattr(partido, campo, comprimida)
+                    cambios.append(f"Cambió la {nombre}")
+        if partido.etapa in Partido.ETAPAS_ELIMINATORIAS:
+            try:
+                pl = max(0, int(request.POST.get('penales_local') or 0))
+                pv = max(0, int(request.POST.get('penales_visita') or 0))
+            except ValueError:
+                pl, pv = partido.penales_local or 0, partido.penales_visita or 0
+            if (pl, pv) != ((partido.penales_local or 0), (partido.penales_visita or 0)):
+                cambios.append(f"Penales {(partido.penales_local or 0)}-{(partido.penales_visita or 0)} → {pl}-{pv}")
+                partido.penales_local, partido.penales_visita = pl, pv
+                partido.hubo_penales = bool(pl or pv)
+        if not cambios:
+            return None
+        partido.save()
+        return "; ".join(cambios)
+
+    _con_registro(request, partido, accion)
+    messages.success(request, "✅ Cambios guardados. Quedaron registrados en la hoja de vocalía como edición del administrador.")
+    return redirect('gestionar_vocalia', partido_id=partido.id)
+
+
 @login_required
 @user_passes_test(es_vocal_o_admin)
 def registrar_resultado(request, partido_id):
@@ -1420,6 +1509,23 @@ def registrar_resultado(request, partido_id):
 
     if request.method == 'POST':
         if partido_bloqueado(request, partido):
+            return redirect(f"/programar/?torneo={partido.torneo.id}")
+        if es_edicion_post_cierre(partido):
+            try:
+                gl = max(0, int(request.POST.get('goles_local')))
+                gv = max(0, int(request.POST.get('goles_visita')))
+            except (TypeError, ValueError):
+                messages.error(request, "⛔ Marcador inválido.")
+                return redirect('registrar_resultado', partido_id=partido.id)
+
+            def accion():
+                antes = _marcador(partido)
+                if (gl, gv) == (partido.goles_local, partido.goles_visita):
+                    return None
+                partido.goles_local, partido.goles_visita = gl, gv
+                partido.save(update_fields=['goles_local', 'goles_visita'])
+                return f"Cambió el marcador {antes} → {gl}-{gv}"
+            _con_registro(request, partido, accion)
             return redirect(f"/programar/?torneo={partido.torneo.id}")
         wo = request.POST.get('wo')
         if wo == 'on':
@@ -1467,19 +1573,6 @@ def gestionar_vocalia(request, partido_id):
 
     asistencias_ids = list(DetallePartido.objects.filter(partido=partido, tipo='ASIS').values_list('jugador_id', flat=True))
     multas = Sancion.objects.filter(partido=partido, tipo='ADMIN').select_related('equipo').order_by('-id')
-    # Visor de eventos: TODOS los eventos (no solo los últimos) en una lista
-    # compacta con scroll + un resumen por tipo, para que no se sature aunque
-    # haya muchos goles.
-    eventos = list(DetallePartido.objects.filter(partido=partido).exclude(tipo='ASIS')
-                   .select_related('jugador').order_by('-id'))
-    resumen_eventos = {
-        'goles_local': sum(1 for e in eventos if e.tipo == 'GOL' and e.equipo_incidencia_id == partido.equipo_local_id),
-        'goles_visita': sum(1 for e in eventos if e.tipo == 'GOL' and e.equipo_incidencia_id == partido.equipo_visita_id),
-        'amarillas': sum(1 for e in eventos if e.tipo == 'TA'),
-        'rojas': sum(1 for e in eventos if e.tipo in ('TR', 'DA')),
-        'figuras': sum(1 for e in eventos if e.tipo == 'STAR'),
-    }
-
     if request.method == 'POST':
         if 'cobrar_deuda' in request.POST:
             sancion = get_object_or_404(Sancion, id=request.POST.get('sancion_id'), torneo=partido.torneo,
@@ -1502,6 +1595,9 @@ def gestionar_vocalia(request, partido_id):
 
         elif 'declarar_wo' in request.POST:
             if partido_bloqueado(request, partido):
+                return redirect('gestionar_vocalia', partido_id=partido.id)
+            if es_edicion_post_cierre(partido):
+                messages.error(request, "⛔ El partido ya está finalizado. Para convertirlo en W.O. primero reinícialo desde el calendario.")
                 return redirect('gestionar_vocalia', partido_id=partido.id)
             tipo_wo = request.POST.get('tipo_wo')
             if tipo_wo not in ('LOCAL', 'VISITA', 'DOBLE'):
@@ -1529,6 +1625,8 @@ def gestionar_vocalia(request, partido_id):
         elif 'guardar_informe' in request.POST:
             if partido_bloqueado(request, partido):
                 return redirect('gestionar_vocalia', partido_id=partido.id)
+            if es_edicion_post_cierre(partido):
+                return _editar_acta_cerrada(request, partido)
             partido.informe_vocal = (request.POST.get('informe_vocal') or '')[:4000]
             partido.informe_arbitro = (request.POST.get('informe_arbitro') or '')[:4000]
 
@@ -1617,11 +1715,32 @@ def gestionar_vocalia(request, partido_id):
         'asistencias_ids': asistencias_ids,
         'multas': multas,
         'deudas_pendientes': deudas_pendientes,
-        'eventos': eventos,
-        'resumen_eventos': resumen_eventos,
         'cerrado': partido.estado in ('JUG', 'WO'),
+        'ediciones': partido.ediciones.select_related('usuario'),
         'es_admin_cancha': rol_en_complejo(request.user, partido.torneo.complejo) == 'ORG',
     })
+
+def _marcador(partido):
+    return f"{partido.goles_local}-{partido.goles_visita}"
+
+
+def _con_registro(request, partido, accion):
+    """Ejecuta una modificación del partido. Si ya estaba finalizado (solo
+    llega aquí el administrador) recalcula sanciones/llaves y registra qué se
+    cambió. `accion` devuelve el texto de lo que hizo (o None si no hizo nada)."""
+    cerrado = es_edicion_post_cierre(partido)
+    try:
+        with transaction.atomic():
+            if cerrado:
+                preparar_edicion(partido, request.user)
+            detalle = accion()
+            if cerrado and detalle:
+                cerrar_edicion(request, partido, detalle)
+            elif cerrado:
+                transaction.set_rollback(True)
+    except motor.CampeonatoError as e:
+        messages.error(request, f"⛔ No se aplicó el cambio: {e}")
+
 
 @login_required
 @user_passes_test(es_vocal_o_admin)
@@ -1633,13 +1752,13 @@ def registrar_incidencia(request, partido_id):
         return redirect('gestionar_vocalia', partido_id=partido.id)
 
     jugador_id = request.POST.get('jugador_id')
-    tipo_evento = request.POST.get('tipo')
+    tipo_evento = request.POST.get('tipo') 
     minuto = request.POST.get('minuto', 0)
     try:
         minuto = max(0, min(int(minuto or 0), 200))
     except ValueError:
         minuto = 0
-
+    
     jugador = get_object_or_404(
         Jugador, id=jugador_id,
         equipo__in=[partido.equipo_local, partido.equipo_visita],
@@ -1648,53 +1767,64 @@ def registrar_incidencia(request, partido_id):
         messages.error(request, f"⛔ {jugador.nombres} no está en cancha. Ingrésalo primero desde la banca.")
         return redirect('gestionar_vocalia', partido_id=partido.id)
 
-    with transaction.atomic():
-        partido = Partido.objects.select_for_update().get(id=partido.id)
+    def accion():
+        p = Partido.objects.select_for_update().get(id=partido.id)
+        quien = f"{jugador.nombres} ({jugador.equipo.nombre})"
+        texto = None
         if tipo_evento == 'TA':
-            amarilla_previa = DetallePartido.objects.filter(partido=partido, jugador=jugador, tipo='TA').first()
+            amarilla_previa = DetallePartido.objects.filter(partido=p, jugador=jugador, tipo='TA').first()
             if amarilla_previa:
                 amarilla_previa.delete()
-                DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='DA', minuto=minuto, observacion="Roja por Acum.", equipo_incidencia=jugador.equipo)
+                DetallePartido.objects.create(partido=p, jugador=jugador, tipo='DA', minuto=minuto, observacion="Roja por Acum.", equipo_incidencia=jugador.equipo)
                 messages.error(request, f'🟥 ¡ROJA POR ACUMULACIÓN para {jugador.nombres}!')
+                texto = f"Agregó 2ª amarilla (roja por acumulación) a {quien}"
             else:
-                DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='TA', minuto=minuto, equipo_incidencia=jugador.equipo)
+                DetallePartido.objects.create(partido=p, jugador=jugador, tipo='TA', minuto=minuto, equipo_incidencia=jugador.equipo)
                 messages.warning(request, f'🟨 Tarjeta Amarilla registrada a {jugador.nombres}.')
-
+                texto = f"Agregó tarjeta amarilla a {quien}"
         elif tipo_evento == 'TR':
-            DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='TR', minuto=minuto, equipo_incidencia=jugador.equipo)
+            DetallePartido.objects.create(partido=p, jugador=jugador, tipo='TR', minuto=minuto, equipo_incidencia=jugador.equipo)
             messages.error(request, f'🟥 ¡ROJA DIRECTA para {jugador.nombres}!')
-
+            texto = f"Agregó roja directa a {quien}"
         elif tipo_evento == 'GOL':
-            DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='GOL', minuto=minuto, equipo_incidencia=jugador.equipo)
-            if jugador.equipo_id == partido.equipo_local_id:
-                partido.goles_local += 1
+            antes = _marcador(p)
+            DetallePartido.objects.create(partido=p, jugador=jugador, tipo='GOL', minuto=minuto, equipo_incidencia=jugador.equipo)
+            if jugador.equipo_id == p.equipo_local_id:
+                p.goles_local += 1
             else:
-                partido.goles_visita += 1
+                p.goles_visita += 1
             messages.success(request, f'⚽ ¡Gol de {jugador.nombres}!')
-
+            texto = f"Agregó gol de {quien}. Marcador {antes} → {_marcador(p)}"
         elif tipo_evento == 'STAR':
-            estrellas_actuales = DetallePartido.objects.filter(partido=partido, tipo='STAR').count()
-            if estrellas_actuales >= 2:
+            if DetallePartido.objects.filter(partido=p, tipo='STAR').count() >= 2:
                 messages.error(request, '⭐ Error: Solo se pueden asignar máximo 2 figuras por partido.')
             else:
-                DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='STAR', equipo_incidencia=jugador.equipo)
+                DetallePartido.objects.create(partido=p, jugador=jugador, tipo='STAR', equipo_incidencia=jugador.equipo)
                 messages.success(request, f'⭐ ¡{jugador.nombres} fue elegido como Figura del Partido!')
+                texto = f"Marcó como figura a {quien}"
+        if p.estado == 'PROG':
+            p.estado = 'VIVO'
+        p.save()
+        return texto
 
-        if partido.estado == 'PROG':
-            partido.estado = 'VIVO'
-        partido.save()
-
+    _con_registro(request, partido, accion)
     return redirect('gestionar_vocalia', partido_id=partido.id)
 
 
 def _quitar_evento(partido, evento):
+    """Borra un evento (ajustando el marcador si era gol) y devuelve el texto."""
+    antes = _marcador(partido)
     if evento.tipo == 'GOL':
         if evento.equipo_incidencia_id == partido.equipo_local_id:
             partido.goles_local = max(0, partido.goles_local - 1)
         else:
             partido.goles_visita = max(0, partido.goles_visita - 1)
         partido.save(update_fields=['goles_local', 'goles_visita'])
+    texto = f"Quitó {evento.get_tipo_display()} de {evento.jugador.nombres}"
+    if evento.tipo == 'GOL':
+        texto += f". Marcador {antes} → {_marcador(partido)}"
     evento.delete()
+    return texto
 
 
 @login_required
@@ -1706,7 +1836,7 @@ def eliminar_evento_ultimo(request, partido_id, jugador_id, tipo):
     if partido_bloqueado(request, partido):
         return redirect('gestionar_vocalia', partido_id=partido.id)
 
-    with transaction.atomic():
+    def accion():
         if tipo == 'TA':
             evento_da = DetallePartido.objects.filter(partido_id=partido_id, jugador_id=jugador_id, tipo='DA').last()
             if evento_da:
@@ -1714,14 +1844,16 @@ def eliminar_evento_ultimo(request, partido_id, jugador_id, tipo):
                 evento_da.delete()
                 DetallePartido.objects.create(partido_id=partido_id, jugador_id=jugador_id, tipo='TA', equipo_incidencia=jugador_obj.equipo)
                 messages.success(request, "Corrección: Roja por Acumulación anulada. Se restauró 1 Amarilla.")
-                return redirect('gestionar_vocalia', partido_id=partido_id)
-
+                return f"Anuló la roja por acumulación de {jugador_obj.nombres} (queda con 1 amarilla)"
         evento = DetallePartido.objects.filter(partido_id=partido_id, jugador_id=jugador_id, tipo=tipo).last()
         if evento:
             nombre = evento.jugador.nombres
-            _quitar_evento(partido, evento)
+            texto = _quitar_evento(partido, evento)
             messages.warning(request, f"Corrección: Se eliminó el último registro de {evento.get_tipo_display()} para {nombre}.")
+            return texto
+        return None
 
+    _con_registro(request, partido, accion)
     return redirect('gestionar_vocalia', partido_id=partido_id)
 
 @login_required
@@ -1733,8 +1865,7 @@ def eliminar_evento(request, evento_id):
     if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
     if partido_bloqueado(request, partido):
         return redirect('gestionar_vocalia', partido_id=partido.id)
-    with transaction.atomic():
-        _quitar_evento(partido, evento)
+    _con_registro(request, partido, lambda: _quitar_evento(partido, evento))
     messages.success(request, 'Corrección realizada: Evento eliminado.')
     return redirect('gestionar_vocalia', partido_id=partido.id)
 
@@ -1774,9 +1905,13 @@ def toggle_asistencia(request, partido_id, jugador_id):
     jugador = get_object_or_404(Jugador, id=jugador_id, equipo__in=[partido.equipo_local, partido.equipo_visita])
 
     asistencia = DetallePartido.objects.filter(partido=partido, jugador=jugador, tipo='ASIS').first()
+    if not asistencia and not jugador.esta_habilitado:
+        messages.error(request, f"⛔ {jugador.nombres} no puede jugar: {jugador.motivo_inhabilitacion}.")
+        return redirect('gestionar_vocalia', partido_id=partido.id)
 
-    if asistencia:
-        with transaction.atomic():
+    def accion():
+        if asistencia:
+            antes = _marcador(partido)
             goles_jugador = DetallePartido.objects.filter(partido=partido, jugador=jugador, tipo='GOL').count()
             if goles_jugador > 0:
                 if jugador.equipo_id == partido.equipo_local_id:
@@ -1784,16 +1919,17 @@ def toggle_asistencia(request, partido_id, jugador_id):
                 else:
                     partido.goles_visita = max(0, partido.goles_visita - goles_jugador)
                 partido.save()
-
             DetallePartido.objects.filter(partido=partido, jugador=jugador).delete()
             messages.warning(request, f'Se retiró a {jugador.nombres}. Historial del partido limpiado.')
-    else:
-        if not jugador.esta_habilitado:
-            messages.error(request, f"⛔ {jugador.nombres} no puede jugar: {jugador.motivo_inhabilitacion}.")
-            return redirect('gestionar_vocalia', partido_id=partido.id)
+            texto = f"Sacó de la planilla a {jugador.nombres} ({jugador.equipo.nombre}) y borró sus eventos"
+            if goles_jugador:
+                texto += f". Marcador {antes} → {_marcador(partido)}"
+            return texto
         DetallePartido.objects.create(partido=partido, jugador=jugador, tipo='ASIS', equipo_incidencia=jugador.equipo)
         messages.success(request, f'{jugador.nombres} ingresó a la cancha.')
+        return f"Agregó a la planilla a {jugador.nombres} ({jugador.equipo.nombre})"
 
+    _con_registro(request, partido, accion)
     return redirect('gestionar_vocalia', partido_id=partido.id)
 
 # =========================================================
@@ -2022,7 +2158,7 @@ def tabla_goleadores(request, torneo_id):
 @login_required
 @user_passes_test(es_vocal_o_admin)
 def generar_acta_pdf(request, partido_id):
-    partido = Partido.objects.get(id=partido_id)
+    partido = get_object_or_404(Partido, id=partido_id)
     if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
     
     detalles = DetallePartido.objects.filter(partido=partido).select_related('jugador')
@@ -2040,7 +2176,8 @@ def generar_acta_pdf(request, partido_id):
         'partido': partido, 'asistencias_local': asistencias_local,
         'asistencias_visita': asistencias_visita, 'goles': goles,
         'tarjetas': tarjetas, 'estrellas': estrellas, 'abonos': abonos,
-        'multas': multas 
+        'multas': multas,
+        'ediciones': partido.ediciones.select_related('usuario'),
     }
     
     response = HttpResponse(content_type='application/pdf')

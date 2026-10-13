@@ -136,30 +136,11 @@
     .ios-btn-primary { background: var(--primary-blue); color: white; border: none; border-radius: 12px; padding: 14px; font-size: 1rem; font-weight: 600; width: 100%; cursor: pointer; text-align: center; }
     .ios-btn-secondary { background: var(--ios-surface); color: var(--primary-blue); border: 0.5px solid var(--ios-separator); border-radius: 12px; padding: 14px; font-size: 1rem; font-weight: 600; width: 100%; cursor: pointer; text-align: center; }
 
-    /* VISOR DE EVENTOS: resumen fijo + lista con scroll (no se satura) */
-    .ev-resumen { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
-    .ev-chip { background: var(--ios-surface); border: 0.5px solid var(--ios-separator); border-radius: 12px; padding: 6px 4px; text-align: center; }
-    .ev-chip .n { font-weight: 800; font-size: 1.15rem; line-height: 1; color: var(--text-main); }
-    .ev-chip .l { font-size: 0.62rem; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: .02em; margin-top: 2px; }
-    .ev-lista { max-height: 230px; overflow-y: auto; background: var(--ios-surface); border-radius: 14px; border: 0.5px solid var(--ios-separator); overscroll-behavior: contain; }
-    .ev-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 0.5px solid var(--ios-separator); font-size: 0.85rem; }
-    .ev-item:last-child { border-bottom: none; }
-    .ev-ico { width: 28px; text-align: center; font-size: 1rem; flex-shrink: 0; }
-    .ev-txt { flex: 1; min-width: 0; }
-    .ev-txt .nom { font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ev-txt .eq { font-size: 0.7rem; font-weight: 600; }
-    .ev-min { font-size: 0.75rem; font-weight: 700; color: #6B7280; flex-shrink: 0; }
-    .ev-del { color: #9CA3AF; font-size: 1rem; padding: 4px; flex-shrink: 0; }
-    .ev-del:hover { color: var(--accent-red); }
-    .lado-local { color: var(--primary-blue); }
-    .lado-visita { color: #C2410C; }
     /* Partido cerrado: solo lectura */
     .solo-lectura .ios-player-btns, .solo-lectura .ios-player-sub, .solo-lectura .ios-bench,
-    .solo-lectura .ev-del, .solo-lectura #actaForm button, .solo-lectura .btn-firmar { pointer-events: none; opacity: .45; }
+    .solo-lectura #actaForm button, .solo-lectura .btn-firmar { pointer-events: none; opacity: .45; }
 
     @media (max-width: 576px) {
-        .ev-resumen { gap: 4px; }
-        .ev-chip .n { font-size: 1rem; }
         .score-digit { font-size: 2.2rem; padding: 4px 12px; }
         .scoreboard-ios { padding: 16px 12px; border-radius: 20px; }
         .ios-player { padding: 10px 0; }
@@ -171,7 +152,7 @@
 {% endblock %}
 
 {% block contenido %}
-<div class="container-fluid px-2 {% if cerrado %}solo-lectura{% endif %}" style="max-width: 640px; margin: 0 auto; padding-bottom: 30px;">
+<div class="container-fluid px-2 {% if cerrado and not es_admin_cancha %}solo-lectura{% endif %}" style="max-width: 640px; margin: 0 auto; padding-bottom: 30px;">
 
     <!-- HEADER VOLVER -->
     <div class="d-flex justify-content-between align-items-center mb-2 mt-3 px-2">
@@ -184,10 +165,17 @@
     </div>
 
     {% if cerrado %}
-    <div class="alert alert-secondary d-flex align-items-center gap-2 py-2 px-3 mb-3" style="border-left-color:#6B7280;">
-        <i class="bi bi-lock-fill fs-5"></i>
-        <div class="small"><strong>Partido {% if partido.estado == 'WO' %}cerrado por W.O.{% else %}finalizado{% endif %}.</strong> Ya no se puede modificar desde la mesa{% if es_admin_cancha %}; si hay un error, reinícialo desde el calendario{% endif %}.</div>
-    </div>
+        {% if es_admin_cancha %}
+        <div class="alert alert-warning d-flex align-items-center gap-2 py-2 px-3 mb-3">
+            <i class="bi bi-pencil-square fs-5"></i>
+            <div class="small"><strong>Partido {% if partido.estado == 'WO' %}cerrado por W.O.{% else %}finalizado{% endif %}.</strong> Como administrador puedes corregirlo: <strong>cada cambio queda registrado</strong> al final de esta hoja y en el acta, y las multas, suspensiones y llaves se recalculan solas.</div>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary d-flex align-items-center gap-2 py-2 px-3 mb-3" style="border-left-color:#6B7280;">
+            <i class="bi bi-lock-fill fs-5"></i>
+            <div class="small"><strong>Partido {% if partido.estado == 'WO' %}cerrado por W.O.{% else %}finalizado{% endif %}.</strong> Solo el administrador de la cancha puede modificarlo.</div>
+        </div>
+        {% endif %}
     {% endif %}
 
     <!-- SCOREBOARD iOS WIDGET -->
@@ -252,38 +240,6 @@
                 <button class="btn btn-link text-muted p-0 text-decoration-none" style="font-size: 0.7rem; font-weight: 500;" onclick="updateFaltas('visita', 'reset')"><i class="bi bi-arrow-counterclockwise"></i> Reiniciar</button>
             </div>
         </div>
-    </div>
-
-    <!-- VISOR DE EVENTOS: resumen + lista con scroll -->
-    <div class="mb-4">
-        <div class="d-flex align-items-center justify-content-between px-2 mb-2">
-            <span class="fw-semibold text-muted" style="font-size: 0.8rem; text-transform: uppercase;">Eventos del partido</span>
-            <span class="badge rounded-pill bg-dark">{{ eventos|length }}</span>
-        </div>
-        <div class="ev-resumen">
-            <div class="ev-chip"><div class="n lado-local">{{ resumen_eventos.goles_local }}</div><div class="l">⚽ Local</div></div>
-            <div class="ev-chip"><div class="n lado-visita">{{ resumen_eventos.goles_visita }}</div><div class="l">⚽ Visita</div></div>
-            <div class="ev-chip"><div class="n" style="color:#B45309;">{{ resumen_eventos.amarillas }}</div><div class="l">🟨 Amar.</div></div>
-            <div class="ev-chip"><div class="n" style="color:#DC2626;">{{ resumen_eventos.rojas }}</div><div class="l">🟥 Rojas</div></div>
-            <div class="ev-chip"><div class="n" style="color:#B45309;">{{ resumen_eventos.figuras }}</div><div class="l">⭐ Fig.</div></div>
-        </div>
-        {% if eventos %}
-        <div class="ev-lista" id="listaEventos">
-            {% for ev in eventos %}
-            <div class="ev-item">
-                <span class="ev-ico">{% if ev.tipo == 'GOL' %}⚽{% elif ev.tipo == 'TA' %}🟨{% elif ev.tipo == 'TR' %}🟥{% elif ev.tipo == 'DA' %}🟨🟥{% elif ev.tipo == 'STAR' %}⭐{% else %}•{% endif %}</span>
-                <div class="ev-txt">
-                    <div class="nom">{{ ev.jugador.nombres }} <span class="text-muted fw-normal">#{{ ev.jugador.dorsal }}</span></div>
-                    <div class="eq {% if ev.equipo_incidencia_id == partido.equipo_local_id %}lado-local{% else %}lado-visita{% endif %}">{{ ev.get_tipo_display }} · {% if ev.equipo_incidencia_id == partido.equipo_local_id %}{{ partido.equipo_local.nombre }}{% else %}{{ partido.equipo_visita.nombre }}{% endif %}</div>
-                </div>
-                {% if ev.minuto %}<span class="ev-min">{{ ev.minuto }}'</span>{% endif %}
-                <a href="{% url 'eliminar_evento' ev.id %}" data-post data-confirm="¿Borrar este registro ({{ ev.get_tipo_display }} de {{ ev.jugador.nombres }})?" class="ev-del" title="Borrar"><i class="bi bi-x-circle-fill"></i></a>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="w-100 text-center py-3 text-muted fw-medium" style="font-size: 0.85rem; background: var(--ios-surface); border-radius: 12px;">Sin eventos registrados</div>
-        {% endif %}
     </div>
 
     <!-- ==================== EQUIPO LOCAL ==================== -->
@@ -668,6 +624,16 @@
                     </div>
                 </div>
 
+                {% if cerrado %}
+                <div class="d-flex gap-2 mt-4">
+                    {% if es_admin_cancha %}
+                    <button type="submit" class="ios-btn-primary flex-fill" style="background-color: #B45309;" onclick="ignorarValidacion=true; return confirm('¿Guardar la corrección? Quedará registrada como edición del administrador.');">
+                        <i class="bi bi-pencil-square me-1"></i> Guardar corrección
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'generar_acta_pdf' partido.id %}" target="_blank" class="ios-btn-secondary {% if not es_admin_cancha %}flex-fill{% endif %}" style="{% if es_admin_cancha %}width: 60px; {% endif %}display: flex; align-items: center; justify-content: center; gap: 6px;"><i class="bi bi-file-pdf text-danger fs-4"></i>{% if not es_admin_cancha %} Ver acta{% endif %}</a>
+                </div>
+                {% else %}
                 <div class="d-flex flex-column gap-3 mt-4">
                     <div class="d-flex gap-2">
                         <button type="submit" name="guardar_y_volver" value="1" class="ios-btn-secondary flex-fill" onclick="ignorarValidacion=true;">
@@ -682,9 +648,27 @@
                         Declarar Walkover (W.O.)
                     </button>
                 </div>
+                {% endif %}
             </form>
         </div>
     </div>
+
+    {% if ediciones %}
+    <!-- EDICIONES DEL ADMINISTRADOR DESPUÉS DE FINALIZAR -->
+    <div class="ios-panel" style="border: 1px solid #FCD34D;">
+        <div class="ios-panel-header" style="background: #FFFBEB;">
+            <span class="fw-bold" style="font-size: 0.95rem; color: #78350F;"><i class="bi bi-pencil-square me-1"></i>Ediciones del administrador después de finalizar</span>
+        </div>
+        <div class="px-3 py-2">
+            {% for e in ediciones %}
+            <div class="py-2 {% if not forloop.first %}border-top{% endif %}">
+                <div class="fw-semibold" style="font-size: 0.85rem; color: var(--text-main);">{{ e.detalle }}</div>
+                <div style="font-size: 0.72rem; color: #6B7280;">{{ e.fecha|date:"d/m/Y H:i" }} · {% if e.usuario %}{{ e.usuario.get_full_name|default:e.usuario.username }}{% else %}—{% endif %}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- MODAL FIRMA FLOTANTE (PANTALLA COMPLETA iOS STYLE) -->

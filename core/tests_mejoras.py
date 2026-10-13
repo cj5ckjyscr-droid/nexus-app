@@ -172,14 +172,47 @@ class TrazabilidadFinancieraTest(DosCanchasTestCase):
 
 
 class PartidoCerradoTest(DosCanchasTestCase):
-    def test_no_se_pueden_agregar_goles_a_partido_finalizado(self):
+    def _finalizado(self):
         DetallePartido.objects.create(partido=self.partido_a, jugador=self.jugador_a, tipo="ASIS", equipo_incidencia=self.equipo_a)
         self.partido_a.estado = "JUG"
+        self.partido_a.sanciones_aplicadas = True
         self.partido_a.save()
-        self.client.login(username="org_a", password="pass12345")
+
+    def test_vocal_no_puede_editar_partido_finalizado(self):
+        self._finalizado()
+        vocal = User.objects.create_user("vocal", password="pass12345")
+        RolComplejo.objects.create(usuario=vocal, complejo=self.complejo_a, rol="VOC")
+        self.client.login(username="vocal", password="pass12345")
         self.client.post(f"/vocalia/incidencia/{self.partido_a.id}/", {"jugador_id": self.jugador_a.id, "tipo": "GOL"})
         self.partido_a.refresh_from_db()
         self.assertEqual(self.partido_a.goles_local, 0)
+        self.assertFalse(self.partido_a.ediciones.exists())
+
+    def test_admin_edita_partido_finalizado_y_queda_registrado(self):
+        from .models import EdicionPartido
+        self._finalizado()
+        self.client.login(username="org_a", password="pass12345")
+        self.client.post(f"/vocalia/incidencia/{self.partido_a.id}/", {"jugador_id": self.jugador_a.id, "tipo": "GOL"})
+        self.client.post(f"/vocalia/incidencia/{self.partido_a.id}/", {"jugador_id": self.jugador_a.id, "tipo": "TA"})
+        self.partido_a.refresh_from_db()
+        self.assertEqual((self.partido_a.goles_local, self.partido_a.estado), (1, "JUG"))
+        detalles = list(EdicionPartido.objects.filter(partido=self.partido_a).values_list("detalle", flat=True))
+        self.assertEqual(len(detalles), 2)
+        self.assertIn("Marcador 0-0 → 1-0", detalles[0])
+        # la amarilla genera su multa una sola vez aunque se recalculen sanciones
+        self.client.post(f"/vocalia/{self.partido_a.id}/", {"guardar_informe": "1", "informe_vocal": "Corregido", "informe_arbitro": ""})
+        self.assertEqual(Sancion.objects.filter(partido=self.partido_a, tipo="AMARILLA").count(), 1)
+        self.assertEqual(EdicionPartido.objects.filter(partido=self.partido_a).count(), 3)
+        r = self.client.get(f"/vocalia/{self.partido_a.id}/")
+        self.assertContains(r, "Ediciones del administrador")
+        r = self.client.get(f"/acta/pdf/{self.partido_a.id}/")
+        self.assertEqual(r["Content-Type"], "application/pdf")
+
+    def test_edicion_sin_cambios_no_registra_nada(self):
+        self._finalizado()
+        self.client.login(username="org_a", password="pass12345")
+        self.client.post(f"/vocalia/{self.partido_a.id}/", {"guardar_informe": "1", "informe_vocal": "", "informe_arbitro": ""})
+        self.assertFalse(self.partido_a.ediciones.exists())
 
     def test_acciones_destructivas_por_get_no_hacen_nada(self):
         evento = DetallePartido.objects.create(partido=self.partido_a, jugador=self.jugador_a, tipo="ASIS", equipo_incidencia=self.equipo_a)
