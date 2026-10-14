@@ -38,6 +38,7 @@ def obtener_o_crear_plan_demo():
             "max_torneos": 5,
             "max_categorias_por_torneo": 5,
             "max_jugadores": 100,
+            "visible_publico": False,
         },
     )
     return plan

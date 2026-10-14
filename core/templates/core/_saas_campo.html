@@ -1,0 +1,13 @@
+{% if campo.field.widget.input_type == 'checkbox' %}
+<label class="s-switch form-switch" for="{{ campo.id_for_label }}">
+    <span><span class="t d-block">{{ campo.label }}</span>{% if campo.help_text %}<span class="s-muted">{{ campo.help_text }}</span>{% endif %}</span>
+    {{ campo }}
+</label>
+{% else %}
+<div>
+    <label class="s-label" for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+    {{ campo }}
+    {% if campo.help_text %}<div class="ayuda">{{ campo.help_text }}</div>{% endif %}
+    {{ campo.errors }}
+</div>
+{% endif %}

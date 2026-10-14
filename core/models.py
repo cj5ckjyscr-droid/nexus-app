@@ -66,6 +66,21 @@ class PlanSuscripcion(models.Model):
         default=50, verbose_name="Máximo de jugadores inscritos",
         help_text="Número total de jugadores que esta cancha puede tener registrados.",
     )
+    descripcion = models.CharField(
+        max_length=160, blank=True, verbose_name="Descripción corta",
+        help_text="Frase que aparece bajo el nombre en la página de precios.",
+    )
+    visible_publico = models.BooleanField(
+        default=True, verbose_name="Mostrar en la página de precios",
+        help_text="Si lo desactivas, el plan sigue sirviendo para asignarlo a una cancha, pero no se publica.",
+    )
+    destacado = models.BooleanField(
+        default=False, verbose_name="Destacar como «Más elegido»",
+        help_text="Resalta el plan en la página de precios.",
+    )
+
+    class Meta:
+        ordering = ['precio_mensual', 'nombre']
 
     def __str__(self):
         return f"{self.nombre} - ${self.precio_mensual}/mes"

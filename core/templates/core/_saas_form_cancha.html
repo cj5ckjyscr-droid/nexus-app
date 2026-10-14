@@ -1,0 +1,35 @@
+<div class="row g-4">
+    <div class="col-lg-7">
+        <p class="s-seccion">Datos del complejo</p>
+        <div class="row g-3">
+            <div class="col-md-6">{% include 'core/_saas_campo.html' with campo=form.nombre %}</div>
+            <div class="col-md-6">{% include 'core/_saas_campo.html' with campo=form.slug %}</div>
+            <div class="col-md-6">{% include 'core/_saas_campo.html' with campo=form.organizador %}</div>
+            <div class="col-md-6">{% include 'core/_saas_campo.html' with campo=form.telefono_contacto %}</div>
+            <div class="col-12">{% include 'core/_saas_campo.html' with campo=form.logo %}</div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <p class="s-seccion">Suscripción</p>
+        <div class="d-flex flex-column gap-3">
+            {% include 'core/_saas_campo.html' with campo=form.plan %}
+            {% include 'core/_saas_campo.html' with campo=form.fecha_vencimiento %}
+            {% include 'core/_saas_campo.html' with campo=form.activo %}
+        </div>
+    </div>
+</div>
+<script>
+    // Al crear, el slug se arma solo a partir del nombre (se puede corregir a mano).
+    (function () {
+        const nombre = document.getElementById('{{ form.nombre.id_for_label }}');
+        const slug = document.getElementById('{{ form.slug.id_for_label }}');
+        if (!nombre || !slug || slug.value) return;
+        let tocado = false;
+        slug.addEventListener('input', () => { tocado = true; });
+        nombre.addEventListener('input', () => {
+            if (tocado) return;
+            slug.value = nombre.value.normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        });
+    })();
+</script>

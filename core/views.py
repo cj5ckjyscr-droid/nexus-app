@@ -4237,183 +4237,247 @@ def portal_complejo(request, slug_complejo):
 from django.core.mail import send_mail
 from django.conf import settings
 
-@login_required
-def dashboard_saas(request):
-    if not request.user.is_superuser:
-        messages.error(request, "Acceso denegado. Solo el dueño de NEXUS SPORTOPS puede entrar aquí.")
-        return redirect('dashboard')
+# =========================================================
+# PANEL SAAS (SÚPER ADMINISTRADOR)
+# =========================================================
 
-    # 🔥 OPTIMIZACIÓN: select_related para evitar que la DB se trabe
-    canchas_list = ComplejoDeportivo.objects.select_related('organizador', 'plan').filter(es_demo=False).order_by('fecha_vencimiento')
-    
-    # --- PAGINACIÓN DE CANCHAS ---
-    paginator_canchas = Paginator(canchas_list, 8) # Mostrará 8 canchas por página
-    page_canchas = request.GET.get('page')
+def superadmin_requerido(vista):
+    """Solo el dueño de NEXUS SPORTOPS (superusuario) entra al panel SaaS."""
+    from functools import wraps
+
+    @wraps(vista)
+    @login_required
+    def envoltura(request, *args, **kwargs):
+        if not request.user.is_superuser:
+            messages.error(request, "Acceso denegado. Solo el dueño de NEXUS SPORTOPS puede entrar aquí.")
+            return redirect('dashboard')
+        return vista(request, *args, **kwargs)
+    return envoltura
+
+
+DIAS_AVISO_VENCIMIENTO = 7
+
+
+def _estado_suscripcion(cancha, hoy):
+    """Estado comercial de una cancha: (código, etiqueta)."""
+    if not cancha.activo:
+        return 'suspendida', 'Suspendida'
+    if not cancha.fecha_vencimiento:
+        return 'sin-fecha', 'Sin fecha de corte'
+    if cancha.fecha_vencimiento < hoy:
+        return 'vencida', 'Vencida'
+    if cancha.fecha_vencimiento <= hoy + timedelta(days=DIAS_AVISO_VENCIMIENTO):
+        return 'por-vencer', 'Por vencer'
+    return 'al-dia', 'Al día'
+
+
+def _marcar_estados(canchas, hoy):
+    for c in canchas:
+        c.estado_codigo, c.estado_texto = _estado_suscripcion(c, hoy)
+        c.dias_restantes = (c.fecha_vencimiento - hoy).days if c.fecha_vencimiento else None
+        c.dias_vencida = -c.dias_restantes if c.dias_restantes is not None and c.dias_restantes < 0 else 0
+    return canchas
+
+
+def _paginar(request, queryset, por_pagina, parametro='page'):
+    paginador = Paginator(queryset, por_pagina)
     try:
-        canchas = paginator_canchas.page(page_canchas)
+        return paginador.page(request.GET.get(parametro))
     except PageNotAnInteger:
-        canchas = paginator_canchas.page(1)
+        return paginador.page(1)
     except EmptyPage:
-        canchas = paginator_canchas.page(paginator_canchas.num_pages)
+        return paginador.page(paginador.num_pages)
 
-    # 1. Contabilidad
-    total_ingresos_saas = PagoSuscripcionSaaS.objects.aggregate(Sum('monto'))['monto__sum'] or 0
-    canchas_activas = canchas_list.filter(activo=True).count()
-    canchas_suspendidas = canchas_list.filter(activo=False).count()
 
-    # Solo traemos los últimos 15 pagos, no todos
-    ultimos_pagos = PagoSuscripcionSaaS.objects.select_related('complejo').order_by('-fecha_pago', '-id')[:15]
+@superadmin_requerido
+def dashboard_saas(request):
+    hoy = timezone.localdate()
+    canchas_list = (ComplejoDeportivo.objects.select_related('organizador', 'plan')
+                    .filter(es_demo=False).order_by('fecha_vencimiento', 'nombre'))
+    limite_aviso = hoy + timedelta(days=DIAS_AVISO_VENCIMIENTO)
+    canchas_por_vencer = canchas_list.filter(activo=True, fecha_vencimiento__lte=limite_aviso)
+    canchas_vencidas = canchas_list.filter(activo=True, fecha_vencimiento__lt=hoy)
 
-    # 2. Recordatorios
-    hoy = timezone.localtime(timezone.now()).date()
-    limite_aviso = hoy + timedelta(days=3)
-    canchas_por_vencer = canchas_list.filter(fecha_vencimiento__lte=limite_aviso, activo=True)
-    canchas_vencidas = canchas_list.filter(fecha_vencimiento__lt=hoy, activo=True)
-    
     if request.method == 'POST':
         if 'enviar_recordatorios' in request.POST:
+            enviados = 0
             for c in canchas_por_vencer:
-                asunto = f"Vencimiento Próximo: {c.nombre}"
-                mensaje = f"La suscripción de {c.nombre} vence el {c.fecha_vencimiento}."
-                send_mail(asunto, mensaje, settings.EMAIL_HOST_USER, [c.organizador.email], fail_silently=True)
-            messages.success(request, f"📧 Recordatorios enviados a {canchas_por_vencer.count()} canchas.")
+                if not c.organizador.email:
+                    continue
+                send_mail(f"Vencimiento próximo: {c.nombre}",
+                          f"La suscripción de {c.nombre} a NEXUS SPORTOPS vence el {c.fecha_vencimiento:%d/%m/%Y}.",
+                          settings.EMAIL_HOST_USER, [c.organizador.email], fail_silently=True)
+                enviados += 1
+            messages.success(request, f"📧 Recordatorio enviado a {enviados} cancha(s).")
             return redirect('dashboard_saas')
-            
-        elif 'suspender_morosos' in request.POST:
+
+        if 'suspender_morosos' in request.POST:
             contador = 0
             for c in canchas_vencidas:
                 c.activo = False
-                c.save()
-                send_mail(f"SUSPENSIÓN: {c.nombre}", "Tu servicio fue suspendido.", settings.EMAIL_HOST_USER, [c.organizador.email], fail_silently=True)
+                c.save(update_fields=['activo'])
+                if c.organizador.email:
+                    send_mail(f"SUSPENSIÓN: {c.nombre}", "Tu servicio fue suspendido por falta de pago.",
+                              settings.EMAIL_HOST_USER, [c.organizador.email], fail_silently=True)
                 contador += 1
-            messages.error(request, f"🚫 Se han suspendido {contador} canchas por morosidad.")
+            messages.warning(request, f"🚫 Se suspendieron {contador} cancha(s) vencidas.")
             return redirect('dashboard_saas')
 
+    pagos = PagoSuscripcionSaaS.objects.filter(complejo__es_demo=False)
+    ingresos_total = pagos.aggregate(t=Sum('monto'))['t'] or 0
+    ingresos_mes = pagos.filter(fecha_pago__year=hoy.year, fecha_pago__month=hoy.month).aggregate(t=Sum('monto'))['t'] or 0
+    # Lo que se debería cobrar cada mes con las canchas activas y su plan actual
+    ingreso_mensual_esperado = canchas_list.filter(activo=True, plan__isnull=False).aggregate(t=Sum('plan__precio_mensual'))['t'] or 0
+
+    canchas = _paginar(request, canchas_list, 8)
+    _marcar_estados(canchas, hoy)
+    alertas = _marcar_estados(list(canchas_por_vencer), hoy)
+
+    planes = (PlanSuscripcion.objects.exclude(nombre=NOMBRE_PLAN_DEMO)
+              .annotate(num_canchas=Count('complejodeportivo', filter=Q(complejodeportivo__es_demo=False)))
+              .filter(num_canchas__gt=0).order_by('-num_canchas', 'nombre'))
+
     return render(request, 'core/dashboard_saas.html', {
-        'canchas': canchas, # Ahora enviamos las canchas paginadas
-        'total_ingresos': total_ingresos_saas,
-        'canchas_activas': canchas_activas,
-        'canchas_suspendidas': canchas_suspendidas,
-        'canchas_por_vencer': canchas_por_vencer,
-        'ultimos_pagos': ultimos_pagos
+        'seccion_saas': 'resumen',
+        'canchas': canchas,
+        'total_canchas': canchas_list.count(),
+        'total_ingresos': ingresos_total,
+        'ingresos_mes': ingresos_mes,
+        'ingreso_mensual_esperado': ingreso_mensual_esperado,
+        'canchas_activas': canchas_list.filter(activo=True).count(),
+        'canchas_suspendidas': canchas_list.filter(activo=False).count(),
+        'canchas_por_vencer': alertas,
+        'num_vencidas': canchas_vencidas.count(),
+        'planes': planes,
+        'ultimos_pagos': pagos.select_related('complejo').order_by('-fecha_pago', '-id')[:6],
+        'dias_aviso': DIAS_AVISO_VENCIMIENTO,
+        'hoy': hoy,
     })
 
-@login_required
-def gestionar_canchas_saas(request):
-    if not request.user.is_superuser:
-        return redirect('dashboard')
-        
-    canchas = ComplejoDeportivo.objects.filter(es_demo=False).order_by('-id')
 
+@superadmin_requerido
+def gestionar_canchas_saas(request):
+    hoy = timezone.localdate()
     if request.method == 'POST':
         form = ComplejoDeportivoForm(request.POST, request.FILES)
         if form.is_valid():
             cancha = form.save()
-            
-            # 🔥 MULTI-TENANCY: Convertimos automáticamente al usuario en ORGANIZADOR (ORG) en la tabla RolComplejo
-            RolComplejo.objects.get_or_create(
-                usuario=cancha.organizador,
-                complejo=cancha,
-                defaults={'rol': 'ORG'}
-            )
-                
+            # 🔥 MULTI-TENANCY: el dueño queda como ORGANIZADOR de su cancha
+            RolComplejo.objects.get_or_create(usuario=cancha.organizador, complejo=cancha, defaults={'rol': 'ORG'})
             messages.success(request, f"✅ Cancha registrada. {cancha.organizador.username} ahora es Organizador Oficial de {cancha.nombre}.")
             return redirect('gestionar_canchas_saas')
     else:
         form = ComplejoDeportivoForm()
-        
-    return render(request, 'core/saas_gestionar_canchas.html', {'form': form, 'canchas': canchas})
 
-@login_required
+    canchas = ComplejoDeportivo.objects.filter(es_demo=False).select_related('organizador', 'plan').order_by('nombre')
+    q = request.GET.get('q', '').strip()
+    if q:
+        canchas = canchas.filter(Q(nombre__icontains=q) | Q(slug__icontains=q) | Q(organizador__username__icontains=q))
+    filtro = request.GET.get('estado', '')
+    canchas = _marcar_estados(list(canchas), hoy)
+    conteo = {'total': len(canchas)}
+    for c in canchas:
+        clave = c.estado_codigo.replace('-', '_')
+        conteo[clave] = conteo.get(clave, 0) + 1
+    if filtro:
+        canchas = [c for c in canchas if c.estado_codigo == filtro]
+
+    return render(request, 'core/saas_gestionar_canchas.html', {
+        'seccion_saas': 'canchas', 'form': form, 'canchas': canchas,
+        'q': q, 'filtro': filtro, 'conteo': conteo,
+        'abrir_formulario': request.method == 'POST' or 'nueva' in request.GET,
+    })
+
+
+@superadmin_requerido
 def editar_cancha_saas(request, cancha_id):
-    if not request.user.is_superuser:
-        return redirect('dashboard')
-        
     cancha = get_object_or_404(ComplejoDeportivo, id=cancha_id)
-    
     if request.method == 'POST':
         form = ComplejoDeportivoForm(request.POST, request.FILES, instance=cancha)
         if form.is_valid():
             cancha_actualizada = form.save()
-            
-            # 🔥 MULTI-TENANCY: Asegurar rol si cambiaste de dueño de la cancha
-            RolComplejo.objects.get_or_create(
-                usuario=cancha_actualizada.organizador,
-                complejo=cancha_actualizada,
-                defaults={'rol': 'ORG'}
-            )
-                
+            # 🔥 MULTI-TENANCY: asegurar el rol si cambió el dueño
+            RolComplejo.objects.get_or_create(usuario=cancha_actualizada.organizador, complejo=cancha_actualizada, defaults={'rol': 'ORG'})
             messages.success(request, f"✅ Datos de {cancha_actualizada.nombre} actualizados.")
-            return redirect('dashboard_saas')
+            return redirect('gestionar_canchas_saas')
     else:
         form = ComplejoDeportivoForm(instance=cancha)
-        
-    return render(request, 'core/saas_editar_cancha.html', {'form': form, 'cancha': cancha})
 
-@login_required
+    hoy = timezone.localdate()
+    _marcar_estados([cancha], hoy)
+    return render(request, 'core/saas_editar_cancha.html', {
+        'seccion_saas': 'canchas', 'form': form, 'cancha': cancha,
+        'pagos': cancha.pagos_saas.order_by('-fecha_pago', '-id')[:10],
+        'total_pagado': cancha.pagos_saas.aggregate(t=Sum('monto'))['t'] or 0,
+    })
+
+
+@superadmin_requerido
 def registrar_pago_saas(request):
-    if not request.user.is_superuser:
-        return redirect('dashboard')
-        
     if request.method == 'POST':
         form = PagoSaaSForm(request.POST)
         if form.is_valid():
-            pago = form.save()
-            cancha = pago.complejo
-            
-            # LÓGICA INTELIGENTE DE FECHAS:
-            # Si la cancha ya estaba vencida, el nuevo mes empieza a contar desde la fecha del pago.
-            # Si la cancha NO estaba vencida, se le suman los meses a su fecha de vencimiento actual.
-            if cancha.fecha_vencimiento and cancha.fecha_vencimiento >= pago.fecha_pago:
-                fecha_base = cancha.fecha_vencimiento
-            else:
-                fecha_base = pago.fecha_pago
-            
-            dias_extra = 30 * pago.meses_pagados
-            cancha.fecha_vencimiento = fecha_base + timedelta(days=dias_extra)
-            
-            # Reactivamos automáticamente la cancha al registrar el pago
-            cancha.activo = True 
-            cancha.save()
-            
-            messages.success(request, f"💰 Pago registrado exitosamente. {cancha.nombre} ha sido reactivado/renovado hasta el {cancha.fecha_vencimiento}.")
-            return redirect('dashboard_saas')
+            with transaction.atomic():
+                pago = form.save()
+                cancha = pago.complejo
+                # Si la cancha sigue vigente, los meses se suman a su fecha de corte;
+                # si ya venció, empiezan a contar desde el día del pago.
+                if cancha.fecha_vencimiento and cancha.fecha_vencimiento >= pago.fecha_pago:
+                    fecha_base = cancha.fecha_vencimiento
+                else:
+                    fecha_base = pago.fecha_pago
+                cancha.fecha_vencimiento = fecha_base + timedelta(days=30 * pago.meses_pagados)
+                cancha.activo = True  # el pago reactiva la cancha
+                cancha.save(update_fields=['fecha_vencimiento', 'activo'])
+            messages.success(request, f"💰 Pago registrado. {cancha.nombre} queda activa hasta el {cancha.fecha_vencimiento:%d/%m/%Y}.")
+            return redirect('registrar_pago_saas')
     else:
-        form = PagoSaaSForm()
-        
-    return render(request, 'core/saas_registrar_pago.html', {'form': form})
+        form = PagoSaaSForm(initial={'complejo': request.GET.get('cancha') or None})
 
-@login_required
+    pagos = PagoSuscripcionSaaS.objects.filter(complejo__es_demo=False).select_related('complejo', 'complejo__plan').order_by('-fecha_pago', '-id')
+    cancha_filtro = request.GET.get('ver', '')
+    if cancha_filtro.isdigit():
+        pagos = pagos.filter(complejo_id=cancha_filtro)
+    total_filtrado = pagos.aggregate(t=Sum('monto'))['t'] or 0
+
+    precios = {
+        str(c.id): {'precio': str(c.plan.precio_mensual if c.plan else ''), 'plan': c.plan.nombre if c.plan else '',
+                    'vence': c.fecha_vencimiento.strftime('%d/%m/%Y') if c.fecha_vencimiento else ''}
+        for c in form.fields['complejo'].queryset
+    }
+    return render(request, 'core/saas_registrar_pago.html', {
+        'seccion_saas': 'pagos', 'form': form, 'pagos': _paginar(request, pagos, 15),
+        'total_filtrado': total_filtrado, 'cancha_filtro': cancha_filtro,
+        'canchas_filtro': ComplejoDeportivo.objects.filter(es_demo=False).order_by('nombre'),
+        'precios': precios,
+    })
+
+
+@superadmin_requerido
+@require_POST
 def revertir_pago_saas(request, pago_id):
-    """ VISTA PARA REVERSAR UN PAGO SAAS """
-    if not request.user.is_superuser:
-        return redirect('dashboard')
-        
+    """Anula un pago SaaS y descuenta los días que había dado a la cancha."""
     pago = get_object_or_404(PagoSuscripcionSaaS, id=pago_id)
     cancha = pago.complejo
-    
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                # 1. Restamos los días que este pago le había otorgado a la cancha
-                dias_a_restar = 30 * pago.meses_pagados
-                cancha.fecha_vencimiento = cancha.fecha_vencimiento - timedelta(days=dias_a_restar)
-                
-                # 2. Verificamos si con esta resta la cancha debería estar suspendida
-                hoy = timezone.localtime(timezone.now()).date()
-                if cancha.fecha_vencimiento < hoy:
+    try:
+        with transaction.atomic():
+            if cancha.fecha_vencimiento:
+                cancha.fecha_vencimiento -= timedelta(days=30 * pago.meses_pagados)
+                if cancha.fecha_vencimiento < timezone.localdate():
                     cancha.activo = False
-                    
-                cancha.save()
-                pago.delete() # Eliminamos el pago
-                
-                estado = "SUSPENDIDA" if not cancha.activo else "ACTIVA"
-                messages.success(request, f"🔄 Reverso exitoso: Se anularon {pago.meses_pagados} meses. La cancha ahora vence el {cancha.fecha_vencimiento} y su estado es {estado}.")
-        except Exception as e:
-            messages.error(request, f"Error al reversar: {str(e)}")
-            
-    return redirect('dashboard_saas')
+                cancha.save(update_fields=['fecha_vencimiento', 'activo'])
+            meses = pago.meses_pagados
+            pago.delete()
+        estado = "ACTIVA" if cancha.activo else "SUSPENDIDA"
+        vence = f"{cancha.fecha_vencimiento:%d/%m/%Y}" if cancha.fecha_vencimiento else "sin fecha"
+        messages.success(request, f"🔄 Pago anulado: se descontaron {meses} mes(es). {cancha.nombre} vence el {vence} y queda {estado}.")
+    except Exception as e:
+        messages.error(request, f"Error al reversar: {e}")
 
+    destino = request.POST.get('next', '')
+    if destino.startswith('/nexus-admin/'):
+        return redirect(destino)
+    return redirect('registrar_pago_saas')
 
 
 # =========================================================
@@ -4421,30 +4485,75 @@ def revertir_pago_saas(request, pago_id):
 # =========================================================
 
 def precios_publicos(request):
-    """ Vista pública para mostrar los planes a posibles clientes """
-    planes = PlanSuscripcion.objects.exclude(nombre=NOMBRE_PLAN_DEMO).order_by('precio_mensual')
+    """Vista pública con los planes que el súper admin decidió publicar."""
+    planes = (PlanSuscripcion.objects.filter(visible_publico=True)
+              .exclude(nombre=NOMBRE_PLAN_DEMO).order_by('precio_mensual', 'nombre'))
     return render(request, 'core/precios_publicos.html', {'planes': planes})
 
-@login_required
+
+def _render_planes(request, form, plan_editando=None):
+    planes = (PlanSuscripcion.objects.exclude(nombre=NOMBRE_PLAN_DEMO)
+              .annotate(num_canchas=Count('complejodeportivo', filter=Q(complejodeportivo__es_demo=False)))
+              .order_by('precio_mensual', 'nombre'))
+    return render(request, 'core/saas_gestionar_planes.html', {
+        'seccion_saas': 'planes', 'form': form, 'planes': planes, 'plan_editando': plan_editando,
+        'num_publicos': sum(1 for p in planes if p.visible_publico),
+    })
+
+
+@superadmin_requerido
 def gestionar_planes_saas(request):
-    """ Vista privada para que el Súper Admin cree/edite planes """
-    if not request.user.is_superuser:
-        return redirect('dashboard')
-        
-    planes = PlanSuscripcion.objects.all().order_by('precio_mensual')
-    
     if request.method == 'POST':
-        from .forms import PlanSuscripcionForm # Lo importamos aquí rápido
         form = PlanSuscripcionForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "✅ Nuevo plan de suscripción creado con éxito.")
+            plan = form.save()
+            visible = "visible en la página de precios" if plan.visible_publico else "oculto (solo para asignar)"
+            messages.success(request, f"✅ Plan «{plan.nombre}» creado y {visible}.")
             return redirect('gestionar_planes_saas')
     else:
-        from .forms import PlanSuscripcionForm
         form = PlanSuscripcionForm()
-        
-    return render(request, 'core/saas_gestionar_planes.html', {'form': form, 'planes': planes})
+    return _render_planes(request, form)
+
+
+@superadmin_requerido
+def editar_plan_saas(request, plan_id):
+    plan = get_object_or_404(PlanSuscripcion.objects.exclude(nombre=NOMBRE_PLAN_DEMO), id=plan_id)
+    if request.method == 'POST':
+        form = PlanSuscripcionForm(request.POST, instance=plan)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"✅ Plan «{plan.nombre}» actualizado.")
+            return redirect('gestionar_planes_saas')
+    else:
+        form = PlanSuscripcionForm(instance=plan)
+    return _render_planes(request, form, plan_editando=plan)
+
+
+@superadmin_requerido
+@require_POST
+def alternar_visibilidad_plan(request, plan_id):
+    plan = get_object_or_404(PlanSuscripcion.objects.exclude(nombre=NOMBRE_PLAN_DEMO), id=plan_id)
+    plan.visible_publico = not plan.visible_publico
+    plan.save(update_fields=['visible_publico'])
+    if plan.visible_publico:
+        messages.success(request, f"👁️ «{plan.nombre}» ahora se muestra en la página de precios.")
+    else:
+        messages.info(request, f"🙈 «{plan.nombre}» quedó oculto: ya no aparece en la página de precios.")
+    return redirect('gestionar_planes_saas')
+
+
+@superadmin_requerido
+@require_POST
+def eliminar_plan_saas(request, plan_id):
+    plan = get_object_or_404(PlanSuscripcion.objects.exclude(nombre=NOMBRE_PLAN_DEMO), id=plan_id)
+    en_uso = ComplejoDeportivo.objects.filter(plan=plan).count()
+    if en_uso:
+        messages.error(request, f"⛔ No se puede eliminar «{plan.nombre}»: lo usan {en_uso} cancha(s). Ocúltalo o cámbiales el plan primero.")
+    else:
+        nombre = plan.nombre
+        plan.delete()
+        messages.success(request, f"🗑️ Plan «{nombre}» eliminado.")
+    return redirect('gestionar_planes_saas')
 
 
 def automatizacion_diaria_saas(request):
@@ -4524,7 +4633,10 @@ def gestionar_roles_prueba(request):
             'es_organizador_real': usuario.id in usuarios_reales_ids,
         })
 
-    return render(request, 'core/gestionar_roles_prueba.html', {'filas': filas})
+    return render(request, 'core/gestionar_roles_prueba.html', {
+        'seccion_saas': 'pruebas', 'filas': filas,
+        'num_en_prueba': sum(1 for f in filas if f['tiene_prueba']),
+    })
 
 
 def es_dueno_de_entorno_prueba(user):

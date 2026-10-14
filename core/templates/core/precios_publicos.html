@@ -137,17 +137,17 @@
 
     <div class="row g-4 g-xl-5 justify-content-center align-items-stretch mb-5 pb-5">
         {% for plan in planes %}
-        <div class="col-md-6 col-lg-5 reveal-up delay-{{ forloop.counter }}">
-            <div class="pricing-card {% if forloop.counter == 2 %}popular{% endif %}">
+        <div class="col-md-6 {% if planes|length >= 3 %}col-xl-4{% else %}col-lg-5{% endif %} reveal-up delay-{{ forloop.counter }}">
+            <div class="pricing-card {% if plan.destacado %}popular{% endif %}">
                 
                 <div class="mb-4 pb-3 border-bottom">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <h3 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif; font-size: 2rem;">{{ plan.nombre }}</h3>
-                        {% if forloop.counter == 2 %}
+                        {% if plan.destacado %}
                             <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill fw-black text-uppercase shadow-sm" style="letter-spacing: 1px; font-size: 0.7rem;">Más Elegido</span>
                         {% endif %}
                     </div>
-                    <p class="text-slate-500 fw-medium m-0">Para complejos de alto rendimiento.</p>
+                    <p class="text-slate-500 fw-medium m-0">{{ plan.descripcion|default:"Todo lo que tu complejo necesita para organizar torneos." }}</p>
                 </div>
 
                 <div class="mb-4">
@@ -171,18 +171,18 @@
 
                 <div class="flex-grow-1">
                     <ul class="feature-list">
-                        <li><i class="bi bi-check-circle-fill"></i> <span>Hasta <strong class="text-dark">{{ plan.max_torneos }} torneos</strong> activos simultáneamente.</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i> <span>Hasta <strong class="text-dark">{{ plan.max_torneos }} torneo{{ plan.max_torneos|pluralize }}</strong> activo{{ plan.max_torneos|pluralize }} a la vez.</span></li>
                         
-                        <li><i class="bi bi-check-circle-fill"></i> <span>Límite global de <strong class="text-dark">{{ plan.max_categorias_por_torneo }} categorías</strong> para distribuir en tu complejo.</span></li>
-                        
-                        <li><i class="bi bi-check-circle-fill"></i> <span>Equipos, Dirigentes y Jugadores ilimitados.</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i> <span>Hasta <strong class="text-dark">{{ plan.max_categorias_por_torneo }} categoría{{ plan.max_categorias_por_torneo|pluralize }}</strong> por torneo.</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i> <span>Hasta <strong class="text-dark">{{ plan.max_jugadores }} jugadores</strong> inscritos.</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i> <span>Equipos y dirigentes sin límite.</span></li>
                         <li><i class="bi bi-check-circle-fill"></i> <span>Módulo Financiero Avanzado (Caja y Multas).</span></li>
                         <li><i class="bi bi-check-circle-fill"></i> <span>Portal Web Público de Estadísticas y Fixture.</span></li>
                     </ul>
                 </div>
 
                 <div class="mt-4 pt-4 border-top">
-                    <a href="https://wa.me/593987408528?text=Hola,%20quiero%20el%20{{ plan.nombre }}%20para%20mi%20cancha." target="_blank" class="btn-plan {% if forloop.counter == 2 %}popular-btn{% endif %}">
+                    <a href="https://wa.me/593987408528?text={{ "Hola, quiero el "|add:plan.nombre|add:" para mi cancha."|urlencode }}" target="_blank" rel="noopener" class="btn-plan {% if plan.destacado %}popular-btn{% endif %}">
                         Comenzar Ahora
                     </a>
                 </div>

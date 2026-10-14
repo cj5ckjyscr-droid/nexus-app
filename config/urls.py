@@ -15,6 +15,9 @@ urlpatterns = [
     path('registro/', views.registro_publico, name='registro_publico'),
     path('auth/google/callback/', views.google_login_callback, name='google_login_callback'),
     path('nexus-admin/planes/', views.gestionar_planes_saas, name='gestionar_planes_saas'),
+    path('nexus-admin/planes/<int:plan_id>/editar/', views.editar_plan_saas, name='editar_plan_saas'),
+    path('nexus-admin/planes/<int:plan_id>/visibilidad/', views.alternar_visibilidad_plan, name='alternar_visibilidad_plan'),
+    path('nexus-admin/planes/<int:plan_id>/eliminar/', views.eliminar_plan_saas, name='eliminar_plan_saas'),
     
     # 2. PORTAL MULTI-TENANT (PÚBLICO POR CANCHA)
     # Por ahora lo dejamos simple, luego se puede expandir

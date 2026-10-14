@@ -1,68 +1,65 @@
-{% extends 'core/base.html' %}
+{% extends 'core/saas_base.html' %}
 
-{% block title %}Roles de Prueba | NEXUS SaaS{% endblock %}
+{% block saas_titulo_pagina %}Rol de prueba{% endblock %}
+{% block saas_titulo %}Rol de prueba{% endblock %}
+{% block saas_subtitulo %}Dale a un usuario una cancha demo con datos de ejemplo para que pruebe el sistema. Al quitarle el rol se borra todo su entorno de prueba.{% endblock %}
 
-{% block contenido %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-black text-dark m-0"><i class="bi bi-flask-fill text-primary me-2"></i>Roles de Prueba</h4>
-    </div>
-
-    <div class="card border-0 rounded-4 shadow-sm">
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Estado</th>
-                        <th>Asignado</th>
-                        <th class="text-end">Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for fila in filas %}
-                    <tr>
-                        <td class="fw-bold">{{ fila.usuario.username }}</td>
-                        <td>
-                            {% if fila.tiene_prueba %}
-                                <span class="badge bg-info-subtle text-info-emphasis">🧪 En Prueba</span>
-                            {% elif fila.es_organizador_real %}
-                                <span class="badge bg-secondary-subtle text-secondary-emphasis">Organizador Real</span>
-                            {% else %}
-                                <span class="badge bg-light text-muted">Sin rol</span>
-                            {% endif %}
-                        </td>
-                        <td class="small text-muted">
-                            {% if fila.complejo_demo.fecha_asignacion_prueba %}
-                                {{ fila.complejo_demo.fecha_asignacion_prueba|date:"d/m/Y H:i" }}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                        <td class="text-end">
-                            {% if fila.tiene_prueba %}
-                                <form method="post" onsubmit="return confirm('¿Quitar el Rol de Prueba a {{ fila.usuario.username }}? Se borrarán todos sus datos de prueba.');" class="d-inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="usuario_id" value="{{ fila.usuario.id }}">
-                                    <button type="submit" name="quitar" value="1" class="btn btn-sm btn-outline-danger rounded-pill">Quitar</button>
-                                </form>
-                            {% elif fila.es_organizador_real %}
-                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" disabled title="Ya es dueño de una cancha real">Asignar</button>
-                            {% else %}
-                                <form method="post" class="d-inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="usuario_id" value="{{ fila.usuario.id }}">
-                                    <button type="submit" name="asignar" value="1" class="btn btn-sm btn-primary rounded-pill">Asignar</button>
-                                </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="4" class="text-center text-muted py-4">No hay usuarios registrados todavía.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+{% block saas_contenido %}
+<section class="s-card">
+    <div class="s-card-h">
+        <h2 class="s-card-t"><i class="bi bi-person-badge"></i>Usuarios</h2>
+        <div class="d-flex align-items-center gap-2">
+            <span class="chip"><i class="bi bi-person-badge"></i>{{ num_en_prueba }} en prueba</span>
+            <input type="search" id="buscar-usuario" class="form-control form-control-sm rounded-pill" placeholder="Buscar usuario…" style="max-width: 200px;">
         </div>
     </div>
-</div>
+    <div class="table-responsive">
+        <table class="s-tabla">
+            <thead><tr><th>Usuario</th><th>Estado</th><th>Asignado</th><th class="text-end">Acción</th></tr></thead>
+            <tbody>
+            {% for fila in filas %}
+                <tr data-usuario="{{ fila.usuario.username|lower }} {{ fila.usuario.get_full_name|lower }}">
+                    <td>
+                        <div class="s-nombre">{{ fila.usuario.username }}</div>
+                        {% if fila.usuario.get_full_name %}<div class="s-muted">{{ fila.usuario.get_full_name }}</div>{% endif %}
+                    </td>
+                    <td>
+                        {% if fila.tiene_prueba %}<span class="estado por-vencer">En prueba</span>
+                        {% elif fila.es_organizador_real %}<span class="estado al-dia">Cliente real</span>
+                        {% else %}<span class="estado sin-fecha">Sin rol</span>{% endif %}
+                    </td>
+                    <td class="s-muted text-nowrap">{% if fila.complejo_demo.fecha_asignacion_prueba %}{{ fila.complejo_demo.fecha_asignacion_prueba|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+                    <td class="text-end">
+                        {% if fila.tiene_prueba %}
+                            <form method="post" class="d-inline" onsubmit="return confirm('¿Quitar el Rol de Prueba a {{ fila.usuario.username|escapejs }}? Se borrarán todos sus datos de prueba.');">
+                                {% csrf_token %}
+                                <input type="hidden" name="usuario_id" value="{{ fila.usuario.id }}">
+                                <button type="submit" name="quitar" value="1" class="btn btn-sm btn-outline-danger rounded-pill fw-bold">Quitar</button>
+                            </form>
+                        {% elif fila.es_organizador_real %}
+                            <span class="s-muted">Ya tiene cancha</span>
+                        {% else %}
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="usuario_id" value="{{ fila.usuario.id }}">
+                                <button type="submit" name="asignar" value="1" class="btn btn-sm btn-primary rounded-pill fw-bold">Asignar</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4" class="s-vacio"><i class="bi bi-people"></i>No hay usuarios registrados todavía.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+<script>
+    document.getElementById('buscar-usuario').addEventListener('input', function () {
+        const t = this.value.trim().toLowerCase();
+        document.querySelectorAll('tr[data-usuario]').forEach(tr => {
+            tr.style.display = !t || tr.dataset.usuario.includes(t) ? '' : 'none';
+        });
+    });
+</script>
 {% endblock %}

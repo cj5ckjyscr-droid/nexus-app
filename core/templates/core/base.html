@@ -667,13 +667,17 @@
                     {% if user.is_authenticated %}
                         
                         {% if user.is_superuser %}
-                            <li class="nav-item"><a class="nav-link text-primary fw-medium" href="{% url 'dashboard_saas' %}">Control SaaS</a></li>
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-primary fw-medium" href="#" data-bs-toggle="dropdown">Panel SaaS</a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_canchas_saas' %}">Canchas</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_planes_saas' %}">Planes</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_roles_prueba' %}">Roles de Prueba</a></li>
+                                <a class="nav-link dropdown-toggle text-primary fw-semibold" href="#" data-bs-toggle="dropdown"><i class="bi bi-shield-lock-fill me-1"></i>Panel SaaS</a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{% url 'dashboard_saas' %}"><i class="bi bi-speedometer2 me-2"></i>Resumen</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_canchas_saas' %}"><i class="bi bi-buildings me-2"></i>Canchas</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_planes_saas' %}"><i class="bi bi-tags me-2"></i>Planes</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'registrar_pago_saas' %}"><i class="bi bi-cash-coin me-2"></i>Pagos</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_roles_prueba' %}"><i class="bi bi-person-badge me-2"></i>Rol de prueba</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'precios_publicos' %}"><i class="bi bi-globe me-2"></i>Precios públicos</a></li>
                                 </ul>
                             </li>
 

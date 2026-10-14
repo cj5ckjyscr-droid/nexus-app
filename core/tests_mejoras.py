@@ -354,3 +354,81 @@ class ActaYCarnetsTest(DosCanchasTestCase):
         self.assertEqual(r.status_code, 200)
         iniciales = "".join(p[0] for p in self.equipo_a.nombre.split()[:2]).upper()
         self.assertContains(r, f'<span class="iniciales">{iniciales}</span>', html=True)
+
+
+class PanelSaasPlanesTest(DosCanchasTestCase):
+    def setUp(self):
+        super().setUp()
+        from .models import PlanSuscripcion
+        self.Plan = PlanSuscripcion
+        User.objects.create_superuser("jefe_saas", password="pass12345")
+        self.client.login(username="jefe_saas", password="pass12345")
+
+    def _datos_plan(self, **extra):
+        datos = {"nombre": "Plan Secreto", "descripcion": "Solo por invitación", "costo_inscripcion": "0",
+                 "precio_mensual": "25", "max_torneos": "3", "max_categorias_por_torneo": "2",
+                 "max_jugadores": "200"}
+        datos.update(extra)
+        return datos
+
+    def test_plan_oculto_no_sale_en_precios_pero_si_se_puede_asignar(self):
+        self.client.post("/nexus-admin/planes/", self._datos_plan())  # sin marcar visible_publico
+        plan = self.Plan.objects.get(nombre="Plan Secreto")
+        self.assertFalse(plan.visible_publico)
+        r = self.client.get("/precios/")
+        self.assertNotIn(plan, list(r.context["planes"]))
+        from .forms import ComplejoDeportivoForm
+        self.assertIn(plan, ComplejoDeportivoForm().fields["plan"].queryset)
+
+    def test_editar_plan_y_alternar_visibilidad(self):
+        plan = self.Plan.objects.create(nombre="Plan Editable", precio_mensual=Decimal("10"))
+        r = self.client.get(f"/nexus-admin/planes/{plan.id}/editar/")
+        self.assertContains(r, "Editar «Plan Editable»")
+        self.client.post(f"/nexus-admin/planes/{plan.id}/editar/",
+                         self._datos_plan(nombre="Plan Editado", visible_publico="on", destacado="on"))
+        plan.refresh_from_db()
+        self.assertEqual((plan.nombre, plan.precio_mensual, plan.destacado, plan.visible_publico),
+                         ("Plan Editado", Decimal("25"), True, True))
+        self.assertIn(plan, list(self.client.get("/precios/").context["planes"]))
+
+        self.client.post(f"/nexus-admin/planes/{plan.id}/visibilidad/")
+        plan.refresh_from_db()
+        self.assertFalse(plan.visible_publico)
+        self.assertNotIn(plan, list(self.client.get("/precios/").context["planes"]))
+
+    def test_no_se_elimina_un_plan_en_uso(self):
+        en_uso = self.complejo_a.plan
+        self.client.post(f"/nexus-admin/planes/{en_uso.id}/eliminar/")
+        self.assertTrue(self.Plan.objects.filter(id=en_uso.id).exists())
+        libre = self.Plan.objects.create(nombre="Plan Libre", precio_mensual=Decimal("5"))
+        self.client.post(f"/nexus-admin/planes/{libre.id}/eliminar/")
+        self.assertFalse(self.Plan.objects.filter(id=libre.id).exists())
+
+    def test_solo_el_superadmin_gestiona_planes(self):
+        plan = self.Plan.objects.create(nombre="Plan Ajeno", precio_mensual=Decimal("5"))
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.post(f"/nexus-admin/planes/{plan.id}/editar/", self._datos_plan(nombre="Hackeado"))
+        self.assertEqual(r.status_code, 302)
+        plan.refresh_from_db()
+        self.assertEqual(plan.nombre, "Plan Ajeno")
+
+    def test_pago_extiende_fecha_y_el_reverso_la_devuelve(self):
+        from datetime import date, timedelta
+        c = self.complejo_a
+        c.fecha_vencimiento = date.today() + timedelta(days=10)
+        c.save()
+        self.client.post("/nexus-admin/pagos/", {"complejo": c.id, "monto": "20", "meses_pagados": "2",
+                                                 "fecha_pago": date.today().isoformat()})
+        c.refresh_from_db()
+        self.assertEqual(c.fecha_vencimiento, date.today() + timedelta(days=70))
+        pago = c.pagos_saas.get()
+        self.client.post(f"/saas/pago/reversar/{pago.id}/")
+        c.refresh_from_db()
+        self.assertEqual(c.fecha_vencimiento, date.today() + timedelta(days=10))
+        self.assertFalse(c.pagos_saas.exists())
+
+    def test_todas_las_secciones_cargan(self):
+        for url in ["/nexus-admin/", "/nexus-admin/canchas/", "/nexus-admin/canchas/?estado=vencida&q=a",
+                    f"/nexus-admin/canchas/editar/{self.complejo_a.id}/", "/nexus-admin/planes/",
+                    "/nexus-admin/pagos/", f"/nexus-admin/pagos/?ver={self.complejo_a.id}", "/nexus-admin/pruebas/"]:
+            self.assertEqual(self.client.get(url).status_code, 200, url)

@@ -1,0 +1,133 @@
+{% extends 'core/base.html' %}
+{% comment %}
+    Base común de todo el panel SaaS (súper administrador):
+    cabecera con título + acciones y la barra de secciones.
+    Cada página define: saas_titulo, saas_subtitulo, saas_acciones y saas_contenido.
+{% endcomment %}
+
+{% block title %}{% block saas_titulo_pagina %}Panel SaaS{% endblock %} | NEXUS SPORTOPS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .saas { max-width: 1240px; margin: 0 auto; padding-bottom: 3rem; }
+
+    /* --- Cabecera --- */
+    .saas-hero {
+        background: radial-gradient(circle at 90% -20%, rgba(129,140,248,.45), transparent 45%), linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #312E81 100%);
+        color: #fff; border-radius: 22px; padding: 1.4rem 1.5rem 0; margin: .75rem 0 1.5rem; overflow: hidden;
+        box-shadow: 0 18px 40px -18px rgba(30,27,75,.55);
+    }
+    .saas-hero .eyebrow { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #C7D2FE; }
+    .saas-hero h1 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: clamp(1.5rem, 3.4vw, 2.1rem); letter-spacing: -.02em; margin: .2rem 0 .25rem; color: #fff; }
+    .saas-hero p.sub { color: #CBD5E1; margin: 0; font-size: .92rem; max-width: 640px; }
+    .saas-hero .acciones { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .saas-hero .btn-hero { display: inline-flex; align-items: center; gap: .45rem; border-radius: 999px; padding: .55rem 1.05rem; font-weight: 700; font-size: .86rem; text-decoration: none; border: 1px solid rgba(255,255,255,.22); color: #fff; background: rgba(255,255,255,.08); transition: background .15s; }
+    .saas-hero .btn-hero:hover { background: rgba(255,255,255,.18); color: #fff; }
+    .saas-hero .btn-hero.solido { background: #fff; color: #1E1B4B; border-color: #fff; }
+    .saas-hero .btn-hero.solido:hover { background: #E0E7FF; }
+
+    .saas-tabs { display: flex; gap: .25rem; margin-top: 1.2rem; overflow-x: auto; scrollbar-width: none; }
+    .saas-tabs::-webkit-scrollbar { display: none; }
+    .saas-tabs a { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; padding: .7rem 1rem; font-weight: 700; font-size: .86rem; color: #C7D2FE; text-decoration: none; border-radius: 12px 12px 0 0; transition: color .15s, background .15s; }
+    .saas-tabs a:hover { color: #fff; background: rgba(255,255,255,.07); }
+    .saas-tabs a.activo { background: var(--bg-app); color: #1E1B4B; }
+
+    /* --- Tarjetas --- */
+    .s-card { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 18px; box-shadow: var(--shadow-float); }
+    .s-card-h { padding: .95rem 1.15rem; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+    .s-card-t { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.05rem; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: .5rem; }
+    .s-card-t i { color: var(--brand-primary); }
+    .s-card-b { padding: 1.15rem; }
+    .s-muted { color: var(--text-soft); font-size: .82rem; }
+    .s-vacio { text-align: center; padding: 2.5rem 1rem; color: var(--text-soft); }
+    .s-vacio i { font-size: 2.2rem; opacity: .35; display: block; margin-bottom: .5rem; }
+
+    /* --- Indicadores --- */
+    .kpi { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 18px; padding: 1rem 1.1rem; height: 100%; display: flex; gap: .85rem; align-items: center; box-shadow: var(--shadow-float); }
+    .kpi .ico { width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+    .kpi .lbl { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--text-soft); }
+    .kpi .val { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.55rem; line-height: 1.1; color: var(--text-main); }
+    .kpi .nota { font-size: .74rem; color: var(--text-soft); }
+    .ico-verde { background: #DCFCE7; color: #15803D; } .ico-azul { background: #E0E7FF; color: #4338CA; }
+    .ico-ambar { background: #FEF3C7; color: #B45309; } .ico-rojo { background: #FEE2E2; color: #B91C1C; }
+    .ico-gris { background: #F1F5F9; color: #475569; }
+
+    /* --- Estados de suscripción --- */
+    .estado { display: inline-flex; align-items: center; gap: .35rem; border-radius: 999px; padding: .22rem .65rem; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+    .estado::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .estado.al-dia { background: #DCFCE7; color: #166534; }
+    .estado.por-vencer { background: #FEF3C7; color: #92400E; }
+    .estado.vencida { background: #FEE2E2; color: #B91C1C; }
+    .estado.suspendida { background: #E2E8F0; color: #334155; }
+    .estado.sin-fecha { background: #F1F5F9; color: #64748B; }
+    .chip { display: inline-flex; align-items: center; gap: .3rem; border-radius: 8px; padding: .18rem .55rem; font-size: .74rem; font-weight: 700; background: var(--slate-50, #F8FAFC); border: 1px solid var(--border-light); color: var(--text-main); white-space: nowrap; }
+
+    /* --- Filas de lista --- */
+    .s-fila { display: flex; align-items: center; gap: .9rem; padding: .8rem 1.15rem; border-top: 1px solid var(--border-light); }
+    .s-fila:first-child { border-top: 0; }
+    .s-fila:hover { background: var(--slate-50, #F8FAFC); }
+    .s-logo { width: 42px; height: 42px; border-radius: 12px; object-fit: cover; flex-shrink: 0; background: #EEF2FF; color: #4338CA; display: flex; align-items: center; justify-content: center; font-weight: 900; font-family: 'Outfit', sans-serif; }
+    .s-nombre { font-weight: 800; color: var(--text-main); line-height: 1.2; }
+    .s-btn-ico { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-light); background: var(--bg-surface); color: var(--text-main); text-decoration: none; transition: all .15s; flex-shrink: 0; }
+    .s-btn-ico:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+    .s-btn-ico.peligro:hover { border-color: #DC2626; color: #DC2626; }
+
+    /* --- Formularios --- */
+    .s-form label.s-label { display: block; font-size: .74rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-main); margin-bottom: .35rem; }
+    .s-form .form-control, .s-form .form-select { border-radius: 12px; padding: .62rem .85rem; font-weight: 600; border-color: #CBD5E1; }
+    .s-form .form-control:focus, .s-form .form-select:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 4px rgba(79,70,229,.12); }
+    .s-form .ayuda { font-size: .74rem; color: var(--text-soft); margin-top: .3rem; }
+    .s-form .errorlist { list-style: none; padding: 0; margin: .3rem 0 0; color: #B91C1C; font-size: .78rem; font-weight: 700; }
+    .s-switch { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; border: 1px solid var(--border-light); border-radius: 14px; background: var(--slate-50, #F8FAFC); }
+    .s-switch .t { font-weight: 800; color: var(--text-main); font-size: .9rem; }
+    .s-switch .form-check-input { width: 2.6rem; height: 1.35rem; cursor: pointer; margin: 0; flex-shrink: 0; }
+    .s-seccion { font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: var(--brand-primary); margin: 0 0 .75rem; display: flex; align-items: center; gap: .5rem; }
+    .s-seccion::after { content: ""; flex: 1; height: 1px; background: var(--border-light); }
+    .btn-s { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; border-radius: 12px; padding: .7rem 1.2rem; font-weight: 800; border: 0; background: #1E1B4B; color: #fff; transition: background .15s; text-decoration: none; }
+    .btn-s:hover { background: #312E81; color: #fff; }
+    .btn-s.claro { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-light); }
+    .btn-s.claro:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+
+    /* --- Tablas --- */
+    .s-tabla { width: 100%; border-collapse: collapse; font-size: .87rem; }
+    .s-tabla th { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-soft); font-weight: 800; padding: .65rem 1rem; background: var(--slate-50, #F8FAFC); text-align: left; white-space: nowrap; }
+    .s-tabla td { padding: .7rem 1rem; border-top: 1px solid var(--border-light); color: var(--text-main); vertical-align: middle; }
+    .s-tabla td.celda-principal { min-width: 220px; }
+    .s-tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .s-paginacion { display: flex; justify-content: center; gap: .35rem; padding: .9rem; border-top: 1px solid var(--border-light); flex-wrap: wrap; }
+    .s-paginacion a, .s-paginacion span { min-width: 36px; height: 36px; padding: 0 .7rem; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; text-decoration: none; border: 1px solid var(--border-light); color: var(--text-main); background: var(--bg-surface); }
+    .s-paginacion span.actual { background: #1E1B4B; color: #fff; border-color: #1E1B4B; }
+
+    @media (max-width: 576px) {
+        .saas-hero { padding: 1.1rem 1rem 0; border-radius: 18px; }
+        .s-fila { flex-wrap: wrap; padding: .8rem 1rem; }
+    }
+</style>
+{% block saas_css %}{% endblock %}
+{% endblock %}
+
+{% block contenido %}
+<div class="saas">
+    <header class="saas-hero">
+        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-end">
+            <div>
+                <span class="eyebrow"><i class="bi bi-shield-lock-fill"></i> Panel SaaS · NEXUS SPORTOPS</span>
+                <h1>{% block saas_titulo %}{% endblock %}</h1>
+                <p class="sub">{% block saas_subtitulo %}{% endblock %}</p>
+            </div>
+            <div class="acciones">{% block saas_acciones %}{% endblock %}</div>
+        </div>
+        <nav class="saas-tabs" aria-label="Secciones del panel SaaS">
+            <a href="{% url 'dashboard_saas' %}" class="{% if seccion_saas == 'resumen' %}activo{% endif %}"><i class="bi bi-speedometer2"></i>Resumen</a>
+            <a href="{% url 'gestionar_canchas_saas' %}" class="{% if seccion_saas == 'canchas' %}activo{% endif %}"><i class="bi bi-buildings"></i>Canchas</a>
+            <a href="{% url 'gestionar_planes_saas' %}" class="{% if seccion_saas == 'planes' %}activo{% endif %}"><i class="bi bi-tags"></i>Planes</a>
+            <a href="{% url 'registrar_pago_saas' %}" class="{% if seccion_saas == 'pagos' %}activo{% endif %}"><i class="bi bi-cash-coin"></i>Pagos</a>
+            <a href="{% url 'gestionar_roles_prueba' %}" class="{% if seccion_saas == 'pruebas' %}activo{% endif %}"><i class="bi bi-person-badge"></i>Rol de prueba</a>
+            <a href="{% url 'precios_publicos' %}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i>Ver precios públicos</a>
+        </nav>
+    </header>
+
+    {% block saas_contenido %}{% endblock %}
+</div>
+{% endblock %}
