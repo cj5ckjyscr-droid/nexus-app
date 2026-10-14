@@ -329,3 +329,28 @@ class ClasicoExclusionTest(DosCanchasTestCase):
         self.client.login(username="org_a", password="pass12345")
         r = self.client.get(f"/posiciones/{self.torneo_a.id}/")
         self.assertContains(r, "Transición de Torneo")
+
+
+class ActaYCarnetsTest(DosCanchasTestCase):
+    def test_planilla_agrupa_goles_tarjetas_y_figura_por_jugador(self):
+        from .views import _planilla_equipo
+        for tipo in ("ASIS", "GOL", "GOL", "TA", "STAR"):
+            DetallePartido.objects.create(partido=self.partido_a, jugador=self.jugador_a, tipo=tipo, equipo_incidencia=self.equipo_a)
+        detalles = list(DetallePartido.objects.filter(partido=self.partido_a).select_related("jugador"))
+        filas = _planilla_equipo(self.equipo_a, detalles)
+        self.assertEqual(len(filas), 1)
+        f = filas[0]
+        self.assertEqual((f["presente"], f["goles"], f["ta"], f["figura"]), (True, 2, 1, True))
+
+    def test_acta_pdf_se_genera_sin_escudos(self):
+        self.client.login(username="org_a", password="pass12345")
+        DetallePartido.objects.create(partido=self.partido_a, jugador=self.jugador_a, tipo="TR", observacion="Agresión", equipo_incidencia=self.equipo_a)
+        r = self.client.get(f"/acta/pdf/{self.partido_a.id}/")
+        self.assertEqual(r["Content-Type"], "application/pdf")
+
+    def test_carnets_muestran_escudo_o_iniciales(self):
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.get(f"/imprimir-carnets/{self.equipo_a.id}/")
+        self.assertEqual(r.status_code, 200)
+        iniciales = "".join(p[0] for p in self.equipo_a.nombre.split()[:2]).upper()
+        self.assertContains(r, f'<div class="escudo-vacio">{iniciales}</div>', html=True)

@@ -11,6 +11,7 @@ from django.utils import timezone
 from datetime import datetime, time, timedelta, date
 from django.core.exceptions import ValidationError
 from urllib.parse import quote
+import os
 import urllib.parse
 from decimal import Decimal
 from django.contrib.auth import login
@@ -2155,39 +2156,136 @@ def tabla_goleadores(request, torneo_id):
 # 5. GENERACIÓN DE PDF (ACTA) (ACCESO VOCAL Y ADMIN)
 # =========================================================
 
+def _pdf_link_callback(uri, rel):
+    """Permite a xhtml2pdf cargar escudos/logos guardados en local o en la nube."""
+    if uri.startswith(('http://', 'https://', 'data:')):
+        return uri
+    if settings.MEDIA_URL and uri.startswith(settings.MEDIA_URL):
+        ruta = os.path.join(settings.MEDIA_ROOT, uri[len(settings.MEDIA_URL):])
+        return ruta if os.path.isfile(ruta) else ''
+    if uri.startswith(settings.STATIC_URL):
+        from django.contrib.staticfiles import finders
+        return finders.find(uri[len(settings.STATIC_URL):]) or ''
+    return uri
+
+
+def _planilla_equipo(equipo, detalles):
+    """Una fila por jugador del equipo en el partido: goles, tarjetas y figura."""
+    filas = {}
+    for d in detalles:
+        if d.equipo_incidencia_id != equipo.id and not (d.equipo_incidencia_id is None and d.jugador.equipo_id == equipo.id):
+            continue
+        f = filas.setdefault(d.jugador_id, {
+            'jugador': d.jugador, 'presente': False, 'goles': 0,
+            'ta': 0, 'tr': 0, 'da': 0, 'otras': [], 'figura': False,
+        })
+        if d.tipo == 'ASIS':
+            f['presente'] = True
+        elif d.tipo == 'GOL':
+            f['goles'] += 1
+        elif d.tipo == 'TA':
+            f['ta'] += 1
+        elif d.tipo == 'TR':
+            f['tr'] += 1
+        elif d.tipo == 'DA':
+            f['da'] += 1
+        elif d.tipo == 'STAR':
+            f['figura'] = True
+        elif d.tipo in ('AZUL', 'EBRI'):
+            f['otras'].append('Uniforme' if d.tipo == 'AZUL' else 'Ebrio')
+    return sorted(filas.values(), key=lambda f: (f['jugador'].dorsal is None, f['jugador'].dorsal or 0, f['jugador'].nombres))
+
+
+def _escudo_iniciales(nombre, color='#166534'):
+    """Escudo redondo con iniciales (data URI) para equipos sin logo."""
+    import base64, io
+    from PIL import Image, ImageDraw, ImageFont
+    palabras = [p for p in (nombre or '').split() if p[:1].isalnum()]
+    iniciales = ''.join(p[0] for p in palabras[:2]).upper() or '?'
+    t = 240
+    img = Image.new('RGBA', (t, t), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.ellipse((4, 4, t - 4, t - 4), fill='#FFFFFF')
+    d.ellipse((18, 18, t - 18, t - 18), fill=color)
+    fuente = None
+    for nombre_fuente in ('DejaVuSans-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 'arialbd.ttf'):
+        try:
+            fuente = ImageFont.truetype(nombre_fuente, 92)
+            break
+        except OSError:
+            continue
+    if fuente is None:
+        try:
+            fuente = ImageFont.load_default(size=92)
+        except TypeError:
+            fuente = ImageFont.load_default()
+    d.text((t / 2, t / 2), iniciales, fill='#FFFFFF', font=fuente, anchor='mm')
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
+
+
+def _escudo_pdf(equipo, color, alto=74):
+    """(src, ancho, alto) del escudo respetando su proporción; iniciales si no tiene."""
+    if equipo.escudo:
+        try:
+            ancho = round(alto * equipo.escudo.width / equipo.escudo.height)
+            return equipo.escudo.url, max(20, min(ancho, alto * 2)), alto
+        except Exception:
+            pass
+    return _escudo_iniciales(equipo.nombre, color), alto, alto
+
+
 @login_required
 @user_passes_test(es_vocal_o_admin)
 def generar_acta_pdf(request, partido_id):
-    partido = get_object_or_404(Partido, id=partido_id)
+    partido = get_object_or_404(
+        Partido.objects.select_related('torneo__complejo', 'torneo__categoria', 'equipo_local', 'equipo_visita', 'ganador_wo'),
+        id=partido_id)
     if not verificar_acceso_partido(request.user, partido): return redirect('dashboard')
-    
-    detalles = DetallePartido.objects.filter(partido=partido).select_related('jugador')
-    
-    asistencias_local = detalles.filter(tipo='ASIS', equipo_incidencia=partido.equipo_local)
-    asistencias_visita = detalles.filter(tipo='ASIS', equipo_incidencia=partido.equipo_visita)
-    goles = detalles.filter(tipo='GOL')
-    tarjetas = detalles.filter(tipo__in=['TA', 'TR', 'DA', 'AZUL', 'EBRI'])
-    estrellas = detalles.filter(tipo='STAR') 
-    abonos = AbonoSancion.objects.filter(partido=partido) 
-    multas = Sancion.objects.filter(partido=partido, tipo='ADMIN')
 
-    template_path = 'core/acta_partido_pdf.html'
+    detalles = list(DetallePartido.objects.filter(partido=partido).select_related('jugador'))
+    planilla_local = _planilla_equipo(partido.equipo_local, detalles)
+    planilla_visita = _planilla_equipo(partido.equipo_visita, detalles)
+    tarjetas = [d for d in detalles if d.tipo in ('TA', 'TR', 'DA', 'AZUL', 'EBRI')]
+    abonos = AbonoSancion.objects.filter(partido=partido).select_related('sancion__equipo')
+    multas = Sancion.objects.filter(partido=partido, tipo='ADMIN').select_related('equipo')
+
+    if partido.estado == 'WO' and partido.ganador_wo_id:
+        ganador = partido.ganador_wo.nombre
+    elif partido.goles_local != partido.goles_visita:
+        ganador = (partido.equipo_local if partido.goles_local > partido.goles_visita else partido.equipo_visita).nombre
+    elif partido.hubo_penales and (partido.penales_local or 0) != (partido.penales_visita or 0):
+        ganador = (partido.equipo_local if (partido.penales_local or 0) > (partido.penales_visita or 0) else partido.equipo_visita).nombre
+    else:
+        ganador = None
+
+    categoria = partido.torneo.categoria
+    filas = []
+    for i in range(max(len(planilla_local), len(planilla_visita))):
+        filas.append((planilla_local[i] if i < len(planilla_local) else None,
+                      planilla_visita[i] if i < len(planilla_visita) else None))
     context = {
-        'partido': partido, 'asistencias_local': asistencias_local,
-        'asistencias_visita': asistencias_visita, 'goles': goles,
-        'tarjetas': tarjetas, 'estrellas': estrellas, 'abonos': abonos,
-        'multas': multas,
+        'partido': partido,
+        'complejo': partido.torneo.complejo,
+        'color': (categoria.color_carnet if categoria and categoria.color_carnet else '#15803D'),
+        'filas': filas,
+        'escudo_local': _escudo_pdf(partido.equipo_local, '#15803D'),
+        'escudo_visita': _escudo_pdf(partido.equipo_visita, '#1E3A8A'),
+        'presentes_local': sum(1 for f in planilla_local if f['presente']),
+        'presentes_visita': sum(1 for f in planilla_visita if f['presente']),
+        'tarjetas_obs': [t for t in tarjetas if t.observacion],
+        'total_tarjetas': len(tarjetas),
+        'abonos': abonos, 'multas': multas, 'ganador': ganador,
+        'es_eliminatoria': partido.etapa in Partido.ETAPAS_ELIMINATORIAS,
         'ediciones': partido.ediciones.select_related('usuario'),
+        'generado': timezone.localtime(timezone.now()),
     }
-    
+
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="Acta_{partido.id}.pdf"'
-    
-    template = get_template(template_path)
-    html = template.render(context)
-    
-    pisa_status = pisa.CreatePDF(html, dest=response)
-    
+    html = get_template('core/acta_partido_pdf.html').render(context)
+    pisa_status = pisa.CreatePDF(html, dest=response, link_callback=_pdf_link_callback)
     if pisa_status.err:
         return HttpResponse('Error al generar PDF <pre>' + html + '</pre>')
     return response
@@ -4026,6 +4124,7 @@ def imprimir_carnets(request, equipo_id):
         'jugadores': jugadores,
         'color_categoria': color_cat,
         'nombre_categoria': nombre_cat,
+        'iniciales_equipo': ''.join(p[0] for p in equipo.nombre.split()[:2]).upper(),
     })
 
 

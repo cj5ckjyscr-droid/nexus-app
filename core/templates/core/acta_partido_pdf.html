@@ -3,442 +3,273 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        @page { 
-            size: A4; 
-            margin: 1.5cm 2cm 2cm 2cm; 
+        @page {
+            size: A4;
+            margin: 1.1cm 1.3cm 2.1cm 1.3cm;
+            @frame pie {
+                -pdf-frame-content: pie;
+                bottom: 0.6cm; margin-left: 1.3cm; margin-right: 1.3cm; height: 1.1cm;
+            }
         }
-        
-        body { 
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
-            font-size: 10pt; 
-            color: #1E293B; 
-            line-height: 1.4;
-        }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #0F172A; line-height: 1.3; }
+        table { width: 100%; border-collapse: collapse; }
+        td, th { vertical-align: middle; }
+        .c { text-align: center; }
+        .r { text-align: right; }
 
-        /* CABECERA DOCUMENTO */
-        .header { 
-            text-align: center; 
-            border-bottom: 3px solid #1D4ED8; 
-            padding-bottom: 15px; 
-            margin-bottom: 25px; 
-        }
-        .header-title { 
-            font-size: 20pt; 
-            font-weight: 900; 
-            text-transform: uppercase; 
-            letter-spacing: 1.5px;
-            color: #0A192F; 
-            margin-bottom: 5px;
-        }
-        .header-subtitle { 
-            font-size: 12pt; 
-            font-weight: bold;
-            color: #64748B; 
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-        .header-meta {
-            display: inline-block;
-            background-color: #F4F7FA;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 10pt;
-            font-weight: bold;
-            color: #1D4ED8;
-            border: 1px solid #CBD5E1;
-        }
+        /* CABECERA */
+        .cab { background-color: #0B3D2E; color: #FFFFFF; }
+        .cab td { padding: 8px 10px; }
+        .cab-complejo { font-size: 8pt; font-weight: bold; color: #A7F3D0; letter-spacing: 1.5px; text-transform: uppercase; }
+        .cab-torneo { font-size: 17pt; font-weight: bold; color: #FFFFFF; text-transform: uppercase; }
+        .cab-doc { font-size: 8.5pt; font-weight: bold; color: #FDE68A; letter-spacing: 2px; }
+        .cab-caja { background-color: #FFFFFF; color: #0B3D2E; padding: 5px 8px; text-align: center; }
+        .cab-caja-l { font-size: 6.5pt; font-weight: bold; color: #64748B; letter-spacing: 1px; }
+        .cab-caja-v { font-size: 11pt; font-weight: bold; color: #0B3D2E; }
 
-        /* CAJA DEL MARCADOR PRINCIPAL */
-        .scoreboard-box { 
-            text-align: center; 
-            margin: 0 auto 30px auto; 
-            padding: 20px; 
-            background: #F4F7FA; 
-            border: 2px solid #1D4ED8;
-            border-radius: 15px;
-            width: 85%;
-        }
-        .matchup {
-            font-size: 16pt;
-            font-weight: 900;
-            color: #0A192F;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        .score-row {
-            font-size: 36pt;
-            font-weight: 900;
-            color: #1D4ED8; 
-            letter-spacing: 5px;
-            margin-bottom: 10px;
-            font-family: 'Courier New', Courier, monospace;
-        }
-        .winner-label {
-            font-size: 11pt;
-            font-weight: bold;
-            color: #FFFFFF;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            background: #0A192F;
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 6px;
-        }
+        /* MARCADOR */
+        .cancha { background-color: #166534; color: #FFFFFF; }
+        .cancha td { padding: 12px 6px; }
+        .rol { font-size: 7pt; font-weight: bold; color: #BBF7D0; letter-spacing: 2px; }
+        .equipo { font-size: 13pt; font-weight: bold; color: #FFFFFF; text-transform: uppercase; }
+                .marcador { background-color: #0F172A; color: #FFFFFF; font-size: 34pt; font-weight: bold; padding: 8px 0 0 0; border: 3px solid #FACC15; text-align: center; }
+        .estado { background-color: #FACC15; color: #0F172A; font-size: 7pt; font-weight: bold; letter-spacing: 1.5px; padding: 3px 0 2px 0; text-align: center; }
+        .penales { color: #FDE68A; font-size: 8.5pt; font-weight: bold; padding-top: 4px; }
 
-        /* TÍTULOS DE SECCIÓN */
-        .section-title { 
-            margin-top: 25px; 
-            margin-bottom: 12px; 
-            font-size: 11pt; 
-            font-weight: 900; 
-            color: #ffffff;
-            background-color: #1D4ED8; 
-            padding: 6px 12px;
-            border-radius: 6px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: inline-block;
-        }
+        /* FRANJA DE DATOS */
+        .datos td { background-color: #F1F5F9; border: 1px solid #FFFFFF; padding: 5px 8px; }
+        .dato-l { font-size: 6.5pt; font-weight: bold; color: #64748B; letter-spacing: 1px; text-transform: uppercase; }
+        .dato-v { font-size: 9pt; font-weight: bold; color: #0F172A; }
+        .ganador { background-color: #FACC15; color: #0F172A; font-size: 10pt; font-weight: bold; letter-spacing: 1px; padding: 6px; text-align: center; }
 
-        /* TABLAS MODERNAS */
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-bottom: 20px; 
-        }
-        th, td { 
-            border-bottom: 1px solid #E2E8F0; 
-            padding: 8px 10px; 
-            text-align: left; 
-            font-size: 9.5pt; 
-        }
-        th { 
-            background-color: #0A192F; 
-            font-weight: bold; 
-            color: #FFFFFF;
-            text-transform: uppercase;
-            font-size: 8pt;
-            letter-spacing: 0.5px;
-            border-top: 2px solid #0A192F;
-            border-bottom: 2px solid #0A192F;
-        }
-        tr:nth-child(even) {
-            background-color: #F4F7FA;
-        }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        
-        /* ETIQUETAS DE TARJETAS */
-        .badge-card {
-            font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 8.5pt;
-        }
-        .badge-ta { color: #B45309; background-color: #FEF3C7; border: 1px solid #F59E0B; }
-        .badge-tr { color: #B91C1C; background-color: #FEE2E2; border: 1px solid #EF4444; }
+        /* TITULOS DE SECCIÓN */
+        .seccion { margin-top: 14px; margin-bottom: 6px; }
+        .seccion td { padding: 4px 8px; font-size: 9.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #0B3D2E; border-bottom: 2px solid #0B3D2E; }
+        .seccion .num { background-color: #0B3D2E; color: #FFFFFF; width: 22px; text-align: center; border-bottom: 2px solid #0B3D2E; }
 
-        /* CAJAS DE INFORMES */
-        .report-box { 
-            background-color: #F4F7FA;
-            border: 1px dashed #94A3B8; 
-            border-radius: 8px;
-            padding: 15px; 
-            min-height: 50px; 
-            font-style: italic; 
-            font-size: 9.5pt; 
-            color: #334155;
-            margin-bottom: 10px; 
-        }
+        /* PLANILLA */
+        .tit { -pdf-keep-with-next: true; }
+        .planilla td.h { background-color: #0F172A; color: #FFFFFF; font-size: 6.5pt; font-weight: bold; padding-top: 4px; padding-bottom: 3px; text-align: center; border-bottom: none; }
+        .planilla td { border-bottom: 1px solid #E2E8F0; padding-top: 4px; padding-bottom: 3px; font-size: 8pt; }
+        .planilla td.nom { padding-left: 5px; }
+        .planilla td.sep { border: none; background-color: #FFFFFF; }
+        .cab-local { background-color: #15803D; color: #FFFFFF; font-weight: bold; font-size: 9pt; padding: 6px 8px; }
+        .cab-visita { background-color: #1E3A8A; color: #FFFFFF; font-weight: bold; font-size: 9pt; padding: 6px 8px; }
+        .cab-goles { color: #FACC15; font-size: 11pt; }
+        .planilla td.dorsal { font-weight: bold; color: #FFFFFF; background-color: #334155; text-align: center; }
+        .planilla td.ausente { color: #94A3B8; }
+        .planilla td.gol { font-weight: bold; color: #15803D; text-align: center; font-size: 9pt; }
+        .planilla td.ta { background-color: #FDE047; color: #713F12; font-weight: bold; text-align: center; }
+        .planilla td.tr { background-color: #DC2626; color: #FFFFFF; font-weight: bold; text-align: center; }
+        .planilla td.mvp { background-color: #0F172A; color: #FACC15; font-weight: bold; font-size: 6.5pt; text-align: center; }
+        .planilla .pie-planilla td { background-color: #F1F5F9; font-size: 7.5pt; font-weight: bold; color: #475569; padding-top: 5px; padding-bottom: 4px; padding-left: 6px; border-bottom: none; }
+        .leyenda { font-size: 6.5pt; color: #64748B; padding-top: 3px; }
+        .ta { background-color: #FDE047; color: #713F12; font-weight: bold; }
+        .tr { background-color: #DC2626; color: #FFFFFF; font-weight: bold; }
 
-        /* SECCIÓN DE FIRMAS */
-        .signatures-container { 
-            margin-top: 50px; 
-            width: 100%; 
-        }
-        .signature-cell {
-            text-align: center;
-            vertical-align: bottom;
-            padding: 0 20px;
-            width: 50%;
-        }
-        .signature-line { 
-            border-top: 1px solid #0A192F; 
-            width: 80%; 
-            margin: 0 auto; 
-            padding-top: 5px;
-            font-weight: bold;
-            color: #0A192F;
-            font-size: 9pt;
-            text-transform: uppercase;
-        }
-        .validation-badge {
-            display: inline-block;
-            margin-top: 5px;
-            font-size: 7pt;
-            background-color: #DCFCE7;
-            color: #166534;
-            padding: 2px 8px;
-            border-radius: 10px;
-            border: 1px solid #22C55E;
-            font-weight: bold;
-        }
+        /* TABLAS SIMPLES */
+        .lista th { background-color: #E2E8F0; color: #0F172A; font-size: 7pt; text-transform: uppercase; padding: 4px 6px; text-align: left; }
+        .lista td { border-bottom: 1px solid #E2E8F0; padding: 5px 6px; font-size: 8.5pt; }
 
-        /* PIE DE PÁGINA DEL PDF */
-        .footer { 
-            position: fixed; 
-            bottom: -15px; 
-            left: 0; 
-            right: 0; 
-            text-align: center; 
-            font-size: 9px; 
-            color: #64748B;
-            border-top: 1px solid #CBD5E1;
-            padding-top: 5px;
-        }
+        /* INFORMES */
+        .informe-t { background-color: #0B3D2E; color: #FFFFFF; font-size: 7.5pt; font-weight: bold; letter-spacing: 1px; padding: 4px 8px; }
+        .informe { border: 1px solid #CBD5E1; background-color: #F8FAFC; padding: 8px; font-size: 8.5pt; color: #334155; }
+
+        /* FIRMAS */
+        .firma td { padding: 0 8px; vertical-align: bottom; text-align: center; }
+        .linea { border-top: 1.5px solid #0F172A; padding-top: 4px; font-size: 7.5pt; font-weight: bold; text-transform: uppercase; }
+        .sub { font-size: 7pt; font-weight: normal; color: #64748B; text-transform: none; }
+        .valida { color: #166534; font-size: 6.5pt; font-weight: bold; }
+
+        .edicion th { background-color: #7C2D12; color: #FFFFFF; font-size: 7pt; text-transform: uppercase; padding: 4px 6px; text-align: left; }
+        .edicion td { border-bottom: 1px solid #FED7AA; background-color: #FFF7ED; padding: 5px 6px; font-size: 8pt; }
+
+        .pie { font-size: 7pt; color: #64748B; border-top: 1px solid #CBD5E1; padding-top: 4px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="header-title">{{ partido.torneo.nombre }}</div>
-        <div class="header-subtitle">Acta Oficial de Juego - Jornada {{ partido.numero_fecha }}</div>
-        <div class="header-meta">
-            {{ partido.fecha_hora|date:"l, d \d\e F \d\e Y - H:i"|upper }} | CANCHA: {{ partido.cancha|upper|default:"NEXT LEVEL" }}
-        </div>
-    </div>
-
-    <div class="scoreboard-box">
-        <div class="matchup">
-            {{ partido.equipo_local.nombre }} &nbsp;&nbsp;&nbsp; VS &nbsp;&nbsp;&nbsp; {{ partido.equipo_visita.nombre }}
-        </div>
-        <div class="score-row">
-            {{ partido.goles_local }} &nbsp;-&nbsp; {{ partido.goles_visita }}
-        </div>
-        <div class="winner-label">
-            GANADOR OFICIAL: 
-            {% if partido.goles_local > partido.goles_visita %}
-                {{ partido.equipo_local.nombre }}
-            {% elif partido.goles_visita > partido.goles_local %}
-                {{ partido.equipo_visita.nombre }}
-            {% else %}
-                EMPATE TÉCNICO
+    <!-- ===== CABECERA ===== -->
+    <table class="cab">
+        <tr>
+            {% if complejo.logo %}
+            <td style="width: 12%;"><img src="{{ complejo.logo.url }}" height="52"></td>
             {% endif %}
-        </div>
-    </div>
-
-    <div class="section-title">Detalle de Goles Anotados</div>
-    <table>
-        <thead>
-            <tr>
-                <th width="15%" class="text-center">Dorsal</th>
-                <th width="45%">Jugador</th>
-                <th width="40%">Equipo</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for g in goles %}
-            <tr>
-                <td class="text-center"><strong>#{{ g.jugador.dorsal }}</strong></td>
-                <td>{{ g.jugador.nombres }}</td>
-                <td>{{ g.jugador.equipo.nombre }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="3" class="text-center" style="font-style: italic; color: #94a3b8;">No se registraron goles en este encuentro (0-0).</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <div class="section-title">Registro Disciplinario</div>
-    <table>
-        <thead>
-            <tr>
-                <th width="40%">Jugador</th>
-                <th width="30%">Equipo</th>
-                <th width="15%" class="text-center">Sanción</th>
-                <th width="15%">Observación</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for t in tarjetas %}
-            <tr>
-                <td><strong>{{ t.jugador.nombres }}</strong></td>
-                <td>{{ t.jugador.equipo.nombre }}</td>
-                <td class="text-center">
-                    <span class="badge-card {% if t.tipo == 'TA' %}badge-ta{% else %}badge-tr{% endif %}">
-                        {{ t.get_tipo_display|upper }}
-                    </span>
-                </td>
-                <td style="font-size: 8pt;">{{ t.observacion|default:"-" }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="4" class="text-center" style="font-style: italic; color: #166534; font-weight: bold;">Juego Limpio. No se registraron tarjetas.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    {% if multas %}
-    <div class="section-title" style="background-color: #B91C1C;">🚨 Multas Administrativas Extras (Hinchada, etc.)</div>
-    <table>
-        <thead>
-            <tr>
-                <th width="35%">Equipo Sancionado</th>
-                <th width="50%">Motivo / Descripción</th>
-                <th width="15%" class="text-right">Monto ($)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for m in multas %}
-            <tr>
-                <td><strong>{{ m.equipo.nombre }}</strong></td>
-                <td>{{ m.descripcion }}</td> <td class="text-right" style="color: #B91C1C; font-weight: bold;">$ {{ m.monto|floatformat:2 }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
-
-    {% if estrellas %}
-    <div class="section-title" style="background-color: #F59E0B; color: #000;">⭐ Figuras del Partido (MVP)</div>
-    <table>
-        <tbody>
-            {% for e in estrellas %}
-            <tr>
-                <td width="15%" class="text-center"><strong>#{{ e.jugador.dorsal }}</strong></td>
-                <td width="45%"><strong>{{ e.jugador.nombres }}</strong></td>
-                <td width="40%">{{ e.jugador.equipo.nombre }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
-
-    {% if abonos %}
-    <div class="section-title" style="background-color: #10B981;">💰 Recaudación en Mesa (Abonos)</div>
-    <table>
-        <thead>
-            <tr>
-                <th width="35%">Equipo</th>
-                <th width="45%">Deuda Cancelada / Abonada</th>
-                <th width="20%" class="text-right">Abono Recibido</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for abono in abonos %}
-            <tr>
-                <td><strong>{{ abono.sancion.equipo.nombre }}</strong></td>
-                <td>{{ abono.sancion.descripcion }}</td>
-                <td class="text-right" style="color: #047857; font-weight: bold;">$ {{ abono.monto|floatformat:2 }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
-
-    <div class="section-title">Alineaciones Oficiales (Presentes)</div>
-    <table style="border: none; margin-bottom: 5px;">
-        <tr style="background: none;">
-            <td style="vertical-align: top; width: 50%; border: none; padding-left: 0;">
-                <div style="background-color: #F4F7FA; padding: 5px 10px; font-weight: bold; border-left: 4px solid #1D4ED8; margin-bottom: 10px; color: #0A192F;">
-                    {{ partido.equipo_local.nombre|upper }}
-                </div>
-                <ul style="margin: 0; padding-left: 20px; font-size: 9pt;">
-                    {% for a in asistencias_local %}
-                        <li style="margin-bottom: 4px;"><strong>#{{ a.jugador.dorsal }}</strong> - {{ a.jugador.nombres }}</li>
-                    {% empty %}
-                        <li style="color: #EF4444;">No se registró asistencia.</li>
-                    {% endfor %}
-                </ul>
+            <td>
+                <div class="cab-complejo">{{ complejo.nombre }}{% if partido.torneo.categoria %} &middot; {{ partido.torneo.categoria.nombre }}{% endif %}</div>
+                <div class="cab-torneo">{{ partido.torneo.nombre }}</div>
+                <div class="cab-doc">ACTA OFICIAL DEL PARTIDO</div>
             </td>
-            <td style="vertical-align: top; width: 50%; border: none; padding-right: 0;">
-                <div style="background-color: #F4F7FA; padding: 5px 10px; font-weight: bold; border-left: 4px solid #F59E0B; margin-bottom: 10px; color: #0A192F;">
-                    {{ partido.equipo_visita.nombre|upper }}
-                </div>
-                <ul style="margin: 0; padding-left: 20px; font-size: 9pt;">
-                    {% for a in asistencias_visita %}
-                        <li style="margin-bottom: 4px;"><strong>#{{ a.jugador.dorsal }}</strong> - {{ a.jugador.nombres }}</li>
-                    {% empty %}
-                        <li style="color: #EF4444;">No se registró asistencia.</li>
-                    {% endfor %}
-                </ul>
+            <td style="width: 20%;">
+                <table><tr><td class="cab-caja">
+                    <div class="cab-caja-l">{% if es_eliminatoria %}FASE{% else %}JORNADA{% endif %}</div>
+                    <div class="cab-caja-v">{% if es_eliminatoria %}{{ partido.get_etapa_display|upper }}{% else %}FECHA {{ partido.numero_fecha }}{% endif %}</div>
+                    <div class="cab-caja-l" style="margin-top: 2px;">ACTA N.&ordm; {{ partido.id }}</div>
+                </td></tr></table>
             </td>
         </tr>
     </table>
+    <table><tr><td style="background-color: {{ color }}; height: 5px; font-size: 1pt;">&nbsp;</td></tr></table>
 
-    <table style="border: none; margin-top: 15px;">
-        <tr style="background: none;">
-            <td style="vertical-align: top; width: 50%; border: none; padding-left: 0;">
-                <div class="section-title" style="margin-top: 0; font-size: 9pt; background-color: #64748B;">Informe del Vocal de Mesa</div>
-                <div class="report-box">
-                    {{ partido.informe_vocal|default:"Sin novedades reportadas durante el desarrollo del encuentro."|linebreaksbr }}
-                </div>
+    <!-- ===== MARCADOR ===== -->
+    <table class="cancha">
+        <tr>
+            <td class="c" style="width: 37%;">
+                <img src="{{ escudo_local.0 }}" width="{{ escudo_local.1 }}" height="{{ escudo_local.2 }}">
+                <div class="rol" style="margin-top: 6px;">LOCAL</div>
+                <div class="equipo">{{ partido.equipo_local.nombre }}</div>
             </td>
-            <td style="vertical-align: top; width: 50%; border: none; padding-right: 0;">
-                <div class="section-title" style="margin-top: 0; font-size: 9pt; background-color: #64748B;">Informe Arbitral Central</div>
-                <div class="report-box">
-                    {{ partido.informe_arbitro|default:"Sin novedades técnicas ni disciplinarias adicionales."|linebreaksbr }}
-                </div>
-            </td>
-        </tr>
-    </table>
-
-    <table class="signatures-container" style="border: none;">
-        <tr style="background: none;">
-            <td class="signature-cell" style="border: none; height: 60px;">
-                {% if partido.firma_local_base64 %}
-                    <img src="{{ partido.firma_local_base64 }}" width="150" height="60" alt="Firma Local"><br>
+            <td class="c" style="width: 26%;">
+                <div class="marcador">{{ partido.goles_local }} - {{ partido.goles_visita }}</div>
+                <div class="estado">{% if partido.estado == 'WO' %}W.O.{% elif partido.estado == 'JUG' %}FINAL DEL PARTIDO{% elif partido.estado == 'ACTA' %}EN ACTA{% elif partido.estado == 'VIVO' %}EN JUEGO{% else %}PROGRAMADO{% endif %}</div>
+                {% if partido.hubo_penales %}
+                <div class="penales">PENALES {{ partido.penales_local|default:0 }} - {{ partido.penales_visita|default:0 }}</div>
                 {% endif %}
-                <div class="signature-line">
-                    Capitán / DT Local<br>
-                    <span style="font-weight: normal; font-size: 8pt; text-transform: none;">{{ partido.equipo_local.nombre }}</span>
-                    {% if partido.validado_local %}
-                        <br><span class="validation-badge">✔ VALIDACIÓN DIGITAL EXITOSA</span>
-                    {% endif %}
-                </div>
             </td>
-            <td class="signature-cell" style="border: none; height: 60px;">
-                {% if partido.firma_visita_base64 %}
-                    <img src="{{ partido.firma_visita_base64 }}" width="150" height="60" alt="Firma Visita"><br>
-                {% endif %}
-                <div class="signature-line">
-                    Capitán / DT Visita<br>
-                    <span style="font-weight: normal; font-size: 8pt; text-transform: none;">{{ partido.equipo_visita.nombre }}</span>
-                    {% if partido.validado_visita %}
-                        <br><span class="validation-badge">✔ VALIDACIÓN DIGITAL EXITOSA</span>
-                    {% endif %}
-                </div>
+            <td class="c" style="width: 37%;">
+                <img src="{{ escudo_visita.0 }}" width="{{ escudo_visita.1 }}" height="{{ escudo_visita.2 }}">
+                <div class="rol" style="margin-top: 6px;">VISITANTE</div>
+                <div class="equipo">{{ partido.equipo_visita.nombre }}</div>
             </td>
         </tr>
-        <tr style="background: none;">
-            <td colspan="2" class="signature-cell" style="border: none; height: 80px; padding-top: 40px;">
-                <div class="signature-line" style="width: 40%;">
-                    Firma Vocal / Organización<br>
-                    <span style="font-weight: normal; font-size: 8pt; text-transform: none;">Documento Oficial del Torneo</span>
-                </div>
+    </table>
+
+    <table class="datos">
+        <tr>
+            <td style="width: 25%;"><div class="dato-l">Fecha</div><div class="dato-v">{% if partido.fecha_hora %}{{ partido.fecha_hora|date:"D d/m/Y" }}{% else %}Por definir{% endif %}</div></td>
+            <td style="width: 15%;"><div class="dato-l">Hora</div><div class="dato-v">{% if partido.fecha_hora %}{{ partido.fecha_hora|date:"H:i" }}{% else %}--:--{% endif %}</div></td>
+            <td style="width: 30%;"><div class="dato-l">Cancha</div><div class="dato-v">{{ partido.cancha|default:"Cancha principal" }}</div></td>
+            <td style="width: 15%;"><div class="dato-l">Goles</div><div class="dato-v">{{ partido.goles_local|add:partido.goles_visita }}</div></td>
+            <td style="width: 15%;"><div class="dato-l">Tarjetas</div><div class="dato-v">{{ total_tarjetas }}</div></td>
+        </tr>
+    </table>
+    <table><tr><td class="ganador">{% if ganador %}GANADOR: {{ ganador|upper }}{% if partido.estado == 'WO' %} (POR W.O.){% endif %}{% else %}EMPATE{% endif %}</td></tr></table>
+
+    <!-- ===== PLANILLA DE JUEGO ===== -->
+    <div class="tit"><table class="seccion"><tr><td class="num">1</td><td>Planilla de juego</td></tr></table></div>
+    <table>
+        <tr>
+            <td class="cab-local" style="width: 49%;">{{ partido.equipo_local.nombre|upper }} <span class="cab-goles">&nbsp;{{ partido.goles_local }}</span></td>
+            <td style="width: 2%;"></td>
+            <td class="cab-visita" style="width: 49%;">{{ partido.equipo_visita.nombre|upper }} <span class="cab-goles">&nbsp;{{ partido.goles_visita }}</span></td>
+        </tr>
+    </table>
+    <table class="planilla" width="100%">
+        <tr>
+            <td class="h" width="5%">N.&ordm;</td><td class="h" width="24%" style="text-align: left; padding-left: 5px;">JUGADOR</td><td class="h" width="4%">G</td><td class="h" width="4%">TA</td><td class="h" width="4%">TR</td><td class="h" width="8%">MVP</td>
+            <td class="sep" width="2%">&nbsp;</td>
+            <td class="h" width="5%">N.&ordm;</td><td class="h" width="24%" style="text-align: left; padding-left: 5px;">JUGADOR</td><td class="h" width="4%">G</td><td class="h" width="4%">TA</td><td class="h" width="4%">TR</td><td class="h" width="8%">MVP</td>
+        </tr>
+        {% for local, visita in filas %}
+        <tr>
+            {% include 'core/_acta_fila.html' with f=local %}
+            <td class="sep">&nbsp;</td>
+            {% include 'core/_acta_fila.html' with f=visita %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="13" class="c" style="color: #94A3B8; padding: 10px;">No se registraron jugadores en este partido.</td></tr>
+        {% endfor %}
+        <tr class="pie-planilla">
+            <td colspan="6">Presentes: {{ presentes_local }}</td>
+            <td class="sep">&nbsp;</td>
+            <td colspan="6">Presentes: {{ presentes_visita }}</td>
+        </tr>
+    </table>
+    <div class="leyenda">N.&ordm; dorsal &middot; G goles &middot; TA tarjeta amarilla &middot; TR tarjeta roja &middot; MVP figura del partido &middot; en gris: no marcó asistencia</div>
+
+    {% if tarjetas_obs %}
+    <div class="tit"><table class="seccion"><tr><td class="num">2</td><td>Detalle disciplinario</td></tr></table></div>
+    <table class="lista">
+        <tr><th style="width: 30%;">Jugador</th><th style="width: 22%;">Equipo</th><th style="width: 14%;">Sanción</th><th>Observación</th></tr>
+        {% for t in tarjetas_obs %}
+        <tr>
+            <td><b>{{ t.jugador.nombres }}</b></td>
+            <td>{{ t.jugador.equipo.nombre }}</td>
+            <td class="{% if t.tipo == 'TA' or t.tipo == 'DA' %}ta{% elif t.tipo == 'TR' %}tr{% endif %}">{% if t.tipo == 'TA' %}AMARILLA{% elif t.tipo == 'TR' %}ROJA{% elif t.tipo == 'DA' %}DOBLE AMARILLA{% elif t.tipo == 'AZUL' %}UNIFORME{% else %}EBRIEDAD{% endif %}</td>
+            <td>{{ t.observacion }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if multas or abonos %}
+    <div class="tit"><table class="seccion"><tr><td class="num">$</td><td>Movimientos en mesa</td></tr></table></div>
+    <table class="lista">
+        <tr><th style="width: 16%;">Tipo</th><th style="width: 26%;">Equipo</th><th>Detalle</th><th style="width: 16%;" class="r">Monto</th></tr>
+        {% for m in multas %}
+        <tr>
+            <td><b style="color: #B91C1C;">MULTA</b></td>
+            <td><b>{{ m.equipo.nombre }}</b></td>
+            <td>{{ m.descripcion }}</td>
+            <td class="r" style="color: #B91C1C; font-weight: bold;">$ {{ m.monto|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        {% for a in abonos %}
+        <tr>
+            <td><b style="color: #166534;">ABONO</b></td>
+            <td><b>{{ a.sancion.equipo.nombre }}</b></td>
+            <td>{{ a.sancion.descripcion }}</td>
+            <td class="r" style="color: #166534; font-weight: bold;">$ {{ a.monto|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <!-- ===== INFORMES ===== -->
+    <div class="tit"><table class="seccion"><tr><td class="num">&raquo;</td><td>Informes del partido</td></tr></table></div>
+    <table>
+        <tr>
+            <td style="width: 49%; vertical-align: top;">
+                <table><tr><td class="informe-t">INFORME DEL VOCAL</td></tr>
+                <tr><td class="informe">{{ partido.informe_vocal|default:"Sin novedades durante el encuentro."|linebreaksbr }}</td></tr></table>
             </td>
+            <td style="width: 2%;">&nbsp;</td>
+            <td style="width: 49%; vertical-align: top;">
+                <table><tr><td class="informe-t">INFORME ARBITRAL</td></tr>
+                <tr><td class="informe">{{ partido.informe_arbitro|default:"Sin novedades técnicas ni disciplinarias adicionales."|linebreaksbr }}</td></tr></table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ===== FIRMAS ===== -->
+    <table class="firma" style="margin-top: 22px;">
+        <tr>
+            <td style="width: 33%; height: 62px;">
+                {% if partido.firma_local_base64 %}<img src="{{ partido.firma_local_base64 }}" width="130" height="52">{% endif %}
+            </td>
+            <td style="width: 34%;">&nbsp;</td>
+            <td style="width: 33%;">
+                {% if partido.firma_visita_base64 %}<img src="{{ partido.firma_visita_base64 }}" width="130" height="52">{% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td><div class="linea">Capitán / DT local<br><span class="sub">{{ partido.equipo_local.nombre }}</span>{% if partido.validado_local %}<br><span class="valida">FIRMA DIGITAL VALIDADA</span>{% endif %}</div></td>
+            <td><div class="linea">Vocal de mesa<br><span class="sub">{{ complejo.nombre }}</span></div></td>
+            <td><div class="linea">Capitán / DT visita<br><span class="sub">{{ partido.equipo_visita.nombre }}</span>{% if partido.validado_visita %}<br><span class="valida">FIRMA DIGITAL VALIDADA</span>{% endif %}</div></td>
         </tr>
     </table>
 
     {% if ediciones %}
-    <div class="section-title" style="background-color: #7C2D12;">✏️ Ediciones del administrador después de finalizar el partido</div>
-    <table>
-        <thead><tr><th style="width: 22%;">Fecha</th><th style="width: 22%;">Administrador</th><th>Qué se modificó</th></tr></thead>
-        <tbody>
-            {% for e in ediciones %}
-            <tr>
-                <td>{{ e.fecha|date:"d/m/Y H:i" }}</td>
-                <td>{% if e.usuario %}{{ e.usuario.get_full_name|default:e.usuario.username }}{% else %}—{% endif %}</td>
-                <td>{{ e.detalle }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
+    <div class="tit"><table class="seccion" style="margin-top: 20px;"><tr><td class="num" style="background-color: #7C2D12;">!</td><td style="color: #7C2D12; border-bottom: 2px solid #7C2D12;">Ediciones del administrador después de finalizar</td></tr></table></div>
+    <table class="edicion">
+        <tr><th style="width: 18%;">Fecha</th><th style="width: 20%;">Administrador</th><th>Qué se modificó</th></tr>
+        {% for e in ediciones %}
+        <tr>
+            <td>{{ e.fecha|date:"d/m/Y H:i" }}</td>
+            <td>{% if e.usuario %}{{ e.usuario.get_full_name|default:e.usuario.username }}{% else %}—{% endif %}</td>
+            <td>{{ e.detalle }}</td>
+        </tr>
+        {% endfor %}
     </table>
     {% endif %}
 
-    <div class="footer">
-        <strong>NEXT LEVEL</strong> - Documento de validación deportiva. | Teléfono Administrativo: 0963395614<br>
-        Desarrollado por Deyvi Rivera - Soporte Técnico: 0987408528
+    <div id="pie">
+        <table class="pie">
+            <tr>
+                <td><b>{{ complejo.nombre|upper }}</b>{% if complejo.telefono_contacto %} &middot; Tel. {{ complejo.telefono_contacto }}{% endif %} &middot; Acta generada el {{ generado|date:"d/m/Y H:i" }}<br>Desarrollado por Deyvi Rivera &middot; Soporte técnico: 0987408528</td>
+                <td class="r" style="width: 18%;">Página <pdf:pagenumber> de <pdf:pagecount></td>
+            </tr>
+        </table>
     </div>
 
 </body>
