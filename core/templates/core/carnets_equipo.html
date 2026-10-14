@@ -31,97 +31,96 @@
 
         .hoja { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; max-width: 19cm; margin: 0 auto; }
 
-        /* ===== CARNET (tamaño tarjeta CR80) ===== */
+        /* ===== CARNET (tamaño tarjeta CR80: 8,6 × 5,4 cm) ===== */
         .carnet {
-            width: 8.6cm; height: 5.4cm; position: relative; overflow: hidden; display: flex;
+            width: 8.6cm; height: 5.4cm; position: relative; overflow: hidden;
+            display: grid; grid-template-columns: 2.85cm 1fr; grid-template-rows: 1fr 0.42cm;
             border-radius: 10px; background: #fff; page-break-inside: avoid; break-inside: avoid;
             box-shadow: 0 8px 22px rgba(15,23,42,.28);
         }
 
-        /* --- PANEL DEL ESCUDO (protagonista) --- */
-        .panel-escudo {
-            width: 3.75cm; flex-shrink: 0; position: relative; z-index: 2;
+        /* --- PANEL DEL EQUIPO --- */
+        .panel-equipo {
+            position: relative; overflow: hidden;
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
-            padding: 10px 14px 22px 8px;
+            padding: 6px 5px;
             background:
-                radial-gradient(circle at 50% 44%, rgba(255,255,255,.22) 0, rgba(255,255,255,0) 58%),
-                linear-gradient(160deg, var(--c) 0%, var(--c-osc) 100%);
-            clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
+                radial-gradient(circle at 50% 40%, rgba(255,255,255,.2) 0, rgba(255,255,255,0) 60%),
+                linear-gradient(165deg, var(--c) 0%, var(--c-osc) 100%);
             color: #fff;
         }
         /* líneas de cancha: círculo central y medio campo */
-        .panel-escudo::before {
-            content: ""; position: absolute; left: 50%; top: 44%; width: 3.1cm; height: 3.1cm;
-            transform: translate(-50%, -50%); border: 1.5px solid rgba(255,255,255,.18); border-radius: 50%;
+        .panel-equipo::before {
+            content: ""; position: absolute; left: 50%; top: 40%; width: 2.75cm; height: 2.75cm;
+            transform: translate(-50%, -50%); border: 1.5px solid rgba(255,255,255,.16); border-radius: 50%;
         }
-        .panel-escudo::after {
-            content: ""; position: absolute; left: 0; right: 0; top: 44%; border-top: 1.5px solid rgba(255,255,255,.18);
+        .panel-equipo::after { content: ""; position: absolute; left: 0; right: 0; top: 40%; border-top: 1.5px solid rgba(255,255,255,.16); }
+
+        /* El escudo siempre dentro de un marco redondo */
+        .marco-escudo {
+            position: relative; z-index: 1; width: 2.4cm; height: 2.4cm; flex-shrink: 0; border-radius: 50%;
+            background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden;
+            border: 3px solid #FACC15; box-shadow: 0 0 0 3px rgba(255,255,255,.35), 0 5px 12px rgba(0,0,0,.4);
         }
-        .escudo {
-            position: relative; z-index: 1; width: 3.15cm; height: 3.15cm; object-fit: contain;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,.45));
-        }
-        .escudo-vacio {
-            position: relative; z-index: 1; width: 2.6cm; height: 2.6cm; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            background: #fff; color: var(--c-osc); border: 4px solid rgba(255,255,255,.55);
-            font: 800 2.1rem 'Barlow Condensed', sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,.35);
-        }
+        .marco-escudo img { width: 82%; height: 82%; object-fit: contain; }
+        .marco-escudo .iniciales { font: 800 2.1rem 'Barlow Condensed', sans-serif; color: var(--c-osc); }
+
         .equipo-nombre {
-            position: relative; z-index: 1; text-align: center; line-height: 1;
-            font: 800 13.5px 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .4px;
-            text-shadow: 0 1px 3px rgba(0,0,0,.5); max-width: 100%;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            position: relative; z-index: 1; width: 100%; text-align: center; line-height: 1.02;
+            font: 800 12px 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .3px;
+            text-shadow: 0 1px 3px rgba(0,0,0,.5); overflow-wrap: anywhere;
+            max-height: 1.25cm; overflow: hidden;
         }
 
-        /* --- LADO DEL JUGADOR --- */
+        /* --- PANEL DEL JUGADOR --- */
         .panel-jugador {
-            flex: 1; position: relative; padding: 9px 10px 22px 4px; display: flex; flex-direction: column; min-width: 0;
-            /* césped cortado */
+            position: relative; overflow: hidden; padding: 6px 8px 5px 7px;
+            display: flex; flex-direction: column; gap: 4px; min-width: 0;
             background: repeating-linear-gradient(90deg, #FFFFFF 0 14px, var(--c-claro) 14px 28px);
         }
         .marca-agua {
-            position: absolute; right: -0.9cm; top: 50%; transform: translateY(-50%) rotate(-12deg);
-            width: 4.2cm; height: 4.2cm; object-fit: contain; opacity: .09; z-index: 0; pointer-events: none;
+            position: absolute; right: -0.7cm; bottom: -0.5cm; width: 3.4cm; height: 3.4cm;
+            object-fit: contain; opacity: .07; transform: rotate(-12deg); pointer-events: none;
         }
-        .panel-jugador > .cabecera, .panel-jugador > .cuerpo { position: relative; z-index: 1; }
+        .cabecera, .cuerpo { position: relative; z-index: 1; }
 
-        .cabecera { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
-        .doc-titulo { font: 800 12px 'Barlow Condensed', sans-serif; letter-spacing: 1.4px; color: var(--c-osc); text-transform: uppercase; line-height: 1; }
-        .doc-torneo { font-size: 7px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .4px; margin-top: 2px;
-                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 3.2cm; }
-        .logo-cancha { height: 22px; max-width: 1.4cm; object-fit: contain; }
+        .cabecera { display: flex; align-items: center; justify-content: space-between; gap: 6px; border-bottom: 1.5px solid var(--c); padding-bottom: 3px; }
+        .doc-titulo { font: 800 11.5px 'Barlow Condensed', sans-serif; letter-spacing: 1.3px; color: var(--c-osc); text-transform: uppercase; line-height: 1; }
+        .doc-temporada { font-size: 6px; font-weight: 800; color: #64748B; letter-spacing: 1px; text-transform: uppercase; margin-top: 1px; }
+        .logo-cancha { height: 20px; max-width: 1.5cm; object-fit: contain; }
 
-        .cuerpo { display: flex; gap: 7px; margin-top: 6px; flex: 1; min-height: 0; }
+        .cuerpo { display: grid; grid-template-columns: 1.7cm 1fr; gap: 7px; flex: 1; min-height: 0; }
+
+        .col-foto { display: flex; flex-direction: column; gap: 4px; min-height: 0; }
         .foto {
-            width: 1.75cm; height: 2.25cm; flex-shrink: 0; border-radius: 6px; overflow: hidden;
+            width: 1.7cm; height: 2.05cm; flex-shrink: 0; border-radius: 6px; overflow: hidden;
             border: 2px solid var(--c); background: #CBD5E1; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 3px 8px rgba(0,0,0,.2);
         }
         .foto img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
-        .foto i { font-size: 34px; color: #94A3B8; }
+        .foto i { font-size: 32px; color: #94A3B8; }
+        .dorsal {
+            flex: 1; min-height: 0; border-radius: 6px; background: var(--tinta); color: #fff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 3px; overflow: hidden;
+            border-bottom: 3px solid var(--c);
+        }
+        .dorsal small { font: 800 5.5px 'Inter', sans-serif; letter-spacing: 1.2px; color: #FACC15; line-height: 1; margin-bottom: 2px; }
+        .dorsal span { font: italic 800 46px 'Barlow Condensed', sans-serif; line-height: .85; }
 
-        .datos { min-width: 0; display: flex; flex-direction: column; gap: 3px; padding-right: 1.1cm; }
+        /* Datos: se reduce la letra automáticamente para que todo quepa */
+        .datos { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
         .nombre {
-            font: 800 15px 'Barlow Condensed', sans-serif; line-height: 1; text-transform: uppercase; color: var(--tinta);
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            font: 800 18px 'Barlow Condensed', sans-serif; line-height: 1; text-transform: uppercase;
+            color: var(--tinta); overflow-wrap: anywhere; padding-bottom: 2px; border-bottom: 1px dashed #CBD5E1;
         }
         .dato { line-height: 1.1; }
         .dato .l { display: block; font-size: 6px; font-weight: 800; color: #64748B; letter-spacing: .8px; text-transform: uppercase; }
-        .dato .v { font-size: 9.5px; font-weight: 800; color: var(--tinta); }
-
-        .dorsal {
-            position: absolute; right: 8px; bottom: 21px; z-index: 1; text-align: center; line-height: .82;
-            font: italic 800 40px 'Barlow Condensed', sans-serif; color: var(--c);
-            text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff;
-        }
-        .dorsal small { display: block; font: 800 6px 'Inter', sans-serif; letter-spacing: 1px; color: #64748B; font-style: normal; }
+        .dato .v { display: block; font-size: 10.5px; font-weight: 800; color: var(--tinta); overflow-wrap: anywhere; }
 
         .cinta {
-            position: absolute; left: 0; right: 0; bottom: 0; height: 16px; z-index: 3;
-            background: var(--tinta); color: #fff; display: flex; align-items: center; justify-content: space-between;
-            padding: 0 9px; font: 700 7.5px 'Inter', sans-serif; letter-spacing: 1.2px; text-transform: uppercase;
-            border-top: 2px solid var(--c);
+            grid-column: 1 / -1; background: var(--tinta); color: #fff;
+            display: flex; align-items: center; justify-content: space-between; gap: 6px;
+            padding: 0 9px; font: 700 7px 'Inter', sans-serif; letter-spacing: 1.1px; text-transform: uppercase;
+            border-top: 2px solid var(--c); white-space: nowrap; overflow: hidden;
         }
         .cinta .dev { font-size: 5px; letter-spacing: .2px; opacity: .65; text-transform: none; }
 
@@ -150,12 +149,14 @@
     <div class="hoja">
         {% for jugador in jugadores %}
         <div class="carnet">
-            <div class="panel-escudo">
-                {% if equipo.escudo %}
-                    <img src="{{ equipo.escudo.url }}" class="escudo" alt="Escudo de {{ equipo.nombre }}">
-                {% else %}
-                    <div class="escudo-vacio">{{ iniciales_equipo }}</div>
-                {% endif %}
+            <div class="panel-equipo">
+                <div class="marco-escudo">
+                    {% if equipo.escudo %}
+                        <img src="{{ equipo.escudo.url }}" alt="Escudo de {{ equipo.nombre }}">
+                    {% else %}
+                        <span class="iniciales">{{ iniciales_equipo }}</span>
+                    {% endif %}
+                </div>
                 <div class="equipo-nombre">{{ equipo.nombre }}</div>
             </div>
 
@@ -165,7 +166,7 @@
                 <div class="cabecera">
                     <div>
                         <div class="doc-titulo">Carnet oficial</div>
-                        <div class="doc-torneo">{{ equipo.torneo.nombre }}</div>
+                        <div class="doc-temporada">Temporada {% now "Y" %}</div>
                     </div>
                     {% if equipo.torneo.complejo.logo %}
                         <img src="{{ equipo.torneo.complejo.logo.url }}" class="logo-cancha" alt="Logo">
@@ -173,21 +174,24 @@
                 </div>
 
                 <div class="cuerpo">
-                    <div class="foto">
-                        {% if jugador.foto %}<img src="{{ jugador.foto.url }}" alt="Foto">{% else %}<i class="bi bi-person-fill"></i>{% endif %}
+                    <div class="col-foto">
+                        <div class="foto">
+                            {% if jugador.foto %}<img src="{{ jugador.foto.url }}" alt="Foto">{% else %}<i class="bi bi-person-fill"></i>{% endif %}
+                        </div>
+                        <div class="dorsal"><small>DORSAL</small><span>{{ jugador.dorsal }}</span></div>
                     </div>
                     <div class="datos">
                         <div class="nombre">{{ jugador.nombres }}</div>
-                        <div class="dato"><span class="l">Cédula</span><span class="v">{{ jugador.cedula }}</span></div>
+                        <div class="dato"><span class="l">{% if jugador.tipo_documento == 'VE' %}Cédula venezolana{% elif jugador.tipo_documento == 'CO' %}Cédula colombiana{% else %}Cédula{% endif %}</span><span class="v">{{ jugador.cedula }}</span></div>
                         <div class="dato"><span class="l">Categoría</span><span class="v">{{ nombre_categoria }}</span></div>
+                        <div class="dato"><span class="l">Torneo</span><span class="v">{{ equipo.torneo.nombre }}</span></div>
+                        <div class="dato"><span class="l">Carnet N.º</span><span class="v">{{ equipo.id|stringformat:"03d" }}-{{ jugador.id|stringformat:"05d" }}</span></div>
                     </div>
                 </div>
-
-                <div class="dorsal"><small>DORSAL</small>{{ jugador.dorsal|default:"–" }}</div>
             </div>
 
             <div class="cinta">
-                <span>{{ equipo.torneo.complejo.nombre|default:"NEXUS SPORTOPS" }} &middot; {% now "Y" %}</span>
+                <span>{{ equipo.torneo.complejo.nombre|default:"NEXUS SPORTOPS" }}</span>
                 <span class="dev">Dev: Deyvi Rivera</span>
             </div>
         </div>
@@ -196,5 +200,30 @@
         {% endfor %}
     </div>
 
+    <script>
+        // Los nombres largos se muestran completos: se achica la letra hasta que todo quepa.
+        function ajustarCarnets() {
+            document.querySelectorAll('.datos').forEach(function (datos) {
+                var nombre = datos.querySelector('.nombre');
+                var valores = datos.querySelectorAll('.dato .v');
+                var tam = 18, tamDato = 10.5;
+                nombre.style.fontSize = tam + 'px';
+                valores.forEach(function (v) { v.style.fontSize = tamDato + 'px'; });
+                while (datos.scrollHeight > datos.clientHeight + 1 && tam > 8.5) {
+                    tam -= 0.5; nombre.style.fontSize = tam + 'px';
+                }
+                while (datos.scrollHeight > datos.clientHeight + 1 && tamDato > 6) {
+                    tamDato -= 0.5; valores.forEach(function (v) { v.style.fontSize = tamDato + 'px'; });
+                }
+            });
+            document.querySelectorAll('.panel-equipo').forEach(function (panel) {
+                var n = panel.querySelector('.equipo-nombre'), tam = 12;
+                n.style.fontSize = tam + 'px';
+                while (n.scrollHeight > n.clientHeight + 1 && tam > 7) { tam -= 0.5; n.style.fontSize = tam + 'px'; }
+            });
+        }
+        if (document.fonts && document.fonts.ready) { document.fonts.ready.then(ajustarCarnets); } else { window.addEventListener('load', ajustarCarnets); }
+        window.addEventListener('beforeprint', ajustarCarnets);
+    </script>
 </body>
 </html>

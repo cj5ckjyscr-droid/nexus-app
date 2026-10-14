@@ -353,4 +353,4 @@ class ActaYCarnetsTest(DosCanchasTestCase):
         r = self.client.get(f"/imprimir-carnets/{self.equipo_a.id}/")
         self.assertEqual(r.status_code, 200)
         iniciales = "".join(p[0] for p in self.equipo_a.nombre.split()[:2]).upper()
-        self.assertContains(r, f'<div class="escudo-vacio">{iniciales}</div>', html=True)
+        self.assertContains(r, f'<span class="iniciales">{iniciales}</span>', html=True)
