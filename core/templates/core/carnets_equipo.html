@@ -62,7 +62,7 @@
             background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden;
             border: 3px solid #FACC15; box-shadow: 0 0 0 3px rgba(255,255,255,.35), 0 5px 12px rgba(0,0,0,.4);
         }
-        .marco-escudo img { width: 82%; height: 82%; object-fit: contain; }
+        .marco-escudo img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .marco-escudo .iniciales { font: 800 2.1rem 'Barlow Condensed', sans-serif; color: var(--c-osc); }
 
         .equipo-nombre {
@@ -87,13 +87,13 @@
         .cabecera { display: flex; align-items: center; justify-content: space-between; gap: 6px; border-bottom: 1.5px solid var(--c); padding-bottom: 3px; }
         .doc-titulo { font: 800 11.5px 'Barlow Condensed', sans-serif; letter-spacing: 1.3px; color: var(--c-osc); text-transform: uppercase; line-height: 1; }
         .doc-temporada { font-size: 6px; font-weight: 800; color: #64748B; letter-spacing: 1px; text-transform: uppercase; margin-top: 1px; }
-        .logo-cancha { height: 20px; max-width: 1.5cm; object-fit: contain; }
+        .logo-cancha { height: 26px; max-width: 1.9cm; object-fit: contain; }
 
-        .cuerpo { display: grid; grid-template-columns: 1.7cm 1fr; gap: 7px; flex: 1; min-height: 0; }
+        .cuerpo { display: grid; grid-template-columns: 1.95cm 1fr; gap: 7px; flex: 1; min-height: 0; }
 
         .col-foto { display: flex; flex-direction: column; gap: 4px; min-height: 0; }
         .foto {
-            width: 1.7cm; height: 2.05cm; flex-shrink: 0; border-radius: 6px; overflow: hidden;
+            width: 1.95cm; height: 2.4cm; flex-shrink: 0; border-radius: 6px; overflow: hidden;
             border: 2px solid var(--c); background: #CBD5E1; display: flex; align-items: center; justify-content: center;
         }
         .foto img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
@@ -104,7 +104,7 @@
             border-bottom: 3px solid var(--c);
         }
         .dorsal small { font: 800 5.5px 'Inter', sans-serif; letter-spacing: 1.2px; color: #FACC15; line-height: 1; margin-bottom: 2px; }
-        .dorsal span { font: italic 800 46px 'Barlow Condensed', sans-serif; line-height: .85; }
+        .dorsal span { font: italic 800 40px 'Barlow Condensed', sans-serif; line-height: .85; }
 
         /* Datos: se reduce la letra automáticamente para que todo quepa */
         .datos { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
