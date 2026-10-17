@@ -106,11 +106,13 @@
             <h3 class="mb-0 text-dark fw-bold" style="letter-spacing: -0.5px;">Gestión de Usuarios</h3>
             <p class="text-muted small mt-1 mb-0 fw-medium">Usuarios de <strong>{{ mi_complejo.nombre }}</strong>. Cada cancha es independiente: los roles de aquí no valen en otras canchas.</p>
         </div>
+        {% if soy_dueno %}
         <div>
             <a href="{% url 'crear_usuario' %}" class="btn rounded-pill px-4 shadow-sm" style="background: #2B6CB0; color: white; font-weight: 600;">
-                <i class="bi bi-person-plus-fill me-2"></i>Agregar Usuario
+                <i class="bi bi-person-plus-fill me-2"></i>Crear cuenta de vocal
             </a>
         </div>
+        {% endif %}
     </div>
 
     <!-- 🌟 BUSCADOR INTELIGENTE -->
@@ -134,7 +136,6 @@
                 <thead>
                     <tr>
                         <th class="ps-4">Usuario Registrado</th>
-                        <th>Contacto</th>
                         <th>Permisos</th>
                         <th>Estado</th>
                         <th>Registro</th>
@@ -156,17 +157,11 @@
                                 </div>
                                 <div>
                                     <div class="text-dark fw-bold" style="font-size: 0.95rem;">{{ p.usuario.username }}</div>
-                                    <small class="text-muted fw-medium">{{ p.usuario.get_full_name|default:"Sin nombre" }}</small>
+                                    <small class="text-muted fw-medium">{{ p.usuario.get_full_name|default:"Sin nombre" }}</small>{% if p.usuario.email %}<div class="small text-muted"><i class="bi bi-envelope-at me-1"></i>{{ p.usuario.email }}</div>{% endif %}{% if p.creado_por_cancha %}<div><span class="badge bg-light text-secondary border mt-1" title="Cuenta creada desde esta cancha">Cuenta de la cancha</span></div>{% endif %}
                                 </div>
                             </div>
                         </td>
                         
-                        <!-- Contacto -->
-                        <td>
-                            <div class="small fw-medium" style="color: var(--text-sec);">
-                                <i class="bi bi-envelope-at me-1"></i>{{ p.usuario.email|default:"Sin correo" }}
-                            </div>
-                        </td>
                         
                         <!-- Permisos (Badges Vibrantes) -->
                         <td>
@@ -218,17 +213,27 @@
                                     <i class="bi bi-arrow-repeat"></i>
                                 </button>
                             </form>
-                            <form method="post" action="{% url 'gestionar_usuarios' %}" class="d-inline m-0 mt-1">
+                            <div class="d-flex justify-content-end gap-3 mt-1">
+                            <form method="post" action="{% url 'gestionar_usuarios' %}" class="m-0">
                                 {% csrf_token %}
                                 <input type="hidden" name="rol_cancha_id" value="{{ p.id }}">
                                 <input type="hidden" name="quitar" value="1">
-                                <button type="submit" class="btn btn-link btn-sm text-danger p-0 mt-1" onclick="return confirm('¿Quitar a @{{ p.usuario.username }} de esta cancha?');">Quitar de la cancha</button>
+                                <button type="submit" class="btn btn-link btn-sm text-danger p-0 mt-1" onclick="return confirm('¿Quitar a @{{ p.usuario.username }} de esta cancha?{% if p.puede_restablecer %} Su cuenta quedará desactivada.{% endif %}');">Quitar de la cancha</button>
                             </form>
+                            {% if soy_dueno and p.puede_restablecer %}
+                            <form method="post" action="{% url 'gestionar_usuarios' %}" class="m-0">
+                                {% csrf_token %}
+                                <input type="hidden" name="rol_cancha_id" value="{{ p.id }}">
+                                <input type="hidden" name="restablecer" value="1">
+                                <button type="submit" class="btn btn-link btn-sm p-0 mt-1" onclick="return confirm('¿Generar una nueva contraseña para @{{ p.usuario.username }}? La anterior dejará de funcionar.');"><i class="bi bi-key me-1"></i>Nueva contraseña</button>
+                            </form>
+                            {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-5">
+                        <td colspan="5" class="text-center py-5">
                             <i class="bi bi-search text-muted d-block mb-3" style="font-size: 3rem; opacity: 0.4;"></i>
                             <h5 class="text-dark fw-bold mb-1">Sin resultados</h5>
                             <p class="text-muted small fw-medium">No se encontraron usuarios en el sistema.</p>
@@ -286,11 +291,11 @@
             </div>
             <div class="col-md-6 col-lg-3">
                 <span class="badge-role mb-2" style="background: var(--role-voc-bg); color: var(--role-voc-text);"><i class="bi bi-clipboard-data me-1"></i> Vocal Mesa</span>
-                <p class="small fw-medium text-muted m-0">Acceso a la "Mesa de Control" para pitar partidos, anotar goles y registrar tarjetas.</p>
+                <p class="small fw-medium text-muted m-0">Mesa de control de los partidos de ESTA cancha: goles, tarjetas y acta. Su cuenta la creas tú y solo sirve aquí.</p>
             </div>
             <div class="col-md-6 col-lg-3">
                 <span class="badge-role mb-2" style="background: var(--role-fan-bg); color: var(--role-fan-text);"><i class="bi bi-person me-1"></i> Aficionado</span>
-                <p class="small fw-medium text-muted m-0">Usuario básico. Solo puede reservar canchas y ver estadísticas públicas.</p>
+                <p class="small fw-medium text-muted m-0">Rol antiguo de usuarios que se unieron solos. Ya no se pueden unir por su cuenta.</p>
             </div>
         </div>
     </div>

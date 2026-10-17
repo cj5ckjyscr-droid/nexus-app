@@ -8,26 +8,64 @@ from .tests import DosCanchasTestCase
 
 
 class UnirseCanchaTest(DosCanchasTestCase):
-    def test_aficionado_se_une_sin_crear_equipo_y_el_admin_lo_hace_vocal(self):
-        fan = User.objects.create_user("aficionado", password="pass12345")
-        self.client.login(username="aficionado", password="pass12345")
-        self.client.post(f"/cancha/{self.complejo_a.slug}/unirme/")
-        rc = RolComplejo.objects.get(usuario=fan, complejo=self.complejo_a)
-        self.assertEqual(rc.rol, "FAN")
-        self.assertFalse(Equipo.objects.filter(dirigente=fan).exists())
-
-        self.client.login(username="org_a", password="pass12345")
-        self.client.post("/usuarios/gestionar/", {"rol_cancha_id": rc.id, "nuevo_rol": "VOC"})
-        rc.refresh_from_db()
-        self.assertEqual(rc.rol, "VOC")
-        # Ser vocal en A no da nada en B
-        self.assertFalse(RolComplejo.objects.filter(usuario=fan, complejo=self.complejo_b).exists())
-
-    def test_unirse_requiere_post(self):
+    def test_ya_no_existe_unirse_como_aficionado(self):
         User.objects.create_user("aficionado", password="pass12345")
         self.client.login(username="aficionado", password="pass12345")
-        r = self.client.get(f"/cancha/{self.complejo_a.slug}/unirme/")
-        self.assertEqual(r.status_code, 405)
+        r = self.client.post(f"/cancha/{self.complejo_a.slug}/unirme/")
+        self.assertEqual(r.status_code, 404)
+        self.assertFalse(RolComplejo.objects.filter(usuario__username="aficionado").exists())
+
+    def test_dueno_crea_vocal_que_solo_entra_a_su_cancha(self):
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.post("/usuarios/crear/", {"first_name": "Juan Carlos", "last_name": "Pérez", "rol": "VOC"})
+        self.assertRedirects(r, "/usuarios/credenciales/", fetch_redirect_response=False)
+        vocal = User.objects.get(username="juan.perez")
+        rc = RolComplejo.objects.get(usuario=vocal)
+        self.assertEqual((rc.complejo, rc.rol, rc.creado_por_cancha), (self.complejo_a, "VOC", True))
+
+        # La contraseña generada se muestra una sola vez
+        r = self.client.get("/usuarios/credenciales/")
+        clave = r.context["cred"]["clave"]
+        self.assertContains(r, "juan.perez")
+        self.assertRedirects(self.client.get("/usuarios/credenciales/"), "/usuarios/gestionar/", fetch_redirect_response=False)
+
+        # Con esas credenciales entra (desde cualquier dispositivo) solo a SU cancha
+        self.client.logout()
+        self.assertTrue(self.client.login(username="juan.perez", password=clave))
+        self.assertEqual(self.client.get(f"/vocalia/{self.partido_a.id}/").status_code, 200)
+        r = self.client.get(f"/vocalia/{self.partido_b.id}/")
+        self.assertEqual(r.status_code, 302)
+
+    def test_solo_el_dueno_crea_cuentas_no_el_staff_ni_otros(self):
+        staff = User.objects.create_user("staff_a", password="pass12345")
+        RolComplejo.objects.create(usuario=staff, complejo=self.complejo_a, rol="ORG")
+        self.client.login(username="staff_a", password="pass12345")
+        self.client.post("/usuarios/crear/", {"first_name": "Intruso", "rol": "VOC"})
+        self.assertFalse(User.objects.filter(first_name="Intruso").exists())
+
+    def test_restablecer_y_quitar_cuenta_de_la_cancha(self):
+        self.client.login(username="org_a", password="pass12345")
+        self.client.post("/usuarios/crear/", {"first_name": "Ana", "username": "ana.vocal", "password": "ClaveSegura123", "rol": "VOC"})
+        rc = RolComplejo.objects.get(usuario__username="ana.vocal")
+        self.client.post("/usuarios/gestionar/", {"rol_cancha_id": rc.id, "restablecer": "1"})
+        nueva = self.client.get("/usuarios/credenciales/").context["cred"]["clave"]
+        rc.usuario.refresh_from_db()
+        self.assertTrue(rc.usuario.check_password(nueva))
+        self.assertFalse(rc.usuario.check_password("ClaveSegura123"))
+
+        # Quitarla de la cancha la desactiva: ya no puede iniciar sesión
+        self.client.post("/usuarios/gestionar/", {"rol_cancha_id": rc.id, "quitar": "1"})
+        rc.usuario.refresh_from_db()
+        self.assertFalse(rc.usuario.is_active)
+
+    def test_no_se_restablece_la_clave_de_una_cuenta_ajena(self):
+        # Un dirigente que se registró solo NO es una cuenta de la cancha
+        dirigente = User.objects.create_user("dir_libre", password="pass12345")
+        rc = RolComplejo.objects.create(usuario=dirigente, complejo=self.complejo_a, rol="DIR")
+        self.client.login(username="org_a", password="pass12345")
+        self.client.post("/usuarios/gestionar/", {"rol_cancha_id": rc.id, "restablecer": "1"})
+        dirigente.refresh_from_db()
+        self.assertTrue(dirigente.check_password("pass12345"))
 
     def test_org_de_otra_cancha_no_cambia_roles_ajenos(self):
         fan = User.objects.create_user("aficionado", password="pass12345")
@@ -432,3 +470,62 @@ class PanelSaasPlanesTest(DosCanchasTestCase):
                     f"/nexus-admin/canchas/editar/{self.complejo_a.id}/", "/nexus-admin/planes/",
                     "/nexus-admin/pagos/", f"/nexus-admin/pagos/?ver={self.complejo_a.id}", "/nexus-admin/pruebas/"]:
             self.assertEqual(self.client.get(url).status_code, 200, url)
+
+
+class CentroAyudaTest(DosCanchasTestCase):
+    def test_todas_las_guias_cargan_y_sus_botones_apuntan_a_pantallas_reales(self):
+        from django.urls import reverse
+        from .ayuda import GUIAS, RUTA_CAMPEONATO, AYUDA_POR_PANTALLA, GUIAS_POR_SLUG
+        for g in GUIAS:
+            for paso in g['pasos']:
+                if paso.get('url'):
+                    reverse(paso['url'])  # revienta si la ruta no existe
+        for p in RUTA_CAMPEONATO:
+            self.assertIn(p['guia'], GUIAS_POR_SLUG)
+        for slug in AYUDA_POR_PANTALLA.values():
+            self.assertIn(slug, GUIAS_POR_SLUG)
+        # Anónimo y organizador pueden abrir todas las guías
+        for usuario in (None, "org_a"):
+            if usuario:
+                self.client.login(username=usuario, password="pass12345")
+            for g in GUIAS:
+                r = self.client.get(f"/ayuda/{g['slug']}/")
+                self.assertContains(r, g['titulo'], msg_prefix=g['slug'])
+        self.assertEqual(self.client.get("/ayuda/no-existe/").status_code, 404)
+
+    def test_centro_de_ayuda_filtra_por_rol(self):
+        r = self.client.get("/ayuda/?rol=VOC")
+        self.assertEqual(r.status_code, 200)
+        slugs = {g['slug'] for g in r.context["guias"]}
+        self.assertIn("vocalia", slugs)
+        self.assertNotIn("crear-torneo", slugs)
+
+    def test_progreso_del_organizador_refleja_su_cancha(self):
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.get("/ayuda/")
+        progreso = r.context["progreso"]
+        self.assertIsNotNone(progreso)
+        hecho = {f['texto']: f['hecho'] for f in progreso['filas']}
+        self.assertTrue(hecho['Crear un torneo'])
+        self.assertFalse(hecho['Crear la cuenta de tu vocal'])
+        self.client.post("/usuarios/crear/", {"first_name": "Vocal", "rol": "VOC"})
+        r = self.client.get("/ayuda/")
+        hecho = {f['texto']: f['hecho'] for f in r.context["progreso"]['filas']}
+        self.assertTrue(hecho['Crear la cuenta de tu vocal'])
+
+    def test_boton_de_ayuda_de_la_pantalla_y_enlace_en_el_menu(self):
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.get("/torneos/")
+        self.assertContains(r, 'href="/ayuda/crear-torneo/"')
+        self.assertContains(r, 'href="/ayuda/"')
+
+    def test_el_dirigente_llega_a_sus_carnets_desde_su_nomina(self):
+        from .models import Equipo
+        dirigente = User.objects.create_user("dir_carnets", password="pass12345")
+        equipo = Equipo.objects.create(torneo=self.torneo_a, dirigente=dirigente, nombre="Los Carnets FC",
+                                       estado_inscripcion="APROBADO")
+        RolComplejo.objects.create(usuario=dirigente, complejo=self.complejo_a, rol="DIR")
+        self.client.login(username="dir_carnets", password="pass12345")
+        r = self.client.get(f"/jugadores/?equipo={equipo.id}")
+        self.assertContains(r, f'href="/imprimir-carnets/{equipo.id}/"')
+        self.assertEqual(self.client.get(f"/imprimir-carnets/{equipo.id}/").status_code, 200)

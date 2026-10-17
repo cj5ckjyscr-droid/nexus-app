@@ -210,6 +210,26 @@
 
 
 
+    {% if progreso_ayuda and progreso_ayuda.siguiente %}
+    <div class="col-12 mb-3 px-1">
+        <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-3 p-3 rounded-4" style="background: linear-gradient(135deg, #ECFDF5, #F0FDFA); border: 1px solid #A7F3D0;">
+            <div class="d-flex align-items-center gap-3 flex-fill">
+                <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0 fw-black" style="width: 52px; height: 52px; background: conic-gradient(#059669 {{ progreso_ayuda.porcentaje }}%, #D1FAE5 0); color: #064E3B; font-size: .8rem;">
+                    <span class="d-flex align-items-center justify-content-center rounded-circle bg-white" style="width: 40px; height: 40px;">{{ progreso_ayuda.hechos }}/{{ progreso_ayuda.total }}</span>
+                </div>
+                <div>
+                    <div class="fw-bold" style="color: #064E3B;">Configura tu cancha paso a paso</div>
+                    <div class="small" style="color: #047857;">Siguiente: <strong>{{ progreso_ayuda.siguiente.texto }}</strong></div>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'guia_ayuda' progreso_ayuda.siguiente.guia.slug %}" class="btn btn-success btn-sm rounded-pill fw-bold px-3">Ver cómo</a>
+                <a href="{% url 'centro_ayuda' %}" class="btn btn-outline-success btn-sm rounded-pill fw-bold px-3">Centro de ayuda</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     {% if user.is_authenticated and rol_nav_efectivo == 'ORG' and deudas %}
     <div class="col-12 mb-3 px-1">
         <div class="alert alert-compact d-flex align-items-center justify-content-between m-0">
@@ -335,27 +355,12 @@
 {% endif %}
 
 {% if user.is_authenticated and not rol_nav_efectivo == 'ORG' %}
-<!-- MIS CANCHAS / UNIRME COMO AFICIONADO -->
+<!-- MIS CANCHAS -->
 <div class="container-fluid px-2 mb-4">
     {% if mis_canchas %}
     <h6 class="fw-bold text-muted text-uppercase small mb-2 ps-1">Mis canchas</h6>
     <div class="d-flex flex-wrap gap-2 mb-3">
         {% for c in mis_canchas %}<a href="{% url 'portal_complejo' c.slug %}" class="btn btn-outline-primary btn-sm rounded-pill"><i class="bi bi-geo-alt me-1"></i>{{ c.nombre }}</a>{% endfor %}
-    </div>
-    {% endif %}
-    {% if canchas_para_unirse %}
-    <div class="card p-3">
-        <div class="fw-bold mb-1"><i class="bi bi-person-plus me-1 text-primary"></i>Únete a una cancha como aficionado</div>
-        <div class="small mb-2" style="color: var(--text-soft);">Así el administrador de la cancha te verá en su lista de usuarios y podrá asignarte como <strong>vocal de mesa</strong> si corresponde. No necesitas crear un equipo.</div>
-        <div class="d-flex flex-column gap-2">
-            {% for c in canchas_para_unirse %}
-            <form method="post" action="{% url 'unirse_cancha' c.slug %}" class="d-flex align-items-center justify-content-between gap-2 border rounded-3 px-3 py-2 m-0">
-                {% csrf_token %}
-                <span class="fw-semibold text-truncate">{{ c.nombre }}</span>
-                <button type="submit" class="btn btn-primary btn-sm rounded-pill text-nowrap">Unirme</button>
-            </form>
-            {% endfor %}
-        </div>
     </div>
     {% endif %}
 </div>

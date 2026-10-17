@@ -253,6 +253,19 @@
             margin-top: auto;
         }
 
+        /* --- BOTÓN DE AYUDA DE LA PANTALLA --- */
+        .btn-flotante-ayuda {
+            position: fixed; left: 24px; bottom: 30px; z-index: 1000;
+            display: inline-flex; align-items: center; gap: .45rem;
+            background: #064E3B; color: #fff; border-radius: 999px; padding: .6rem 1rem .6rem .7rem;
+            font-weight: 700; font-size: .88rem; text-decoration: none;
+            box-shadow: 0 6px 18px rgba(6, 78, 59, .35); transition: transform .2s ease, background .2s ease;
+        }
+        .btn-flotante-ayuda:hover { transform: translateY(-2px); background: #065F46; color: #fff; }
+        .btn-flotante-ayuda .q { width: 28px; height: 28px; border-radius: 50%; background: #34D399; color: #064E3B; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; }
+        @media (max-width: 576px) { .btn-flotante-ayuda .txt { display: none; } .btn-flotante-ayuda { padding: .45rem; left: 16px; bottom: 24px; } }
+        @media print { .btn-flotante-ayuda, .btn-flotante-wsp { display: none !important; } }
+
         /* --- BOTÓN WHATSAPP --- */
         .btn-flotante-wsp {
             position: fixed;
@@ -656,6 +669,12 @@
                     </li>
                     {% endif %}
 
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold {% if request.resolver_match.url_name == 'centro_ayuda' or request.resolver_match.url_name == 'guia_ayuda' %}text-primary{% endif %}" href="{% url 'centro_ayuda' %}">
+                            <i class="bi bi-life-preserver me-1"></i>Ayuda
+                        </a>
+                    </li>
+
                     {% if complejo %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'portal_complejo' %}active{% endif %}" href="{% url 'portal_complejo' complejo.slug %}">
@@ -721,6 +740,11 @@
                                 <li>
                                     <a class="dropdown-item d-flex align-items-center" href="{% url 'landing_principal' %}">
                                         <i class="bi bi-house-door me-2"></i> Inicio Global
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center" href="{% url 'centro_ayuda' %}">
+                                        <i class="bi bi-life-preserver me-2"></i> Centro de ayuda
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
@@ -807,6 +831,12 @@
             </div>
         </div>
     </footer>
+
+    {% if guia_pantalla %}
+        <a href="{% url 'guia_ayuda' guia_pantalla.slug %}" class="btn-flotante-ayuda" title="Guía: {{ guia_pantalla.titulo }}">
+            <span class="q">?</span><span class="txt">¿Cómo se usa esta pantalla?</span>
+        </a>
+    {% endif %}
 
     {% if url_whatsapp %}
         <a href="{{ url_whatsapp }}" class="btn-flotante-wsp animate__animated animate__zoomIn" target="_blank" title="Contactar al Organizador de la Cancha">

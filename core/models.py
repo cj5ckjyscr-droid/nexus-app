@@ -156,6 +156,9 @@ class RolComplejo(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roles_cancha')
     complejo = models.ForeignKey(ComplejoDeportivo, on_delete=models.CASCADE, related_name='usuarios')
     rol = models.CharField(max_length=3, choices=ROLES, default='FAN')
+    # La cuenta la creó el dueño de ESTA cancha (p. ej. su vocal): solo él
+    # puede restablecerle la contraseña y la cuenta no existe fuera de aquí.
+    creado_por_cancha = models.BooleanField(default=False)
 
     class Meta:
         # Esto garantiza que un usuario no tenga dos roles repetidos en la misma cancha

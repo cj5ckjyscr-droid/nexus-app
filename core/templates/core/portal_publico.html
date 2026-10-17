@@ -107,19 +107,6 @@
         Portal Oficial de Torneos
     </div>
 
-    {% if not es_miembro %}
-    <div class="mb-4">
-        {% if user.is_authenticated %}
-        <form method="post" action="{% url 'unirse_cancha' complejo.slug %}" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold"><i class="bi bi-person-plus me-1"></i>Unirme como aficionado</button>
-        </form>
-        {% else %}
-        <a href="{% url 'login' %}?next={{ request.path|urlencode }}" class="btn btn-primary rounded-pill px-4 fw-bold"><i class="bi bi-person-plus me-1"></i>Unirme a esta cancha</a>
-        {% endif %}
-        <div class="small mt-2" style="color: var(--text-soft);">Para seguir los torneos o ser vocal de mesa de esta cancha.</div>
-    </div>
-    {% endif %}
     
     {% if url_whatsapp %}
         <div>

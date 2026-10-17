@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, Http404
@@ -20,10 +21,11 @@ from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
+from django.views.decorators.cache import never_cache
 
 # Formularios
 from .forms import (
-    RegistroUsuarioForm, TorneoForm, EquipoForm, JugadorForm, 
+    CuentaCanchaForm, TorneoForm, EquipoForm, JugadorForm, 
     ProgramarPartidoForm, PagoForm, RegistroPublicoForm,
     EquipoSolicitudForm, FotoGaleriaForm,
     TraspasoJugadorForm, AsignarCuposForm, SancionListaNegraForm, 
@@ -186,6 +188,7 @@ def dashboard(request):
             ctx['deudas'] = deudas_pendientes
             ctx['total_por_cobrar'] = total + saldo_inscripciones 
             ctx['equipos_pendientes'] = Equipo.objects.filter(torneo__complejo=mi_complejo, estado_inscripcion='PENDIENTE')
+            ctx['progreso_ayuda'] = _progreso_organizador(mi_complejo)
 
         elif rol == 'DIR':
             mis_equipos = Equipo.objects.filter(dirigente=request.user).exclude(estado_inscripcion='RECHAZADO')
@@ -210,35 +213,97 @@ def dashboard(request):
         if rol in ('FAN', 'DIR', 'VOC'):
             mis_canchas_ids = list(RolComplejo.objects.filter(usuario=request.user).values_list('complejo_id', flat=True))
             ctx['mis_canchas'] = ComplejoDeportivo.objects.filter(id__in=mis_canchas_ids, activo=True).order_by('nombre')
-            ctx['canchas_para_unirse'] = ComplejoDeportivo.objects.filter(
-                activo=True, es_demo=False).exclude(id__in=mis_canchas_ids).order_by('nombre')[:30]
 
     return render(request, 'core/dashboard.html', ctx)
 
+def es_dueno_de_cancha(user):
+    """Solo el DUEÑO de una cancha (no su staff) crea cuentas y restablece contraseñas."""
+    return user.is_authenticated and ComplejoDeportivo.objects.filter(organizador=user, activo=True).exists()
+
+
+ALFABETO_CLAVE = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'  # sin 0/O, 1/l/I
+
+
+def generar_clave(largo=10):
+    import secrets
+    while True:
+        clave = ''.join(secrets.choice(ALFABETO_CLAVE) for _ in range(largo))
+        if any(c.isdigit() for c in clave) and any(c.isalpha() for c in clave):
+            return clave
+
+
+def generar_usuario(nombres, apellidos):
+    from django.utils.text import slugify
+    partes = [slugify(nombres).split('-')[0], slugify(apellidos).split('-')[0] if apellidos else '']
+    base = '.'.join(p for p in partes if p)[:30] or 'vocal'
+    candidato, n = base, 1
+    while User.objects.filter(username__iexact=candidato).exists():
+        n += 1
+        candidato = f"{base}{n}"
+    return candidato
+
+
+def _guardar_credenciales(request, usuario, clave, rol, telefono='', nueva=True):
+    """Las credenciales se muestran UNA sola vez: viajan en la sesión hasta
+    la pantalla de credenciales, que las borra al mostrarlas."""
+    request.session['credenciales_cuenta'] = {
+        'usuario': usuario.username, 'clave': clave, 'nombre': usuario.get_full_name() or usuario.username,
+        'rol': dict(RolComplejo.ROLES).get(rol, rol), 'telefono': telefono, 'nueva': nueva,
+    }
+
+
+def _puede_restablecer(rc, complejo):
+    """Solo cuentas que creó esta cancha y que no tienen vida fuera de ella."""
+    u = rc.usuario
+    return (rc.creado_por_cancha and not u.is_superuser and u.id != complejo.organizador_id
+            and not ComplejoDeportivo.objects.filter(organizador=u).exists()
+            and not RolComplejo.objects.filter(usuario=u).exclude(complejo=complejo).exists())
+
+
 @login_required
-@user_passes_test(es_organizador)
+@user_passes_test(es_dueno_de_cancha)
 def crear_usuario(request):
-    mi_complejo = obtener_mi_complejo(request.user)
+    mi_complejo = ComplejoDeportivo.objects.filter(organizador=request.user, activo=True).first()
     if request.method == 'POST':
-        form = RegistroUsuarioForm(request.POST)
+        form = CuentaCanchaForm(request.POST)
         if form.is_valid():
-            u = form.save()
-            # 🔥 MULTI-TENANCY: Se crea el rol SOLO para la cancha actual
-            RolComplejo.objects.create(
-                usuario=u,
-                complejo=mi_complejo,
-                rol=form.cleaned_data['rol']
-            )
-            # Creamos su perfil global base
-            perfil, _ = Perfil.objects.get_or_create(usuario=u)
-            if form.cleaned_data.get('cedula'):
-                perfil.cedula = form.cleaned_data['cedula']
-                perfil.save()
-            messages.success(request, f'Usuario "{u.username}" creado y asignado a {mi_complejo.nombre}.')
-            return redirect('gestionar_usuarios')
+            datos = form.cleaned_data
+            clave = datos['password'] or generar_clave()
+            with transaction.atomic():
+                u = User.objects.create_user(
+                    username=datos['username'] or generar_usuario(datos['first_name'], datos['last_name']),
+                    password=clave, first_name=datos['first_name'].strip(), last_name=datos['last_name'].strip())
+                # 🔥 MULTI-TENANCY: la cuenta SOLO existe en esta cancha
+                RolComplejo.objects.create(usuario=u, complejo=mi_complejo, rol=datos['rol'], creado_por_cancha=True)
+                Perfil.objects.get_or_create(usuario=u)
+            _guardar_credenciales(request, u, clave, datos['rol'], datos['telefono'])
+            return redirect('credenciales_cuenta')
     else:
-        form = RegistroUsuarioForm()
-    return render(request, 'core/crear_usuario.html', {'form': form})
+        form = CuentaCanchaForm(initial={'rol': request.GET.get('rol', 'VOC')})
+    return render(request, 'core/crear_usuario.html', {'form': form, 'mi_complejo': mi_complejo})
+
+
+@never_cache
+@login_required
+@user_passes_test(es_dueno_de_cancha)
+def credenciales_cuenta(request):
+    datos = request.session.pop('credenciales_cuenta', None)
+    if not datos:
+        messages.info(request, "Las credenciales solo se muestran una vez. Si se perdieron, restablece la contraseña desde Usuarios.")
+        return redirect('gestionar_usuarios')
+    mi_complejo = ComplejoDeportivo.objects.filter(organizador=request.user, activo=True).first()
+    url_login = request.build_absolute_uri(reverse('login'))
+    mensaje = (f"Hola {datos['nombre']}, esta es tu cuenta de {datos['rol']} en {mi_complejo.nombre} (NEXUS SPORTOPS).\n"
+               f"Entra en: {url_login}\nUsuario: {datos['usuario']}\nContraseña: {datos['clave']}")
+    telefono = ''.join(ch for ch in datos.get('telefono', '') if ch.isdigit())
+    if telefono.startswith('0'):
+        telefono = '593' + telefono[1:]  # celulares de Ecuador
+    return render(request, 'core/credenciales_cuenta.html', {
+        'cred': datos, 'mi_complejo': mi_complejo, 'url_login': url_login, 'mensaje': mensaje,
+        'url_whatsapp': f"https://wa.me/{telefono}?text={urllib.parse.quote(mensaje)}" if telefono
+                        else f"https://wa.me/?text={urllib.parse.quote(mensaje)}",
+    })
+
 
 @login_required
 @user_passes_test(es_organizador)
@@ -255,9 +320,28 @@ def gestionar_usuarios(request):
             if Equipo.objects.filter(dirigente=rc.usuario, torneo__complejo=mi_complejo, torneo__activo=True).exclude(estado_inscripcion='RECHAZADO').exists():
                 messages.error(request, f'⛔ {rc.usuario.username} dirige un equipo activo en esta cancha. Primero retira o reasigna el equipo.')
             else:
+                usuario = rc.usuario
+                desactivar = _puede_restablecer(rc, mi_complejo)
                 rc.delete()
-                messages.warning(request, f'{rc.usuario.username} ya no pertenece a esta cancha.')
+                if desactivar:
+                    # La cuenta la creó esta cancha: sin la cancha ya no sirve para nada
+                    usuario.is_active = False
+                    usuario.save(update_fields=['is_active'])
+                    messages.warning(request, f'{usuario.username} fue retirado y su cuenta quedó desactivada.')
+                else:
+                    messages.warning(request, f'{usuario.username} ya no pertenece a esta cancha.')
             return redirect('gestionar_usuarios')
+        if rol_cancha_id and request.POST.get('restablecer') == '1':
+            rc = get_object_or_404(RolComplejo.objects.select_related('usuario'), id=rol_cancha_id, complejo=mi_complejo)
+            if mi_complejo.organizador_id != request.user.id or not _puede_restablecer(rc, mi_complejo):
+                messages.error(request, '⛔ Solo puedes restablecer la contraseña de cuentas creadas desde tu cancha.')
+                return redirect('gestionar_usuarios')
+            clave = generar_clave()
+            rc.usuario.set_password(clave)
+            rc.usuario.is_active = True
+            rc.usuario.save()
+            _guardar_credenciales(request, rc.usuario, clave, rc.rol, nueva=False)
+            return redirect('credenciales_cuenta')
         if rol_cancha_id and nuevo_rol in dict(RolComplejo.ROLES):
             rc = get_object_or_404(RolComplejo, id=rol_cancha_id, complejo=mi_complejo)
             rc.rol = nuevo_rol
@@ -289,6 +373,7 @@ def gestionar_usuarios(request):
         equipos_por_usuario.setdefault(eq.dirigente_id, []).append(eq)
     for rc in perfiles:
         rc.equipos_dirigidos = equipos_por_usuario.get(rc.usuario_id, [])
+        rc.puede_restablecer = _puede_restablecer(rc, mi_complejo)
 
     conteo_roles = dict(RolComplejo.objects.filter(complejo=mi_complejo).exclude(usuario=request.user)
                         .values_list('rol').annotate(n=Count('id')).values_list('rol', 'n'))
@@ -296,22 +381,9 @@ def gestionar_usuarios(request):
     return render(request, 'core/gestionar_usuarios.html', {
         'perfiles': perfiles, 'query': query, 'filtro_rol': filtro_rol,
         'roles': [(v, n, conteo_roles.get(v, 0)) for v, n in RolComplejo.ROLES], 'mi_complejo': mi_complejo,
+        'soy_dueno': mi_complejo.organizador_id == request.user.id,
     })
 
-
-@login_required
-@require_POST
-def unirse_cancha(request, slug_complejo):
-    """Un usuario se registra como AFICIONADO en una cancha. Así el
-    administrador lo ve en "Usuarios" y puede hacerlo Vocal, sin tener que
-    inventar un equipo."""
-    complejo = get_object_or_404(ComplejoDeportivo, slug=slug_complejo, activo=True, es_demo=False)
-    rc, creado = RolComplejo.objects.get_or_create(usuario=request.user, complejo=complejo, defaults={'rol': 'FAN'})
-    if creado:
-        messages.success(request, f"✅ Te uniste a {complejo.nombre} como Aficionado. Si vas a ser vocal, pide al administrador que cambie tu rol.")
-    else:
-        messages.info(request, f"Ya perteneces a {complejo.nombre} como {rc.get_rol_display()}.")
-    return redirect('dashboard')
 
 @login_required
 @user_passes_test(es_organizador)
@@ -4224,14 +4296,10 @@ def portal_complejo(request, slug_complejo):
         mensaje_codificado = urllib.parse.quote(mensaje)
         url_whatsapp = f"https://wa.me/{complejo.telefono_contacto}?text={mensaje_codificado}"
 
-    es_miembro = request.user.is_authenticated and (
-        complejo.organizador_id == request.user.id or
-        RolComplejo.objects.filter(usuario=request.user, complejo=complejo).exists())
     return render(request, 'core/portal_publico.html', {
         'complejo': complejo, 
         'torneos': torneos_activos,
         'url_whatsapp': url_whatsapp,
-        'es_miembro': es_miembro or complejo.es_demo,
     })
 
 from django.core.mail import send_mail
@@ -4674,3 +4742,80 @@ def prueba_salir_modo_dirigente(request):
     if request.method == 'POST':
         request.session.pop('equipo_simulado_id', None)
     return redirect('dashboard')
+
+
+# =========================================================
+# CENTRO DE AYUDA
+# =========================================================
+from . import ayuda as contenido_ayuda
+
+
+def _rol_para_ayuda(request):
+    if not request.user.is_authenticated:
+        return 'FAN'
+    if request.user.is_superuser:
+        return 'ORG'
+    rol = obtener_rol_principal(request.user)
+    return rol if rol in contenido_ayuda.ROLES else 'FAN'
+
+
+def _progreso_organizador(complejo):
+    """Lista de pasos para dejar lista la cancha, marcados según los datos reales."""
+    torneos = Torneo.objects.filter(complejo=complejo)
+    partidos = Partido.objects.filter(torneo__complejo=complejo)
+    pasos = [
+        ('Crear una categoría', Categoria.objects.filter(complejo=complejo).exists(), 'crear-categoria'),
+        ('Crear un torneo', torneos.exists(), 'crear-torneo'),
+        ('Tener al menos 2 equipos aprobados',
+         Equipo.objects.filter(torneo__complejo=complejo, estado_inscripcion='APROBADO').count() >= 2, 'inscribir-equipos'),
+        ('Fichar jugadores', Jugador.objects.filter(equipo__torneo__complejo=complejo).exists(), 'inscribir-jugadores'),
+        ('Empezar el campeonato', torneos.exclude(formato='').exists() or partidos.exists(), 'empezar-campeonato'),
+        ('Programar la fecha de un partido', partidos.filter(fecha_hora__isnull=False).exists(), 'programar-partidos'),
+        ('Crear la cuenta de tu vocal',
+         RolComplejo.objects.filter(complejo=complejo, rol='VOC').exists(), 'crear-vocal'),
+        ('Cerrar el acta de un partido', partidos.filter(estado__in=['JUG', 'WO']).exists(), 'vocalia'),
+    ]
+    filas = [{'texto': t, 'hecho': h, 'guia': contenido_ayuda.GUIAS_POR_SLUG[g]} for t, h, g in pasos]
+    hechos = sum(1 for f in filas if f['hecho'])
+    siguiente = next((f for f in filas if not f['hecho']), None)
+    return {'filas': filas, 'hechos': hechos, 'total': len(filas),
+            'porcentaje': round(100 * hechos / len(filas)), 'siguiente': siguiente}
+
+
+def centro_ayuda(request):
+    mi_rol = _rol_para_ayuda(request)
+    rol_vista = request.GET.get('rol', mi_rol)
+    if rol_vista not in contenido_ayuda.ROLES:
+        rol_vista = mi_rol
+    progreso = None
+    if mi_rol == 'ORG' and request.user.is_authenticated and not request.user.is_superuser:
+        complejo = obtener_mi_complejo(request.user)
+        if complejo:
+            progreso = _progreso_organizador(complejo)
+    return render(request, 'core/ayuda.html', {
+        'mi_rol': mi_rol, 'rol_vista': rol_vista,
+        'roles': contenido_ayuda.ROLES, 'rol_info': contenido_ayuda.ROLES[rol_vista],
+        'guias': [g for g in contenido_ayuda.GUIAS if rol_vista in g['roles']],
+        'todas_las_guias': contenido_ayuda.GUIAS,
+        'ruta': [dict(p, guia_obj=contenido_ayuda.GUIAS_POR_SLUG[p['guia']]) for p in contenido_ayuda.RUTA_CAMPEONATO],
+        'preguntas': [q for q in contenido_ayuda.PREGUNTAS if rol_vista in q['roles']] or contenido_ayuda.PREGUNTAS,
+        'glosario': contenido_ayuda.GLOSARIO,
+        'progreso': progreso,
+    })
+
+
+def guia_ayuda(request, slug):
+    guia = contenido_ayuda.GUIAS_POR_SLUG.get(slug)
+    if not guia:
+        raise Http404()
+    mi_rol = _rol_para_ayuda(request)
+    # Guías relacionadas: las del mismo rol, en orden; la siguiente sirve de "continuar"
+    rol = mi_rol if mi_rol in guia['roles'] else guia['roles'][0]
+    del_rol = [g for g in contenido_ayuda.GUIAS if rol in g['roles']]
+    i = del_rol.index(guia)
+    return render(request, 'core/ayuda_guia.html', {
+        'guia': guia, 'mi_rol': mi_rol,
+        'roles_guia': [contenido_ayuda.ROLES[r] for r in guia['roles']],
+        'anterior': del_rol[i - 1] if i > 0 else None,
+        'siguiente': del_rol[i + 1] if i + 1 < len(del_rol) else None,
+    })

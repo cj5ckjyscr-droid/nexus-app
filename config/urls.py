@@ -22,7 +22,6 @@ urlpatterns = [
     # 2. PORTAL MULTI-TENANT (PÚBLICO POR CANCHA)
     # Por ahora lo dejamos simple, luego se puede expandir
     path('cancha/<slug:slug_complejo>/', views.portal_complejo, name='portal_complejo'),
-    path('cancha/<slug:slug_complejo>/unirme/', views.unirse_cancha, name='unirse_cancha'),
 
     # 3. RUTAS DEL SISTEMA PRIVADO (DASHBOARD)
     path('dashboard/', views.dashboard, name='dashboard'),
@@ -127,6 +126,7 @@ urlpatterns = [
 
     # Gestión Global de Usuarios
     path('usuarios/crear/', views.crear_usuario, name='crear_usuario'),
+    path('usuarios/credenciales/', views.credenciales_cuenta, name='credenciales_cuenta'),
     path('usuarios/gestionar/', views.gestionar_usuarios, name='gestionar_usuarios'),
     path('admin_jugadores/', views.admin_gestion_jugadores, name='admin_gestion_jugadores'),
     path('admin_usuarios/', views.admin_gestion_usuarios, name='admin_gestion_usuarios'),
@@ -146,6 +146,8 @@ urlpatterns = [
     path('prueba/dirigente/salir/', views.prueba_salir_modo_dirigente, name='prueba_salir_modo_dirigente'),
 
     path('precios/', views.precios_publicos, name='precios_publicos'),
+    path('ayuda/', views.centro_ayuda, name='centro_ayuda'),
+    path('ayuda/<slug:slug>/', views.guia_ayuda, name='guia_ayuda'),
 
     path('saas/pago/reversar/<int:pago_id>/', views.revertir_pago_saas, name='revertir_pago_saas'),
     # URL Secreta de Automatización

@@ -112,7 +112,10 @@
             </p>
             {% endif %}
         </div>
-        <div class="mt-2 mt-md-0">
+        <div class="mt-2 mt-md-0 d-flex flex-wrap align-items-center gap-2">
+            {% if equipo_obj %}
+                <a href="{% url 'imprimir_carnets' equipo_obj.id %}" class="btn btn-sm btn-outline-primary rounded-pill fw-bold px-3"><i class="bi bi-person-vcard me-1"></i>Imprimir carnets</a>
+            {% endif %}
             {% if equipo_obj and equipo_obj.cupos_pagados > 0 %}
                 <span class="badge {% if equipo_obj.cupos_disponibles <= 0 %}bg-danger{% else %}bg-primary{% endif %} rounded-pill px-3 py-2 shadow-sm">
                     {{ jugadores|length }} / {{ equipo_obj.cupos_pagados }} Jugadores

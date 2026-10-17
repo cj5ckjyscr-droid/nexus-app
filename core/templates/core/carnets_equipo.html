@@ -143,7 +143,10 @@
             <h1>Carnets &middot; {{ equipo.nombre }}</h1>
             <p>{{ jugadores|length }} jugador{{ jugadores|length|pluralize:"es" }} &middot; {{ equipo.torneo.nombre }} &middot; tamaño tarjeta (8,6 × 5,4 cm)</p>
         </div>
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <a href="{% url 'guia_ayuda' 'imprimir-carnets' %}" style="font-weight:700; color:#0F766E; text-decoration:none;"><i class="bi bi-question-circle"></i> ¿Cómo imprimir bien?</a>
         <button class="btn-imprimir" onclick="window.print()"><i class="bi bi-printer-fill"></i> Imprimir carnets</button>
+        </div>
     </div>
 
     <div class="hoja">

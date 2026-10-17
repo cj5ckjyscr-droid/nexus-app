@@ -1,0 +1,156 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Centro de ayuda | NEXUS SPORTOPS{% endblock %}
+{% block extra_css %}{% include 'core/_estilos_ayuda.html' %}{% endblock %}
+
+{% block contenido %}
+<div class="ay">
+    <header class="ay-hero">
+        <span class="eyebrow"><i class="bi bi-life-preserver"></i> Centro de ayuda</span>
+        <h1>¿En qué te ayudamos?</h1>
+        <p>Guías paso a paso para organizar tu campeonato, inscribir equipos y jugadores, imprimir carnets y llevar la vocalía.</p>
+        <div class="ay-buscar">
+            <i class="bi bi-search"></i>
+            <input type="search" id="ay-buscar" placeholder="Busca: carnets, fichar, W.O., multas…" autocomplete="off" aria-label="Buscar en la ayuda">
+        </div>
+    </header>
+
+    <nav class="ay-roles" aria-label="Guías por rol">
+        {% for clave, r in roles.items %}
+        <a href="?rol={{ clave }}" class="ay-rol {% if rol_vista == clave %}activo{% endif %}" style="--c: {{ r.color }};" title="{{ r.desc }}">
+            <i class="bi {{ r.icono }}"></i>{{ r.nombre }}{% if mi_rol == clave and user.is_authenticated %} <span class="tu">Tú</span>{% endif %}
+        </a>
+        {% endfor %}
+    </nav>
+
+    {% if progreso %}
+    <section class="ay-card ay-progreso mb-2" id="bloque-progreso">
+        <div class="d-flex justify-content-between align-items-end gap-2 mb-2">
+            <div>
+                <div class="fw-black" style="font-family: 'Outfit', sans-serif; font-size: 1.15rem; color: var(--text-main);">Tu cancha está lista al {{ progreso.porcentaje }}%</div>
+                <div class="small" style="color: var(--text-soft);">{{ progreso.hechos }} de {{ progreso.total }} pasos completados. Se actualiza solo con lo que vas haciendo.</div>
+            </div>
+        </div>
+        <div class="ay-barra mb-3"><span style="width: {{ progreso.porcentaje }}%;"></span></div>
+        {% if progreso.siguiente %}
+        <div class="ay-siguiente mb-3">
+            <div><div class="small fw-bold text-uppercase" style="color: #047857; letter-spacing: .05em;">Siguiente paso</div><div class="fw-bold" style="color: #064E3B;">{{ progreso.siguiente.texto }}</div></div>
+            <a href="{% url 'guia_ayuda' progreso.siguiente.guia.slug %}" class="btn btn-success rounded-pill fw-bold px-3">Ver cómo <i class="bi bi-arrow-right"></i></a>
+        </div>
+        {% else %}
+        <div class="ay-siguiente mb-3"><div class="fw-bold" style="color: #064E3B;"><i class="bi bi-trophy-fill me-1"></i>¡Completaste todo! Tu cancha ya funciona de principio a fin.</div></div>
+        {% endif %}
+        <div>
+            {% for f in progreso.filas %}
+            <div class="ay-check {% if f.hecho %}hecho{% endif %}">
+                <span class="ico">{% if f.hecho %}<i class="bi bi-check-lg"></i>{% endif %}</span>
+                <span class="t">{{ f.texto }}</span>
+                {% if not f.hecho %}<a href="{% url 'guia_ayuda' f.guia.slug %}" class="small fw-bold text-decoration-none">Guía <i class="bi bi-chevron-right"></i></a>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="bloque-buscable" id="bloque-ruta">
+        <h2 class="ay-sec"><i class="bi bi-signpost-split"></i>Cómo funciona un campeonato en NEXUS</h2>
+        <p class="ay-sub">Este es el camino completo, de la primera categoría hasta cobrar las multas. Toca cualquier paso para ver su guía.</p>
+        <div class="ay-ruta">
+            {% for p in ruta %}
+            <a href="{% url 'guia_ayuda' p.guia %}" class="ay-paso" data-buscar="{{ p.titulo|lower }} {{ p.texto|lower }} {{ p.guia_obj.titulo|lower }}">
+                <span class="num">{{ p.n }}</span>
+                <div class="ico"><i class="bi {{ p.icono }}"></i></div>
+                <div class="t">{{ p.titulo }}</div>
+                <div class="d">{{ p.texto }}</div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section>
+        <h2 class="ay-sec"><i class="bi bi-journal-check"></i>Guías · {{ rol_info.nombre }}</h2>
+        <p class="ay-sub">{{ rol_info.desc }}</p>
+        <div class="row g-3" id="lista-guias">
+            {% for g in todas_las_guias %}
+            <div class="col-md-6 col-lg-4 item-guia {% if rol_vista not in g.roles %}ay-oculto fuera-de-rol{% endif %}"
+                 data-buscar="{{ g.titulo|lower }} {{ g.resumen|lower }} {% for p in g.pasos %}{{ p.titulo|lower }} {{ p.texto|striptags|lower }} {% endfor %}">
+                <a href="{% url 'guia_ayuda' g.slug %}" class="ay-card ay-guia" data-slug="{{ g.slug }}">
+                    <span class="ay-leida"><i class="bi bi-check2"></i> Leída</span>
+                    <div class="ico"><i class="bi {{ g.icono }}"></i></div>
+                    <div>
+                        <div class="t">{{ g.titulo }}</div>
+                        <div class="d">{{ g.resumen }}</div>
+                        <div class="ay-meta"><span>{{ g.pasos|length }} pasos</span><span>{{ g.minutos }} min</span></div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="sin-resultados" class="ay-card p-4 text-center ay-oculto" style="color: var(--text-soft);">
+            <i class="bi bi-search fs-2 d-block mb-2 opacity-50"></i>No encontramos guías con esa palabra. Prueba con otra o escríbenos por WhatsApp.
+        </div>
+    </section>
+
+    <section class="bloque-buscable">
+        <h2 class="ay-sec"><i class="bi bi-question-circle"></i>Preguntas frecuentes</h2>
+        <div class="ay-card ay-faq">
+            {% for q in preguntas %}
+            <details data-buscar="{{ q.p|lower }} {{ q.r|lower }}"><summary>{{ q.p }}</summary><p>{{ q.r }}</p></details>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="bloque-buscable">
+        <h2 class="ay-sec"><i class="bi bi-book"></i>Palabras que verás en el sistema</h2>
+        <div class="ay-glosario">
+            {% for termino, definicion in glosario %}
+            <div data-buscar="{{ termino|lower }} {{ definicion|lower }}"><b>{{ termino }}</b><span>{{ definicion }}</span></div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="ay-soporte">
+        <div>
+            <div class="fw-bold fs-5">¿Sigues con dudas?</div>
+            <p>Escríbenos y te ayudamos a configurar tu cancha.</p>
+        </div>
+        <a href="https://wa.me/593987408528?text={{ 'Hola, necesito ayuda con NEXUS SPORTOPS'|urlencode }}" target="_blank" rel="noopener" class="btn btn-success rounded-pill fw-bold px-4"><i class="bi bi-whatsapp me-1"></i>Soporte por WhatsApp</a>
+    </div>
+</div>
+
+<script>
+    (function () {
+        // Guías ya leídas (solo en este navegador)
+        let leidas = [];
+        try { leidas = JSON.parse(localStorage.getItem('nexus_guias_leidas') || '[]'); } catch (e) {}
+        document.querySelectorAll('.ay-guia').forEach(a => {
+            if (leidas.includes(a.dataset.slug)) a.classList.add('leida');
+        });
+
+        // Búsqueda: al escribir se busca en TODAS las guías (de cualquier rol)
+        const input = document.getElementById('ay-buscar');
+        const items = document.querySelectorAll('.item-guia');
+        const otros = document.querySelectorAll('.ay-paso, .ay-faq details, .ay-glosario > div');
+        const sinRes = document.getElementById('sin-resultados');
+        const progreso = document.getElementById('bloque-progreso');
+        const normalizar = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+        input.addEventListener('input', () => {
+            const q = normalizar(input.value.trim());
+            let visibles = 0;
+            items.forEach(el => {
+                const coincide = q ? normalizar(el.dataset.buscar).includes(q) : !el.classList.contains('fuera-de-rol');
+                el.classList.toggle('ay-oculto', !coincide);
+                if (coincide) visibles++;
+            });
+            otros.forEach(el => el.classList.toggle('ay-oculto', !!q && !normalizar(el.dataset.buscar).includes(q)));
+            document.querySelectorAll('.bloque-buscable').forEach(b => {
+                const hay = b.querySelectorAll('[data-buscar]:not(.ay-oculto)').length;
+                b.classList.toggle('ay-oculto', !!q && !hay);
+            });
+            if (progreso) progreso.classList.toggle('ay-oculto', !!q);
+            sinRes.classList.toggle('ay-oculto', visibles > 0);
+        });
+    })();
+</script>
+{% endblock %}

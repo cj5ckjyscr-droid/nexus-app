@@ -14,36 +14,53 @@ from .models import (
 # =====================================================
 # 1. CREAR USUARIOS
 # =====================================================
-class RegistroUsuarioForm(UserCreationForm):
-    rol = forms.ChoiceField(
-        choices=RolComplejo.ROLES,  # <--- AQUÍ ESTÁ EL CAMBIO CLAVE
-        label="Rol del Usuario",
-        widget=forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'})
-    )
-    cedula = forms.CharField(
-        label="Cédula", required=False,
-        help_text="Opcional. Le permitirá iniciar sesión con la cédula además del usuario.",
-        widget=forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': '10 dígitos'}),
-    )
+class CuentaCanchaForm(forms.Form):
+    """El dueño de una cancha crea la cuenta de su vocal (o de su staff).
+    La cuenta solo existe dentro de esa cancha."""
+    ROLES_CREABLES = [
+        ('VOC', 'Vocal de mesa'),
+        ('DIR', 'Dirigente de equipo'),
+        ('ORG', 'Staff / ayudante del organizador'),
+    ]
+    first_name = forms.CharField(label="Nombres", max_length=150,
+                                 widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Juan Carlos', 'autocomplete': 'off'}))
+    last_name = forms.CharField(label="Apellidos", max_length=150, required=False,
+                                widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Pérez', 'autocomplete': 'off'}))
+    username = forms.CharField(
+        label="Usuario para iniciar sesión", max_length=150, required=False,
+        help_text="Déjalo vacío y se genera uno a partir del nombre.",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: juan.perez', 'autocomplete': 'off',
+                                      'autocapitalize': 'none', 'spellcheck': 'false'}))
+    password = forms.CharField(
+        label="Contraseña", min_length=8, max_length=64, required=False,
+        help_text="Déjala vacía y se genera una segura. Mínimo 8 caracteres.",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'new-password',
+                                      'autocapitalize': 'none', 'spellcheck': 'false'}))
+    rol = forms.ChoiceField(label="Rol en tu cancha", choices=ROLES_CREABLES, initial='VOC',
+                            widget=forms.RadioSelect)
+    telefono = forms.CharField(label="WhatsApp (opcional)", max_length=15, required=False,
+                               help_text="Para enviarle las credenciales con un toque.",
+                               widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '09…', 'inputmode': 'tel'}))
 
-    class Meta:
-        model = User
-        fields = ['username', 'first_name', 'last_name', 'email']
-        widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control bg-dark text-white border-secondary'}),
-        }
+    def clean_username(self):
+        username = (self.cleaned_data.get('username') or '').strip().lower()
+        if not username:
+            return ''
+        import re
+        if not re.fullmatch(r'[a-z0-9._-]{3,150}', username):
+            raise forms.ValidationError("Usa solo minúsculas, números, punto, guion o guion bajo (mínimo 3).")
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("Ese usuario ya existe. Prueba con otro.")
+        return username
 
-    def clean_cedula(self):
-        cedula = self.cleaned_data.get('cedula')
-        if not cedula:
-            return cedula
-        validar_cedula_db(cedula)
-        if Perfil.objects.filter(cedula=cedula).exists():
-            raise forms.ValidationError("Esa cédula ya está registrada en otra cuenta.")
-        return cedula
+    def clean_password(self):
+        password = self.cleaned_data.get('password') or ''
+        if password:
+            from django.contrib.auth.password_validation import validate_password
+            validate_password(password)
+        return password
+
+
 # =====================================================
 # 2. CREAR TORNEOS
 # =====================================================

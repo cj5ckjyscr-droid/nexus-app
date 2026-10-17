@@ -1,0 +1,59 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Credenciales | {{ mi_complejo.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cred-wrap { max-width: 560px; margin: 1.5rem auto 3rem; }
+    .cred-card { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 22px; box-shadow: var(--shadow-float); overflow: hidden; }
+    .cred-top { background: linear-gradient(135deg, #065F46, #059669); color: #fff; padding: 1.4rem; text-align: center; }
+    .cred-top .ico { width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.18); display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: .5rem; }
+    .cred-top h1 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.45rem; margin: 0; color: #fff; }
+    .cred-top p { margin: .25rem 0 0; color: #D1FAE5; font-size: .9rem; }
+    .dato { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .85rem 1rem; border: 1px solid var(--border-light); border-radius: 14px; background: var(--slate-50, #F8FAFC); }
+    .dato .k { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--text-soft); }
+    .dato .v { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.15rem; font-weight: 800; color: var(--text-main); word-break: break-all; }
+    .aviso { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; border-radius: 14px; padding: .75rem .9rem; font-size: .84rem; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="cred-wrap">
+    <div class="cred-card">
+        <div class="cred-top">
+            <div class="ico"><i class="bi bi-person-check-fill"></i></div>
+            <h1>{% if cred.nueva %}Cuenta creada{% else %}Contraseña restablecida{% endif %}</h1>
+            <p>{{ cred.nombre }} · {{ cred.rol }} en {{ mi_complejo.nombre }}</p>
+        </div>
+        <div class="p-3 p-md-4 d-flex flex-column gap-2">
+            <div class="dato"><div><div class="k">Dirección para entrar</div><div class="v" style="font-size:.9rem;">{{ url_login }}</div></div></div>
+            <div class="dato">
+                <div><div class="k">Usuario</div><div class="v">{{ cred.usuario }}</div></div>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-copiar="{{ cred.usuario }}"><i class="bi bi-copy"></i></button>
+            </div>
+            <div class="dato">
+                <div><div class="k">Contraseña</div><div class="v">{{ cred.clave }}</div></div>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-copiar="{{ cred.clave }}"><i class="bi bi-copy"></i></button>
+            </div>
+
+            <div class="aviso mt-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>Esta contraseña <strong>solo se muestra ahora</strong>. Compártela antes de salir. Si se pierde, restablécela desde <em>Usuarios</em>.</div>
+
+            <div class="d-grid gap-2 mt-2">
+                <a href="{{ url_whatsapp }}" target="_blank" rel="noopener" class="btn btn-success rounded-pill fw-bold py-2"><i class="bi bi-whatsapp me-1"></i>Enviar por WhatsApp</a>
+                <button type="button" class="btn btn-outline-primary rounded-pill fw-bold" data-copiar="{{ mensaje }}"><i class="bi bi-clipboard me-1"></i>Copiar mensaje completo</button>
+                <a href="{% url 'gestionar_usuarios' %}" class="btn btn-light border rounded-pill fw-bold">Listo, volver a Usuarios</a>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.querySelectorAll('[data-copiar]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const original = btn.innerHTML;
+            try { await navigator.clipboard.writeText(btn.dataset.copiar); btn.innerHTML = '<i class="bi bi-check2"></i> Copiado'; }
+            catch (e) { btn.innerHTML = 'No se pudo copiar'; }
+            setTimeout(() => { btn.innerHTML = original; }, 1600);
+        });
+    });
+</script>
+{% endblock %}

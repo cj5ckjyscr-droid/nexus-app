@@ -1,89 +1,104 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Nuevo Usuario | NEXUS SPORTOPS{% endblock %}
-
-{% block contenido %}
-<div class="row justify-content-center animate__animated animate__fadeInUp mt-4">
-    <div class="col-md-8 col-lg-6">
-        <div class="card card-pro border-0 shadow-lg rounded-4 overflow-hidden">
-            
-            <div class="card-header text-white text-center py-4 border-0" style="background: linear-gradient(135deg, var(--primary-navy), var(--primary-blue));">
-                <h3 class="fw-black mb-0" style="letter-spacing: 0.5px;">
-                    <i class="bi bi-person-plus-fill text-white opacity-75 me-2"></i>Nuevo Usuario
-                </h3>
-                <small class="text-white-50 fw-medium">Crear cuenta administrativa o de gestión</small>
-            </div>
-            
-            <div class="card-body p-4 p-md-5 bg-white">
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    {% for field in form %}
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-uppercase" style="color: var(--primary-navy); font-size: 0.85rem; letter-spacing: 0.5px;">
-                            {{ field.label }}
-                        </label>
-                        
-                        {{ field }}
-                        
-                        {% if field.errors %}
-                            <div class="text-danger small mt-1 fw-bold">
-                                <i class="bi bi-exclamation-circle me-1"></i>{{ field.errors|striptags }}
-                            </div>
-                        {% endif %}
-                        
-                        {% if field.help_text %}
-                            <div class="form-text text-muted mt-1" style="font-size: 0.75rem;">
-                                {{ field.help_text }}
-                            </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-
-                    <div class="d-grid gap-3 mt-5">
-                        <button type="submit" class="btn btn-sport btn-lg w-100 fw-bold shadow-sm" style="border-radius: 12px;">
-                            <i class="bi bi-save me-2"></i> Guardar Usuario
-                        </button>
-                        
-                        <a href="{% url 'dashboard' %}" class="btn btn-light border-secondary-subtle w-100 fw-bold rounded-pill transition-all text-dark">
-                            <i class="bi bi-arrow-left me-2"></i> Cancelar y Volver
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+{% block title %}Crear cuenta | {{ mi_complejo.nombre }}{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Estilos automáticos para los inputs de Django */
-    input.form-control, select.form-select, textarea.form-control {
-        border-radius: 10px !important;
-        border: 1px solid #CBD5E1 !important;
-        padding: 10px 15px !important;
-        background-color: #F8FAFC !important;
-        color: var(--text-main) !important;
-        transition: all 0.3s ease !important;
-    }
-    input.form-control:focus, select.form-select:focus, textarea.form-control:focus {
-        background-color: #FFFFFF !important;
-        border-color: var(--primary-blue) !important;
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.15) !important;
-    }
-    
-    /* Para los checkboxes (si los hay) */
-    input[type="checkbox"].form-check-input {
-        width: 1.2rem;
-        height: 1.2rem;
-        margin-top: 0.1rem;
-        border-color: #CBD5E1;
-        cursor: pointer;
-    }
-    input[type="checkbox"].form-check-input:checked {
-        background-color: var(--primary-blue);
-        border-color: var(--primary-blue);
-    }
+    .cuenta-wrap { max-width: 720px; margin: 1rem auto 3rem; }
+    .cuenta-hero { background: linear-gradient(135deg, #0F172A, #1E3A8A); color: #fff; border-radius: 20px; padding: 1.3rem 1.4rem; margin-bottom: 1.2rem; }
+    .cuenta-hero h1 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.6rem; margin: .2rem 0; color: #fff; }
+    .cuenta-hero p { color: #CBD5E1; margin: 0; font-size: .9rem; }
+    .cuenta-card { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 18px; box-shadow: var(--shadow-float); padding: 1.3rem; }
+    .cuenta-card .lbl { display: block; font-size: .74rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-main); margin-bottom: .35rem; }
+    .cuenta-card .form-control { border-radius: 12px; padding: .65rem .85rem; font-weight: 600; }
+    .cuenta-card .ayuda { font-size: .75rem; color: var(--text-soft); margin-top: .3rem; }
+    .cuenta-card .errorlist { list-style: none; padding: 0; margin: .3rem 0 0; color: #B91C1C; font-size: .78rem; font-weight: 700; }
+    .paso { font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: var(--brand-primary); margin: 0 0 .7rem; display: flex; gap: .5rem; align-items: center; }
+    .paso::after { content: ""; flex: 1; height: 1px; background: var(--border-light); }
+    .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+    .roles label { border: 2px solid var(--border-light); border-radius: 14px; padding: .7rem; cursor: pointer; display: block; height: 100%; transition: border-color .15s, background .15s; }
+    .roles input { position: absolute; opacity: 0; pointer-events: none; }
+    .roles label:has(input:checked) { border-color: var(--brand-primary); background: #EEF2FF; }
+    .roles .t { font-weight: 800; color: var(--text-main); font-size: .9rem; display: flex; align-items: center; gap: .4rem; }
+    .roles .d { font-size: .74rem; color: var(--text-soft); margin-top: .2rem; }
+    .clave-box { display: flex; gap: .4rem; }
+    .clave-box .form-control { font-family: ui-monospace, monospace; letter-spacing: .05em; }
+    @media (max-width: 576px) { .roles { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
+
+{% block contenido %}
+<div class="cuenta-wrap">
+    <div class="cuenta-hero">
+        <div class="small fw-bold text-uppercase" style="color:#93C5FD; letter-spacing:.08em;"><i class="bi bi-geo-alt-fill me-1"></i>{{ mi_complejo.nombre }}</div>
+        <h1>Crear cuenta para tu vocal</h1>
+        <p>La cuenta solo funciona en <strong class="text-white">{{ mi_complejo.nombre }}</strong>. Al guardar verás el usuario y la contraseña para compartirlos; con ellos puede entrar desde cualquier celular o computadora.</p>
+    </div>
+
+    <form method="post" class="cuenta-card" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-danger py-2 small">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+
+        <p class="paso">1 · Rol</p>
+        <div class="roles mb-4">
+            {% for opcion in form.rol %}
+            <label>
+                {{ opcion.tag }}
+                <span class="t">{% if opcion.data.value == 'VOC' %}<i class="bi bi-clipboard-data text-primary"></i>{% elif opcion.data.value == 'DIR' %}<i class="bi bi-shield text-info"></i>{% else %}<i class="bi bi-gear text-secondary"></i>{% endif %}{{ opcion.choice_label }}</span>
+                <span class="d">{% if opcion.data.value == 'VOC' %}Registra goles, tarjetas y cierra el acta de los partidos de tu cancha.{% elif opcion.data.value == 'DIR' %}Inscribe y administra su equipo en tus torneos.{% else %}Te ayuda a administrar torneos, equipos y finanzas.{% endif %}</span>
+            </label>
+            {% endfor %}
+        </div>
+
+        <p class="paso">2 · Datos de la persona</p>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6"><label class="lbl" for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }} <span class="text-danger">*</span></label>{{ form.first_name }}{{ form.first_name.errors }}</div>
+            <div class="col-md-6"><label class="lbl" for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>{{ form.last_name }}{{ form.last_name.errors }}</div>
+            <div class="col-12"><label class="lbl" for="{{ form.telefono.id_for_label }}">{{ form.telefono.label }}</label>{{ form.telefono }}<div class="ayuda">{{ form.telefono.help_text }}</div>{{ form.telefono.errors }}</div>
+        </div>
+
+        <p class="paso">3 · Acceso</p>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="lbl" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                {{ form.username }}<div class="ayuda">{{ form.username.help_text }}</div>{{ form.username.errors }}
+            </div>
+            <div class="col-md-6">
+                <label class="lbl" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                <div class="clave-box">{{ form.password }}<button type="button" class="btn btn-outline-secondary rounded-3" id="btn-generar" title="Generar contraseña"><i class="bi bi-shuffle"></i></button></div>
+                <div class="ayuda">{{ form.password.help_text }}</div>{{ form.password.errors }}
+            </div>
+        </div>
+
+        <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end mt-4 pt-3 border-top">
+            <a href="{% url 'gestionar_usuarios' %}" class="btn btn-light border rounded-pill px-4 fw-bold">Cancelar</a>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold"><i class="bi bi-person-check me-1"></i>Crear cuenta</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    (function () {
+        const nombres = document.getElementById('{{ form.first_name.id_for_label }}');
+        const apellidos = document.getElementById('{{ form.last_name.id_for_label }}');
+        const usuario = document.getElementById('{{ form.username.id_for_label }}');
+        const clave = document.getElementById('{{ form.password.id_for_label }}');
+        const limpiar = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0].replace(/[^a-z0-9]/g, '');
+        let usuarioTocado = !!usuario.value;
+        usuario.addEventListener('input', () => { usuarioTocado = true; });
+        function sugerir() {
+            if (usuarioTocado) return;
+            usuario.placeholder = [limpiar(nombres.value), limpiar(apellidos.value)].filter(Boolean).join('.') || 'Ej: juan.perez';
+        }
+        nombres.addEventListener('input', sugerir);
+        apellidos.addEventListener('input', sugerir);
+
+        const alfabeto = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        document.getElementById('btn-generar').addEventListener('click', () => {
+            const n = new Uint32Array(10);
+            crypto.getRandomValues(n);
+            clave.value = Array.from(n, x => alfabeto[x % alfabeto.length]).join('');
+        });
+    })();
+</script>
 {% endblock %}

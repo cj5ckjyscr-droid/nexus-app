@@ -1,0 +1,76 @@
+<style>
+    .ay { max-width: 1100px; margin: 0 auto; padding-bottom: 3rem; }
+    .ay-hero { background: radial-gradient(circle at 85% -10%, rgba(52,211,153,.35), transparent 45%), linear-gradient(135deg, #052e2b 0%, #064E3B 55%, #0F766E 100%); color: #fff; border-radius: 22px; padding: 1.6rem 1.5rem; margin: .75rem 0 1.5rem; box-shadow: 0 18px 40px -20px rgba(6,78,59,.6); }
+    .ay-hero .eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #A7F3D0; display: inline-flex; gap: .4rem; align-items: center; }
+    .ay-hero h1 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: clamp(1.6rem, 3.6vw, 2.3rem); color: #fff; margin: .25rem 0 .35rem; letter-spacing: -.02em; }
+    .ay-hero p { color: #D1FAE5; margin: 0; max-width: 620px; }
+    .ay-buscar { position: relative; margin-top: 1.1rem; max-width: 560px; }
+    .ay-buscar i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #64748B; }
+    .ay-buscar input { width: 100%; border: 0; border-radius: 999px; padding: .8rem 1rem .8rem 2.6rem; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+    .ay-buscar input:focus { outline: 3px solid #6EE7B7; }
+
+    .ay-roles { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+    .ay-rol { display: inline-flex; align-items: center; gap: .45rem; padding: .55rem 1rem; border-radius: 999px; border: 1.5px solid var(--border-light); background: var(--bg-surface); font-weight: 700; font-size: .88rem; color: var(--text-main); text-decoration: none; transition: all .15s; }
+    .ay-rol:hover { border-color: var(--c); color: var(--c); }
+    .ay-rol.activo { background: var(--c); border-color: var(--c); color: #fff; }
+    .ay-rol .tu { font-size: .66rem; font-weight: 800; background: rgba(255,255,255,.25); border-radius: 999px; padding: .05rem .45rem; }
+    .ay-rol:not(.activo) .tu { background: #F1F5F9; color: #475569; }
+
+    .ay-sec { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.3rem; color: var(--text-main); margin: 2rem 0 .3rem; display: flex; align-items: center; gap: .55rem; }
+    .ay-sec i { color: #0F766E; }
+    .ay-sub { color: var(--text-soft); margin: 0 0 1rem; font-size: .92rem; }
+    .ay-card { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 18px; box-shadow: var(--shadow-float); }
+
+    /* Progreso del organizador */
+    .ay-progreso { padding: 1.2rem 1.3rem; }
+    .ay-barra { height: 12px; border-radius: 999px; background: #E2E8F0; overflow: hidden; }
+    .ay-barra span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #10B981, #059669); transition: width .4s; }
+    .ay-check { display: flex; align-items: center; gap: .7rem; padding: .55rem 0; border-top: 1px dashed var(--border-light); }
+    .ay-check:first-child { border-top: 0; }
+    .ay-check .ico { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .85rem; }
+    .ay-check.hecho .ico { background: #DCFCE7; color: #15803D; }
+    .ay-check:not(.hecho) .ico { background: #F1F5F9; color: #94A3B8; border: 2px dashed #CBD5E1; }
+    .ay-check.hecho .t { color: var(--text-soft); text-decoration: line-through; }
+    .ay-check .t { flex: 1; font-weight: 600; color: var(--text-main); font-size: .92rem; }
+    .ay-siguiente { background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 14px; padding: .8rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+
+    /* Ruta del campeonato */
+    .ay-ruta { display: grid; grid-template-columns: repeat(5, 1fr); gap: .75rem; counter-reset: paso; }
+    .ay-paso { position: relative; display: block; text-decoration: none; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 16px; padding: .9rem .85rem; transition: transform .15s, border-color .15s, box-shadow .15s; }
+    .ay-paso:hover { transform: translateY(-3px); border-color: #34D399; box-shadow: 0 10px 22px -12px rgba(5,150,105,.5); }
+    .ay-paso .num { position: absolute; top: .7rem; right: .8rem; font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.5rem; color: #D1FAE5; line-height: 1; }
+    .ay-paso .ico { width: 40px; height: 40px; border-radius: 12px; background: #ECFDF5; color: #047857; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: .55rem; }
+    .ay-paso .t { font-weight: 800; color: var(--text-main); }
+    .ay-paso .d { font-size: .8rem; color: var(--text-soft); margin-top: .15rem; line-height: 1.35; }
+
+    /* Guías */
+    .ay-guia { display: flex; gap: .9rem; text-decoration: none; padding: 1rem; height: 100%; transition: border-color .15s, transform .15s; position: relative; }
+    .ay-guia:hover { border-color: #34D399; transform: translateY(-2px); }
+    .ay-guia .ico { width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0; background: #ECFDF5; color: #047857; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; }
+    .ay-guia .t { font-weight: 800; color: var(--text-main); line-height: 1.25; }
+    .ay-guia .d { font-size: .84rem; color: var(--text-soft); margin: .25rem 0 .45rem; }
+    .ay-meta { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .ay-meta span { font-size: .7rem; font-weight: 800; color: #475569; background: #F1F5F9; border-radius: 999px; padding: .15rem .55rem; }
+    .ay-leida { display: none; position: absolute; top: .7rem; right: .8rem; font-size: .7rem; font-weight: 800; color: #15803D; background: #DCFCE7; border-radius: 999px; padding: .15rem .55rem; }
+    .ay-guia.leida .ay-leida { display: inline-block; }
+
+    /* Preguntas y glosario */
+    .ay-faq details { border-top: 1px solid var(--border-light); }
+    .ay-faq details:first-child { border-top: 0; }
+    .ay-faq summary { cursor: pointer; padding: .9rem 1.1rem; font-weight: 700; color: var(--text-main); list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+    .ay-faq summary::-webkit-details-marker { display: none; }
+    .ay-faq summary::after { content: "+"; font-weight: 900; color: #0F766E; font-size: 1.2rem; line-height: 1; }
+    .ay-faq details[open] summary::after { content: "–"; }
+    .ay-faq details p { padding: 0 1.1rem 1rem; margin: 0; color: var(--text-soft); }
+    .ay-glosario { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .6rem; }
+    .ay-glosario div { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 14px; padding: .75rem .9rem; }
+    .ay-glosario b { color: #0F766E; display: block; }
+    .ay-glosario span { font-size: .84rem; color: var(--text-soft); }
+
+    .ay-soporte { background: linear-gradient(135deg, #0F172A, #1E293B); color: #fff; border-radius: 18px; padding: 1.2rem 1.3rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; }
+    .ay-soporte p { margin: 0; color: #CBD5E1; }
+    .ay-oculto { display: none !important; }
+
+    @media (max-width: 991px) { .ay-ruta { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 420px) { .ay-ruta { grid-template-columns: 1fr; } }
+</style>
