@@ -113,7 +113,7 @@
             {% endif %}
         </div>
         <div class="mt-2 mt-md-0 d-flex flex-wrap align-items-center gap-2">
-            {% if equipo_obj %}
+            {% if equipo_obj and es_admin %}
                 <a href="{% url 'imprimir_carnets' equipo_obj.id %}" class="btn btn-sm btn-outline-primary rounded-pill fw-bold px-3"><i class="bi bi-person-vcard me-1"></i>Imprimir carnets</a>
             {% endif %}
             {% if equipo_obj and equipo_obj.cupos_pagados > 0 %}
@@ -261,10 +261,18 @@
 
                     <form method="post" enctype="multipart/form-data" class="dark-inputs" id="registroJugadorForm" {% if not puede_fichar and not editando %}style="pointer-events: none; opacity: 0.5;"{% endif %}>
                         {% csrf_token %}
+                        {% if es_dirigente %}
+                            {{ form.equipo }}
+                            <div class="mb-3 d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background: #EFF6FF; border: 1px solid #BFDBFE;">
+                                <i class="bi bi-shield-fill text-primary"></i>
+                                <div class="small"><span class="text-muted fw-bold">Fichando en</span> <strong class="text-dark">{{ equipo_obj.nombre }}</strong></div>
+                            </div>
+                        {% else %}
                         <div {% if equipos_activos|length <= 1 %}style="display:none;"{% else %}class="mb-3"{% endif %}>
                             <label class="form-label small fw-bold text-muted mb-1">Equipo Destino</label>
                             {{ form.equipo }}
                         </div>
+                        {% endif %}
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted mb-1">Cédula de Identidad</label>

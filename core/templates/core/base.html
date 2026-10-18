@@ -620,7 +620,7 @@
                 {% endif %}
 
                 <a class="navbar-brand d-flex align-items-center m-0" href="
-                    {% if user.is_superuser %}
+                    {% if user.is_superuser and not complejo_soporte %}
                         {% url 'dashboard_saas' %}
                     {% elif user.is_authenticated and rol_nav_efectivo != 'FAN' %}
                         {% url 'dashboard' %}
@@ -685,7 +685,7 @@
 
                     {% if user.is_authenticated %}
                         
-                        {% if user.is_superuser %}
+                        {% if user.is_superuser and not complejo_soporte %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-primary fw-semibold" href="#" data-bs-toggle="dropdown"><i class="bi bi-shield-lock-fill me-1"></i>Panel SaaS</a>
                                 <ul class="dropdown-menu dropdown-menu-end">
@@ -806,6 +806,15 @@
     {% endif %}
     
     <div class="container main-content">
+        {% if complejo_soporte %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 rounded-4 px-3 py-2 mb-3 mt-2" style="background: #FEF3C7; border: 1px solid #FCD34D; color: #78350F;" role="status">
+            <div class="fw-semibold"><i class="bi bi-life-preserver me-1"></i>Modo soporte: estás administrando <strong>{{ complejo_soporte.nombre }}</strong> como su organizador.</div>
+            <form method="post" action="{% url 'soporte_salir' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-dark rounded-pill fw-bold px-3"><i class="bi bi-box-arrow-left me-1"></i>Salir y volver al Panel SaaS</button>
+            </form>
+        </div>
+        {% endif %}
         {% block contenido %}{% endblock %}
     </div>
 

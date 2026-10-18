@@ -1,3 +1,4 @@
+from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -70,9 +71,22 @@ def es_dirigente_o_admin(user):
     return ComplejoDeportivo.objects.filter(organizador=user, activo=True).exists() or \
            RolComplejo.objects.filter(usuario=user, rol__in=['ORG', 'DIR']).exists()
 
+def complejo_en_soporte(user):
+    """Cancha que el administrador general está atendiendo en MODO SOPORTE
+    (entró desde el panel SaaS para administrarla como su dueño), o None."""
+    if not (user.is_authenticated and user.is_superuser):
+        return None
+    from .middleware import request_actual
+    req = request_actual()
+    cid = req.session.get('complejo_soporte_id') if req is not None and hasattr(req, 'session') else None
+    return ComplejoDeportivo.objects.filter(id=cid).first() if cid else None
+
+
 def obtener_mi_complejo(user):
     """Obtiene la cancha donde el usuario es DUEÑO o STAFF(ORG)"""
     if not user.is_authenticated: return None
+    if user.is_superuser:
+        return complejo_en_soporte(user)
     c = ComplejoDeportivo.objects.filter(organizador=user, activo=True).first()
     if c: return c
     rc = RolComplejo.objects.filter(usuario=user, rol='ORG').first()
@@ -95,6 +109,16 @@ def rol_en_complejo(user, complejo):
 
 
 PRIORIDAD_ROL = {'FAN': 0, 'DIR': 1, 'VOC': 2, 'ORG': 3}
+
+
+def equipos_del_dirigente(request):
+    """Equipos que el usuario dirige. En el Rol de Prueba (simulando a un
+    dirigente) es SOLO el equipo simulado, aunque el dueño de la cancha demo
+    figure como dirigente de todos los equipos demo."""
+    simulado = obtener_equipo_simulado(request)
+    if simulado:
+        return Equipo.objects.filter(id=simulado.id)
+    return Equipo.objects.filter(dirigente=request.user)
 
 
 def asegurar_rol_dirigente(user, complejo):
@@ -142,7 +166,7 @@ def obtener_rol_principal(user):
 
 @login_required
 def dashboard(request):
-    if request.user.is_superuser:
+    if request.user.is_superuser and not complejo_en_soporte(request.user):
         return redirect('dashboard_saas')
 
     ctx = {}
@@ -191,7 +215,7 @@ def dashboard(request):
             ctx['progreso_ayuda'] = _progreso_organizador(mi_complejo)
 
         elif rol == 'DIR':
-            mis_equipos = Equipo.objects.filter(dirigente=request.user).exclude(estado_inscripcion='RECHAZADO')
+            mis_equipos = equipos_del_dirigente(request).exclude(estado_inscripcion='RECHAZADO')
             if mis_equipos.exists():
                 ctx['mi_equipo'] = equipo_simulado or mis_equipos.first() 
                 mis_deudas = Sancion.objects.filter(equipo__in=mis_equipos, pagada=False).exclude(descripcion__icontains='Inscripci').select_related('partido', 'jugador').order_by('-partido__fecha_hora', '-id')
@@ -216,9 +240,18 @@ def dashboard(request):
 
     return render(request, 'core/dashboard.html', ctx)
 
+def complejo_del_dueno(user):
+    """Cancha de la que el usuario es DUEÑO (o la que atiende en modo soporte)."""
+    if not user.is_authenticated:
+        return None
+    if user.is_superuser:
+        return complejo_en_soporte(user)
+    return ComplejoDeportivo.objects.filter(organizador=user, activo=True).first()
+
+
 def es_dueno_de_cancha(user):
     """Solo el DUEÑO de una cancha (no su staff) crea cuentas y restablece contraseñas."""
-    return user.is_authenticated and ComplejoDeportivo.objects.filter(organizador=user, activo=True).exists()
+    return complejo_del_dueno(user) is not None
 
 
 ALFABETO_CLAVE = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'  # sin 0/O, 1/l/I
@@ -263,7 +296,7 @@ def _puede_restablecer(rc, complejo):
 @login_required
 @user_passes_test(es_dueno_de_cancha)
 def crear_usuario(request):
-    mi_complejo = ComplejoDeportivo.objects.filter(organizador=request.user, activo=True).first()
+    mi_complejo = complejo_del_dueno(request.user)
     if request.method == 'POST':
         form = CuentaCanchaForm(request.POST)
         if form.is_valid():
@@ -291,7 +324,7 @@ def credenciales_cuenta(request):
     if not datos:
         messages.info(request, "Las credenciales solo se muestran una vez. Si se perdieron, restablece la contraseña desde Usuarios.")
         return redirect('gestionar_usuarios')
-    mi_complejo = ComplejoDeportivo.objects.filter(organizador=request.user, activo=True).first()
+    mi_complejo = complejo_del_dueno(request.user)
     url_login = request.build_absolute_uri(reverse('login'))
     mensaje = (f"Hola {datos['nombre']}, esta es tu cuenta de {datos['rol']} en {mi_complejo.nombre} (NEXUS SPORTOPS).\n"
                f"Entra en: {url_login}\nUsuario: {datos['usuario']}\nContraseña: {datos['clave']}")
@@ -333,7 +366,7 @@ def gestionar_usuarios(request):
             return redirect('gestionar_usuarios')
         if rol_cancha_id and request.POST.get('restablecer') == '1':
             rc = get_object_or_404(RolComplejo.objects.select_related('usuario'), id=rol_cancha_id, complejo=mi_complejo)
-            if mi_complejo.organizador_id != request.user.id or not _puede_restablecer(rc, mi_complejo):
+            if complejo_del_dueno(request.user) != mi_complejo or not _puede_restablecer(rc, mi_complejo):
                 messages.error(request, '⛔ Solo puedes restablecer la contraseña de cuentas creadas desde tu cancha.')
                 return redirect('gestionar_usuarios')
             clave = generar_clave()
@@ -381,7 +414,7 @@ def gestionar_usuarios(request):
     return render(request, 'core/gestionar_usuarios.html', {
         'perfiles': perfiles, 'query': query, 'filtro_rol': filtro_rol,
         'roles': [(v, n, conteo_roles.get(v, 0)) for v, n in RolComplejo.ROLES], 'mi_complejo': mi_complejo,
-        'soy_dueno': mi_complejo.organizador_id == request.user.id,
+        'soy_dueno': complejo_del_dueno(request.user) == mi_complejo,
     })
 
 
@@ -415,7 +448,7 @@ def gestionar_torneos(request):
         form = TorneoForm(request.POST)
         if form.is_valid():
             t = form.save(commit=False)
-            t.organizador = request.user
+            t.organizador = mi_complejo.organizador if request.user.is_superuser else request.user
             t.complejo = mi_complejo
             t.save()
             messages.success(request, f'✅ Torneo "{t.nombre}" creado.')
@@ -632,6 +665,17 @@ def eliminar_equipo(request, equipo_id):
 # ✨ LÓGICA BLINDADA: GESTIÓN DE JUGADORES Y CUPOS ✨
 # =========================================================
 
+def _fijar_equipo_dirigente(form, equipo):
+    """El dirigente no elige equipo: siempre ficha en el equipo que tiene abierto."""
+    form.fields['equipo'].queryset = Equipo.objects.filter(id=equipo.id)
+    form.fields['equipo'].initial = equipo.id
+    form.fields['equipo'].widget = forms.HiddenInput()
+    if form.is_bound:
+        datos = form.data.copy()
+        datos['equipo'] = str(equipo.id)
+        form.data = datos
+
+
 @login_required
 def gestionar_jugadores(request):
     rol_principal = obtener_rol_principal(request.user)
@@ -642,7 +686,7 @@ def gestionar_jugadores(request):
     query = request.GET.get('q', '').strip()
 
     if rol_principal == 'DIR':
-        mis_equipos = Equipo.objects.filter(dirigente=request.user).exclude(estado_inscripcion='RECHAZADO')
+        mis_equipos = equipos_del_dirigente(request).exclude(estado_inscripcion='RECHAZADO')
         if not mis_equipos.exists():
             messages.error(request, 'No tienes un equipo inscrito. Inscríbete a un torneo primero.')
             return redirect('ver_torneos_activos')
@@ -678,7 +722,7 @@ def gestionar_jugadores(request):
                 return redirect(f"{request.path}?equipo={mi_equipo.id}")
 
             form = JugadorForm(request.POST, request.FILES, es_admin=False)
-            form.fields['equipo'].queryset = mis_equipos
+            _fijar_equipo_dirigente(form, mi_equipo)
 
             if form.is_valid():
                 cedula_ingresada = form.cleaned_data.get('cedula')
@@ -738,7 +782,7 @@ def gestionar_jugadores(request):
                 messages.error(request, "❌ Error en el formulario.")
         else:
             form = JugadorForm(initial={'equipo': mi_equipo}, es_admin=False)
-            form.fields['equipo'].queryset = mis_equipos 
+            _fijar_equipo_dirigente(form, mi_equipo)
 
     elif rol_principal == 'ORG':
         mi_complejo = obtener_mi_complejo(request.user)
@@ -1140,7 +1184,10 @@ def api_consultar_cedula(request):
 def programar_partidos(request):
     mis_canchas_ids = list(RolComplejo.objects.filter(usuario=request.user, rol__in=['ORG', 'VOC']).values_list('complejo_id', flat=True))
     mis_canchas_ids += list(ComplejoDeportivo.objects.filter(organizador=request.user).values_list('id', flat=True))
-    if request.user.is_superuser:
+    soporte = complejo_en_soporte(request.user)
+    if soporte:
+        torneos = Torneo.objects.filter(activo=True, complejo=soporte).order_by('-fecha_inicio')
+    elif request.user.is_superuser:
         torneos = Torneo.objects.filter(activo=True).order_by('-fecha_inicio')
     else:
         torneos = Torneo.objects.filter(activo=True, complejo_id__in=mis_canchas_ids).order_by('-fecha_inicio')
@@ -2104,6 +2151,8 @@ def reporte_estadisticas(request, torneo_id):
     # 🔥 El rol se mide EN LA CANCHA DEL TORNEO (ser vocal en otra cancha no
     # da acceso a los datos de esta).
     rol = rol_en_complejo(request.user, torneo.complejo) or 'FAN'
+    if obtener_equipo_simulado(request):
+        rol = 'DIR'  # Rol de Prueba: ve lo mismo que vería ese dirigente
 
     hay_fase2 = Partido.objects.filter(torneo=torneo, etapa='F2').exists()
     hay_llaves = Partido.objects.filter(torneo=torneo, etapa__in=Partido.ETAPAS_ELIMINATORIAS).exists()
@@ -2159,7 +2208,7 @@ def reporte_estadisticas(request, torneo_id):
     if rol in ['ORG', 'VOC']:
         equipos_permitidos = equipos_todos
     elif rol == 'DIR':
-        equipos_permitidos = Equipo.objects.filter(torneo=torneo, dirigente=request.user, estado_inscripcion='APROBADO')
+        equipos_permitidos = equipos_del_dirigente(request).filter(torneo=torneo, estado_inscripcion='APROBADO')
     else:
         equipos_permitidos = Equipo.objects.none()
 
@@ -3126,7 +3175,7 @@ def generar_horarios_imagen(request):
 
 @login_required
 def mis_finanzas_equipo(request):
-    mis_equipos = Equipo.objects.filter(dirigente=request.user)
+    mis_equipos = equipos_del_dirigente(request)
     equipo_simulado = obtener_equipo_simulado(request)
     equipo_id = request.GET.get('equipo') or (equipo_simulado.id if equipo_simulado else None)
     # 🔥 Si el ID pedido no es un equipo propio (ajeno o inexistente), cae
@@ -4175,10 +4224,12 @@ def eliminar_categoria(request, categoria_id):
 def imprimir_carnets(request, equipo_id):
     equipo = get_object_or_404(Equipo, id=equipo_id)
 
+    # Los carnets los imprime SOLO la organización de la cancha (dueño, staff o
+    # el administrador general en modo soporte). Nunca el dirigente, tampoco
+    # cuando el dueño está simulando ser dirigente en el Rol de Prueba.
     es_admin_de_esta_cancha = equipo.torneo.complejo == obtener_mi_complejo(request.user)
-    es_dueno_del_equipo = request.user == equipo.dirigente
-    if not (es_admin_de_esta_cancha or es_dueno_del_equipo):
-        messages.error(request, "⛔ Acceso denegado a los carnets de este equipo.")
+    if not es_admin_de_esta_cancha or obtener_equipo_simulado(request):
+        messages.error(request, "⛔ Los carnets solo los imprime la organización de la cancha.")
         return redirect('dashboard')
 
     jugadores = Jugador.objects.filter(equipo=equipo, expulsado_torneo=False).order_by('dorsal')
@@ -4421,6 +4472,27 @@ def dashboard_saas(request):
         'dias_aviso': DIAS_AVISO_VENCIMIENTO,
         'hoy': hoy,
     })
+
+
+@superadmin_requerido
+@require_POST
+def soporte_entrar(request, cancha_id):
+    """El administrador general entra a una cancha como su administrador."""
+    cancha = get_object_or_404(ComplejoDeportivo, id=cancha_id)
+    request.session['complejo_soporte_id'] = cancha.id
+    request.session.pop('equipo_simulado_id', None)
+    messages.info(request, f"🛟 Modo soporte: estás administrando {cancha.nombre}. Todo lo que hagas queda a tu nombre.")
+    return redirect('dashboard')
+
+
+@superadmin_requerido
+@require_POST
+def soporte_salir(request):
+    cancha = complejo_en_soporte(request.user)
+    request.session.pop('complejo_soporte_id', None)
+    if cancha:
+        messages.success(request, f"Saliste del modo soporte de {cancha.nombre}.")
+    return redirect('gestionar_canchas_saas')
 
 
 @superadmin_requerido

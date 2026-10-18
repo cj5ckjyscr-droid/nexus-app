@@ -61,6 +61,10 @@
                     <td class="text-end text-nowrap">
                         <a href="{% url 'registrar_pago_saas' %}?cancha={{ c.id }}" class="s-btn-ico" title="Registrar pago"><i class="bi bi-cash"></i></a>
                         <a href="{% url 'editar_cancha_saas' c.id %}" class="s-btn-ico" title="Editar cancha"><i class="bi bi-pencil"></i></a>
+                        <form method="post" action="{% url 'soporte_entrar' c.id %}" class="d-inline m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="s-btn-ico" title="Entrar como administrador de esta cancha"><i class="bi bi-box-arrow-in-right"></i></button>
+                        </form>
                     </td>
                 </tr>
             {% empty %}

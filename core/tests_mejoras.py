@@ -519,7 +519,7 @@ class CentroAyudaTest(DosCanchasTestCase):
         self.assertContains(r, 'href="/ayuda/crear-torneo/"')
         self.assertContains(r, 'href="/ayuda/"')
 
-    def test_el_dirigente_llega_a_sus_carnets_desde_su_nomina(self):
+    def test_el_dirigente_nunca_puede_imprimir_carnets(self):
         from .models import Equipo
         dirigente = User.objects.create_user("dir_carnets", password="pass12345")
         equipo = Equipo.objects.create(torneo=self.torneo_a, dirigente=dirigente, nombre="Los Carnets FC",
@@ -527,5 +527,107 @@ class CentroAyudaTest(DosCanchasTestCase):
         RolComplejo.objects.create(usuario=dirigente, complejo=self.complejo_a, rol="DIR")
         self.client.login(username="dir_carnets", password="pass12345")
         r = self.client.get(f"/jugadores/?equipo={equipo.id}")
-        self.assertContains(r, f'href="/imprimir-carnets/{equipo.id}/"')
+        self.assertNotContains(r, f'href="/imprimir-carnets/{equipo.id}/"')
+        self.assertRedirects(self.client.get(f"/imprimir-carnets/{equipo.id}/"), "/dashboard/", fetch_redirect_response=False)
+        # El organizador sí
+        self.client.login(username="org_a", password="pass12345")
         self.assertEqual(self.client.get(f"/imprimir-carnets/{equipo.id}/").status_code, 200)
+
+    def test_en_rol_de_prueba_simulando_dirigente_tampoco_hay_carnets(self):
+        from .services.pruebas import crear_entorno_prueba
+        tester = User.objects.create_user("tester_carnet", password="pass12345")
+        demo = crear_entorno_prueba(tester)
+        equipo = Equipo.objects.filter(torneo__complejo=demo).first()
+        self.client.login(username="tester_carnet", password="pass12345")
+        self.assertEqual(self.client.get(f"/imprimir-carnets/{equipo.id}/").status_code, 200)  # como organizador
+        self.client.post(f"/prueba/dirigente/activar/{equipo.id}/")
+        self.assertEqual(self.client.get(f"/imprimir-carnets/{equipo.id}/").status_code, 302)  # como dirigente
+
+class DirigenteSoloSuEquipoTest(DosCanchasTestCase):
+    def _datos_jugador(self, equipo_id, cedula="1710034065", dorsal="9"):
+        return {"equipo": str(equipo_id), "nombres": "Pedro Pablo Mina", "dorsal": dorsal, "cedula": cedula}
+
+    def test_el_dirigente_no_elige_equipo_al_fichar(self):
+        dirigente = User.objects.create_user("dir_dos", password="pass12345")
+        mio = Equipo.objects.create(torneo=self.torneo_a, dirigente=dirigente, nombre="Mi Equipo", estado_inscripcion="APROBADO")
+        otro_mio = Equipo.objects.create(torneo=self.torneo_a, dirigente=dirigente, nombre="Mi Otro", estado_inscripcion="APROBADO")
+        RolComplejo.objects.create(usuario=dirigente, complejo=self.complejo_a, rol="DIR")
+        self.client.login(username="dir_dos", password="pass12345")
+
+        r = self.client.get(f"/jugadores/?equipo={mio.id}")
+        self.assertContains(r, "Fichando en")
+        self.assertContains(r, f'<input type="hidden" name="equipo" value="{mio.id}"', html=False)
+        self.assertNotContains(r, "Equipo Destino")
+
+        # Aunque se envíe otro equipo (o uno ajeno), el jugador queda en el equipo abierto
+        for intruso in (otro_mio.id, self.equipo_a.id):
+            Jugador.objects.filter(cedula="1710034065").delete()
+            self.client.post(f"/jugadores/?equipo={mio.id}", self._datos_jugador(intruso))
+            self.assertEqual(Jugador.objects.get(cedula="1710034065").equipo, mio)
+
+    def test_rol_de_prueba_solo_ve_el_equipo_simulado(self):
+        from .services.pruebas import crear_entorno_prueba
+        tester = User.objects.create_user("tester_sim", password="pass12345")
+        complejo_demo = crear_entorno_prueba(tester)
+        equipos_demo = list(Equipo.objects.filter(torneo__complejo=complejo_demo, estado_inscripcion="APROBADO")[:2])
+        simulado, ajeno = equipos_demo
+        self.client.login(username="tester_sim", password="pass12345")
+        self.client.post(f"/prueba/dirigente/activar/{simulado.id}/")
+
+        # Nómina: solo su equipo, aunque pida otro por la URL
+        for url in ("/jugadores/", f"/jugadores/?equipo={ajeno.id}"):
+            r = self.client.get(url)
+            self.assertEqual(r.context["equipo_obj"], simulado)
+            self.assertEqual(list(r.context["equipos_activos"]), [simulado])
+        # Finanzas: igual
+        r = self.client.get(f"/mis-finanzas-equipo/?equipo={ajeno.id}")
+        self.assertEqual(r.context["equipo"], simulado)
+        # Inicio del dirigente simulado
+        r = self.client.get("/dashboard/")
+        self.assertEqual(r.context["mi_equipo"], simulado)
+
+
+
+class ModoSoporteSuperAdminTest(DosCanchasTestCase):
+    def setUp(self):
+        super().setUp()
+        User.objects.create_superuser("jefe_soporte", password="pass12345")
+        self.client.login(username="jefe_soporte", password="pass12345")
+
+    def test_entra_a_una_cancha_como_su_administrador_y_sale(self):
+        self.assertRedirects(self.client.get("/dashboard/"), "/nexus-admin/", fetch_redirect_response=False)
+        self.client.post(f"/nexus-admin/soporte/entrar/{self.complejo_a.id}/")
+
+        r = self.client.get("/dashboard/")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Modo soporte")
+        self.assertEqual(r.context["mi_complejo"], self.complejo_a)
+        # Solo ve los torneos de ESA cancha
+        r = self.client.get("/programar/")
+        self.assertIn(self.torneo_a, list(r.context["torneos"]))
+        self.assertNotIn(self.torneo_b, list(r.context["torneos"]))
+        # Carnets de esa cancha sí; de otra no
+        self.assertEqual(self.client.get(f"/imprimir-carnets/{self.equipo_a.id}/").status_code, 200)
+        self.assertEqual(self.client.get(f"/imprimir-carnets/{self.equipo_b.id}/").status_code, 302)
+        # Puede crear la cuenta del vocal de esa cancha
+        self.client.post("/usuarios/crear/", {"first_name": "Vocal Soporte", "rol": "VOC"})
+        self.assertEqual(RolComplejo.objects.get(usuario__first_name="Vocal Soporte").complejo, self.complejo_a)
+
+        self.client.post("/nexus-admin/soporte/salir/")
+        self.assertRedirects(self.client.get("/dashboard/"), "/nexus-admin/", fetch_redirect_response=False)
+
+    def test_torneo_creado_en_soporte_queda_a_nombre_del_dueno(self):
+        from .models import Torneo
+        self.client.post(f"/nexus-admin/soporte/entrar/{self.complejo_a.id}/")
+        self.client.post("/torneos/", {"nombre": "Copa Soporte", "fecha_inicio": "2026-11-01",
+                                       "inscripcion_abierta": "on", "activo": "on", "costo_inscripcion": "0",
+                                       "costo_inscripcion_jugador": "0", "costo_amarilla": "1", "costo_roja": "2"})
+        t = Torneo.objects.get(nombre="Copa Soporte")
+        self.assertEqual((t.complejo, t.organizador), (self.complejo_a, self.org_a))
+
+    def test_un_organizador_normal_no_puede_usar_el_modo_soporte(self):
+        self.client.login(username="org_a", password="pass12345")
+        self.client.post(f"/nexus-admin/soporte/entrar/{self.complejo_b.id}/")
+        self.assertNotIn("complejo_soporte_id", self.client.session)
+        r = self.client.get("/programar/")
+        self.assertNotIn(self.torneo_b, list(r.context["torneos"]))

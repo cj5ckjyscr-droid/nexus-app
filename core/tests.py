@@ -1270,12 +1270,15 @@ class GestionarJugadoresConEquipoSimuladoTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.mi_equipo.jugadores.count(), jugadores_antes + 1)
 
-    def test_puede_cambiar_a_otro_de_sus_seis_equipos_demo_con_el_selector_real(self):
+    def test_solo_ve_el_equipo_simulado_aunque_pida_otro_equipo_demo(self):
+        # Simulando a un dirigente se ve SOLO ese equipo; para probar otro hay
+        # que salir y elegirlo en "Dirigente de Equipo".
         otro_equipo = Equipo.objects.filter(torneo__complejo=self.complejo).exclude(id=self.mi_equipo.id).first()
 
         response = self.client.get(f"/jugadores/?equipo={otro_equipo.id}")
 
-        self.assertEqual(response.context["equipo_obj"], otro_equipo)
+        self.assertEqual(response.context["equipo_obj"], self.mi_equipo)
+        self.assertEqual(list(response.context["equipos_activos"]), [self.mi_equipo])
 
 
 class MisFinanzasEquipoConEquipoSimuladoTest(TestCase):

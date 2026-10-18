@@ -17,11 +17,21 @@ def configuracion_global(request):
         rol_nav_efectivo = perfil.rol_principal if perfil else 'FAN'
         if obtener_equipo_simulado(request):
             rol_nav_efectivo = 'DIR'
+    # Modo soporte: el administrador general administra una cancha ajena
+    complejo_soporte = None
+    if request.user.is_authenticated and request.user.is_superuser:
+        cid = request.session.get('complejo_soporte_id')
+        if cid:
+            complejo_soporte = ComplejoDeportivo.objects.filter(id=cid).first()
+            if complejo_soporte:
+                rol_nav_efectivo = 'ORG'
+
     # Guía que explica la pantalla actual (botón flotante de ayuda)
     pantalla = getattr(getattr(request, 'resolver_match', None), 'url_name', None)
     guia_pantalla = GUIAS_POR_SLUG.get(AYUDA_POR_PANTALLA.get(pantalla, ''))
     return {
         'guia_pantalla': guia_pantalla,
+        'complejo_soporte': complejo_soporte,
         'config_global': config,
         'es_entorno_prueba': es_entorno_prueba,
         'rol_nav_efectivo': rol_nav_efectivo,

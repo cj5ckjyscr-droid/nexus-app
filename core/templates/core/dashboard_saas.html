@@ -49,6 +49,10 @@
                         <div class="s-muted mt-1">{% if c.fecha_vencimiento %}Vence {{ c.fecha_vencimiento|date:"d/m/Y" }}{% else %}—{% endif %}</div>
                     </div>
                     <a href="{% url 'editar_cancha_saas' c.id %}" class="s-btn-ico" title="Editar cancha"><i class="bi bi-pencil"></i></a>
+                    <form method="post" action="{% url 'soporte_entrar' c.id %}" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="s-btn-ico" title="Entrar como administrador de esta cancha"><i class="bi bi-box-arrow-in-right"></i></button>
+                    </form>
                 </div>
                 {% empty %}
                 <div class="s-vacio"><i class="bi bi-inboxes"></i>Aún no registras canchas.</div>
