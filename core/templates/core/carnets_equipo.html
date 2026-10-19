@@ -122,7 +122,12 @@
             padding: 0 9px; font: 700 7px 'Inter', sans-serif; letter-spacing: 1.1px; text-transform: uppercase;
             border-top: 2px solid var(--c); white-space: nowrap; overflow: hidden;
         }
-        .cinta .dev { font-size: 5px; letter-spacing: .2px; opacity: .65; text-transform: none; }
+        .cinta .cancha { min-width: 0; overflow: hidden; text-overflow: ellipsis; letter-spacing: .5px; font-size: 6.6px; }
+        .cinta .credito { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.12; text-transform: none; letter-spacing: .15px; flex-shrink: 0; }
+        .cinta .credito .sistema { font-size: 5.6px; font-weight: 700; color: #E2E8F0; }
+        .cinta .credito .sistema b { font-weight: 900; color: #FACC15; letter-spacing: .5px; }
+        .cinta .credito .contacto { font-size: 5.3px; font-weight: 600; color: #94A3B8; }
+        .cinta .credito .contacto i { color: #4ADE80; font-size: 5.5px; }
 
         .vacio { text-align: center; width: 100%; padding-top: 50px; color: #64748B; }
 
@@ -194,8 +199,11 @@
             </div>
 
             <div class="cinta">
-                <span>{{ equipo.torneo.complejo.nombre|default:"NEXUS SPORTOPS" }}</span>
-                <span class="dev">Dev: Deyvi Rivera</span>
+                <span class="cancha">{{ equipo.torneo.complejo.nombre|default:"NEXUS SPORTOPS" }}</span>
+                <span class="credito">
+                    <span class="sistema"><b>NEXUS SPORTOPS</b> · Desarrollado por Deyvi Rivera</span>
+                    <span class="contacto"><i class="bi bi-whatsapp"></i> 098 740 8528 · Soporte y ventas del sistema</span>
+                </span>
             </div>
         </div>
         {% empty %}
