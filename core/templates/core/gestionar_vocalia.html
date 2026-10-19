@@ -151,12 +151,12 @@
 
     /* ===== Estilo deportivo (solo apariencia; los controles no cambian) ===== */
     .scoreboard-ios {
-        background: radial-gradient(120% 160% at 50% -40%, #1F5C42 0%, transparent 60%), #07140F;
-        border: 1px solid rgba(255,255,255,.08); box-shadow: 0 16px 30px -18px rgba(7,20,15,.85);
+        background: rgba(255,255,255,.88); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+        color: #12261B; border: 1px solid #E6EAE8; box-shadow: 0 14px 30px -22px rgba(18,38,27,.45);
     }
     .score-digit {
         font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; font-size: 3.4rem; letter-spacing: 0;
-        background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); font-variant-numeric: tabular-nums; min-width: 64px; text-align: center;
+        background: #F1F4F2; color: #12261B; border: 1px solid #E3E8E5; font-variant-numeric: tabular-nums; min-width: 64px; text-align: center;
     }
     .team-name-header { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; text-transform: uppercase; font-size: 1rem; letter-spacing: .03em; max-width: 110px; }
     #faltasLocalVal, #faltasVisitaVal { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif !important; font-weight: 800 !important; font-size: 2.6rem !important; font-variant-numeric: tabular-nums; }
@@ -205,7 +205,7 @@
             {% if partido.equipo_local.escudo %}
                 <img src="{{ partido.equipo_local.escudo.url }}" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; margin-bottom: 6px;">
             {% else %}
-                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; margin-bottom: 6px;"><i class="bi bi-shield-fill"></i></div>
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: #EEF5F0; color: #166534; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;"><i class="bi bi-shield-fill"></i></div>
             {% endif %}
             <div class="team-name-header">{{ partido.equipo_local.nombre }}</div>
             <span style="font-size: 0.6rem; color: #8A8A8E; font-weight: 600; margin-top: 2px;">LOCAL</span>
@@ -228,7 +228,7 @@
             {% if partido.equipo_visita.escudo %}
                 <img src="{{ partido.equipo_visita.escudo.url }}" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; margin-bottom: 6px;">
             {% else %}
-                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; margin-bottom: 6px;"><i class="bi bi-shield-fill"></i></div>
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: #EEF5F0; color: #166534; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;"><i class="bi bi-shield-fill"></i></div>
             {% endif %}
             <div class="team-name-header">{{ partido.equipo_visita.nombre }}</div>
             <span style="font-size: 0.6rem; color: #8A8A8E; font-weight: 600; margin-top: 2px;">VISITA</span>

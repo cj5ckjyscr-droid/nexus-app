@@ -151,16 +151,19 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="animate__animated animate__fadeIn pb-5">
 
     <!-- CABECERA DE LA PANTALLA -->
-    <div class="app-header">
-        <div class="d-inline-block bg-primary bg-opacity-10 text-primary p-3 rounded-circle mb-2">
-            <i class="bi bi-bar-chart-line-fill fs-2"></i>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-bar-chart-fill"></i>Tablas, goleadores y figuras</span></div>
+                <h1><small>Elige un torneo</small>Estadísticas</h1>
+            </div>
+            
         </div>
-        <h3 class="fw-black m-0" style="color: var(--text-main); letter-spacing: -0.5px;">Estadísticas</h3>
-        <p class="text-muted fw-bold small mb-0 mt-1">Selecciona un torneo para ver el reporte</p>
-    </div>
+    </header>
 
     <div class="container px-3">
         <!-- SECCIÓN: TORNEOS EN CURSO -->
@@ -262,5 +265,6 @@
             </div>
         {% endif %}
     </div>
+</div>
 </div>
 {% endblock %}

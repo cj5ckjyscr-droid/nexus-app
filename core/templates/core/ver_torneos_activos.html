@@ -124,14 +124,19 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="container-fluid px-2 px-md-4 animate__animated animate__fadeIn pb-5">
     
     <!-- CABECERA PRINCIPAL -->
-    <div class="hero-section">
-        <div class="hero-subtitle"><i class="bi bi-trophy-fill me-1"></i> Competencias</div>
-        <h1 class="hero-title">Únete al Campeonato</h1>
-        <p class="text-muted fs-6 fw-medium px-3">Elige tu categoría y registra a tu equipo para competir.</p>
-    </div>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-trophy-fill"></i>Competencias</span></div>
+                <h1><small>Elige tu categoría e inscribe a tu equipo</small>Únete al campeonato</h1>
+            </div>
+            
+        </div>
+    </header>
 
     <!-- SECCIÓN: INSCRIPCIONES ABIERTAS -->
     {% if torneos_activos %}
@@ -308,4 +313,5 @@
         });
     });
 </script>
+</div>
 {% endblock %}

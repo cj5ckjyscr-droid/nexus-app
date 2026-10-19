@@ -20,14 +20,17 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="mt-3 mb-5">
-    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-md-end mb-3">
-        <div>
-            <h3 class="fw-black m-0">Trazabilidad financiera</h3>
-            <p class="m-0" style="color: var(--text-soft);">Todo movimiento de dinero de tu cancha: quién lo hizo, cuándo y desde dónde (mesa o finanzas). No se puede editar ni borrar.</p>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-lock-fill"></i>No se puede editar ni borrar</span></div>
+                <h1><small>Quién, cuándo y desde dónde</small>Trazabilidad financiera</h1>
+            </div>
+            <div class="acciones"><a href="{% url 'gestionar_finanzas' %}" class="btn-mar"><i class="bi bi-cash-stack"></i>Ir a finanzas</a></div>
         </div>
-        <a href="{% url 'gestionar_finanzas' %}" class="btn btn-outline-secondary btn-sm rounded-pill"><i class="bi bi-cash-stack me-1"></i>Ir a finanzas</a>
-    </div>
+    </header>
 
     <div class="row g-2 mb-3">
         <div class="col-6 col-lg"><div class="tf-kpi"><div class="l">Cobrado</div><div class="v" style="color:#15803D;">${{ cobrado|floatformat:2|intcomma }}</div></div></div>
@@ -105,5 +108,6 @@
         {% if movimientos.has_next %}<li class="page-item"><a class="page-link" href="?{{ query_string }}&page={{ movimientos.next_page_number }}">›</a></li>{% endif %}
     </ul></nav>
     {% endif %}
+</div>
 </div>
 {% endblock %}

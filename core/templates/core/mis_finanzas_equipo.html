@@ -96,24 +96,20 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="container-fluid px-2 animate__animated animate__fadeIn pb-5">
 
     {% if equipo %}
     <!-- CABECERA -->
-    <div class="mb-4 mt-3 px-1">
-        <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-1 mb-2 rounded-pill">Estado de Cuenta</span>
-        <h3 class="fw-black text-dark mb-0">Finanzas: {{ equipo.nombre }}</h3>
-        <p class="text-muted small mt-1">Historial detallado de obligaciones y pagos.</p>
-        {% if mis_equipos|length > 1 %}
-        <form method="get" class="mt-2">
-            <select name="equipo" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-                {% for e in mis_equipos %}
-                    <option value="{{ e.id }}" {% if e.id == equipo.id %}selected{% endif %}>{{ e.nombre }} ({{ e.torneo.nombre }})</option>
-                {% endfor %}
-            </select>
-        </form>
-        {% endif %}
-    </div>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-wallet2"></i>Estado de cuenta</span></div>
+                <h1><small>Obligaciones y pagos</small>Finanzas · {{ equipo.nombre }}</h1>
+            </div>
+            <div class="acciones">{% if mis_equipos|length > 1 %}<form method="get" class="m-0"><label class="visually-hidden" for="sel-eq">Equipo</label><select id="sel-eq" name="equipo" class="form-select sel-mar" onchange="this.form.submit()">{% for e in mis_equipos %}<option value="{{ e.id }}" {% if e.id == equipo.id %}selected{% endif %}>{{ e.nombre }} ({{ e.torneo.nombre }})</option>{% endfor %}</select></form>{% endif %}</div>
+        </div>
+    </header>
 
     <!-- TARJETAS WALLET -->
     <div class="row g-3 mb-4">
@@ -254,5 +250,6 @@
     </div>
     {% endif %}
 
+</div>
 </div>
 {% endblock %}

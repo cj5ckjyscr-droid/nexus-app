@@ -141,35 +141,24 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="container-fluid px-0 animate__animated animate__fadeInUp pb-5">
     
     <!-- ENCABEZADO Y BUSCADOR (COMPACTO EN MÓVIL) -->
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mobile-header-container mb-4 pb-3 border-bottom">
-        <div class="mb-2 mb-lg-0">
-            <span class="badge bg-primary bg-opacity-10 fw-bold px-3 py-1 mb-1 rounded-pill border border-primary border-opacity-25 mobile-hide" style="color: var(--primary-blue) !important;">
-                <i class="bi bi-shield-lock-fill me-1"></i> Panel de Organización
-            </span>
-            <h2 class="fw-black text-dark mb-0 mobile-title" style="letter-spacing: -0.5px;">Mercado & Traspasos</h2>
-            <p class="text-muted small mt-1 mb-0 mobile-hide">Directorio global. Gestiona transferencias, sanciones y datos de los jugadores.</p>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-people-fill"></i>Equipos</span></div>
+                <h1><small>Traspasos, sanciones y datos</small>Jugadores</h1>
+            </div>
+            <div class="acciones"><form method="get" class="m-0 buscar-mar" role="search">
+                    <i class="bi bi-search"></i>
+                    <input type="search" name="q" placeholder="Nombre o cédula…" value="{{ request.GET.q|default:'' }}" aria-label="Buscar jugador">
+                    <button type="submit">Buscar</button>
+                </form>
+                {% if request.GET.q %}<a href="{% url 'admin_gestion_jugadores' %}" class="btn-mar"><i class="bi bi-x-circle"></i>Limpiar</a>{% endif %}</div>
         </div>
-        
-        <div class="w-100" style="max-width: 450px;">
-            <form method="get" class="m-0">
-                <div class="input-group input-group-sm shadow-sm rounded-pill overflow-hidden border bg-white p-1">
-                    <span class="input-group-text bg-white border-0 pe-2 text-primary ps-2">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input class="form-control border-0 shadow-none bg-white fw-medium text-dark" style="font-size: 0.85rem;" type="search" name="q" placeholder="Nombre o cédula..." value="{{ request.GET.q|default:'' }}">
-                    <button class="btn fw-bold px-3 transition-all text-white rounded-pill" type="submit" style="background-color: var(--primary-blue); font-size: 0.85rem;">Buscar</button>
-                </div>
-            </form>
-            {% if request.GET.q %}
-                <div class="text-end mt-1 pe-2">
-                    <a href="{% url 'admin_gestion_jugadores' %}" class="small text-decoration-none fw-bold text-danger" style="font-size: 0.75rem;"><i class="bi bi-x-circle-fill me-1"></i>Limpiar filtros</a>
-                </div>
-            {% endif %}
-        </div>
-    </div>
+    </header>
 
     <!-- CONTENEDOR PRINCIPAL DE LA LISTA -->
     <div class="card card-pro border-0 shadow-sm overflow-hidden rounded-4 mb-3">
@@ -355,5 +344,6 @@
     </div>
     {% endif %}
 
+</div>
 </div>
 {% endblock %}

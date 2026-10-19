@@ -167,16 +167,19 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="container-fluid px-2 animate__animated animate__fadeInUp pb-5">
     
     <!-- CABECERA DE LA SECCIÓN -->
-    <div class="mb-4 mt-2 px-1">
-        <span class="badge rounded-pill fw-bold px-3 py-1 mb-2" style="background-color: #E5F0FF; color: var(--ios-blue); font-size: 0.75rem;">
-            <i class="bi bi-images me-1"></i> Contenido Visual
-        </span>
-        <h4 class="ios-title mb-0" style="font-size: 1.8rem;">Centro de Marketing</h4>
-        <p class="text-muted small mt-1 mb-0" style="font-weight: 500;">Gestiona las fotos y los auspiciantes de la plataforma.</p>
-    </div>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-images"></i>Mi cancha</span></div>
+                <h1><small>Fotos de tu cancha</small>Medios y galería</h1>
+            </div>
+            
+        </div>
+    </header>
 
     <div class="row g-4">
         
@@ -298,4 +301,5 @@
         }
     });
 </script>
+</div>
 {% endblock %}

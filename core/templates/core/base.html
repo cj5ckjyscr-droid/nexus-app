@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="color-scheme" content="light">
-    <meta name="theme-color" content="#07140F">
+    <meta name="theme-color" content="#FFFFFF">
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}{% if complejo %}{{ complejo.nombre }}{% else %}NEXUS SPORTOPS{% endif %}{% endblock %}</title>
 
@@ -253,21 +253,21 @@
             margin-top: auto;
         }
 
-        /* --- BOTÓN DE AYUDA DE LA PANTALLA --- */
+        /* --- BOTÓN DE AYUDA DE LA PANTALLA (vidrio claro) --- */
         .btn-flotante-ayuda {
             position: fixed; left: 24px; bottom: 30px; z-index: 1000;
-            display: inline-flex; align-items: center; gap: .45rem;
-            background: #064E3B; color: #fff; border-radius: 999px; padding: .6rem 1rem .6rem .7rem;
+            display: inline-flex; align-items: center; gap: 0; padding: .4rem;
+            background: rgba(255,255,255,.8); -webkit-backdrop-filter: blur(16px) saturate(180%); backdrop-filter: blur(16px) saturate(180%);
+            color: #12261B; border: 1px solid #E3E8E5; border-radius: 999px;
             font-weight: 700; font-size: .88rem; text-decoration: none;
-            box-shadow: 0 6px 18px rgba(6, 78, 59, .35); transition: transform .2s ease, background .2s ease;
+            box-shadow: 0 10px 24px -14px rgba(18,38,27,.45); transition: transform .2s cubic-bezier(.2,.9,.3,1), box-shadow .2s;
         }
-        .btn-flotante-ayuda:hover { transform: translateY(-2px); background: #065F46; color: #fff; }
-        /* Compacto (solo «?») para no tapar contenido; muestra el texto al pasar el mouse o con teclado */
-        .btn-flotante-ayuda { padding: .45rem; gap: 0; }
-        .btn-flotante-ayuda .txt { max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0; transition: max-width .25s cubic-bezier(.16,1,.3,1), opacity .2s, margin .25s; }
-        .btn-flotante-ayuda:hover .txt, .btn-flotante-ayuda:focus-visible .txt { max-width: 260px; opacity: 1; margin: 0 .55rem 0 .45rem; }
-        .btn-flotante-ayuda .q { width: 28px; height: 28px; border-radius: 50%; background: #34D399; color: #064E3B; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; }
-        @media (max-width: 576px) { .btn-flotante-ayuda .txt { display: none; } .btn-flotante-ayuda { padding: .45rem; left: 16px; bottom: 24px; } }
+        .btn-flotante-ayuda:hover { transform: translateY(-2px); color: #12261B; box-shadow: 0 14px 28px -14px rgba(18,38,27,.5); }
+        .btn-flotante-ayuda .txt { max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0; transition: max-width .3s cubic-bezier(.2,.9,.3,1), opacity .2s, margin .3s; }
+        .btn-flotante-ayuda:hover .txt, .btn-flotante-ayuda:focus-visible .txt { max-width: 260px; opacity: 1; margin: 0 .6rem 0 .45rem; }
+        .btn-flotante-ayuda .q { width: 30px; height: 30px; border-radius: 50%; background: #166534; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; }
+        /* Solo en pantallas anchas, donde hay margen libre: nunca encima del contenido */
+        @media (max-width: 1399.98px) { .btn-flotante-ayuda, .btn-flotante-wsp { display: none !important; } }
         @media print { .btn-flotante-ayuda, .btn-flotante-wsp { display: none !important; } }
 
         /* --- BOTÓN WHATSAPP --- */
@@ -610,73 +610,87 @@
         a.enviando { pointer-events: none; opacity: 0.6; }
         @keyframes girar { to { transform: rotate(360deg); } }
 
-        /* ===================== BARRA SUPERIOR (estilo estadio) ===================== */
-        .nx-nav { background: #07140F; border-bottom: 1px solid rgba(255,255,255,.06); box-shadow: 0 10px 24px -18px rgba(0,0,0,.6); padding: .5rem 0; }
-        .nx-nav::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, #22C55E, #FACC15 60%, transparent); opacity: .7; }
-        .nx-atras { width: 38px; height: 38px; border-radius: 11px; display: inline-grid; place-items: center; color: #CFE3D8; text-decoration: none; margin-right: .6rem; border: 1px solid rgba(255,255,255,.12); transition: background-color .15s, color .15s; flex-shrink: 0; }
-        .nx-atras:hover { background: rgba(255,255,255,.1); color: #fff; }
+        /* ===================== BARRA SUPERIOR (clara y elegante) ===================== */
+        .nx-nav { background: rgba(255,255,255,.78); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid #E6EAE8; box-shadow: 0 6px 20px -16px rgba(15, 31, 23, .25); padding: .5rem 0; }
+        .nx-atras { width: 38px; height: 38px; border-radius: 11px; display: inline-grid; place-items: center; color: #3F4A45; text-decoration: none; margin-right: .6rem;
+            border: 1px solid #E3E8E5; background: #fff; transition: background-color .15s, color .15s, border-color .15s; flex-shrink: 0; }
+        .nx-atras:hover { background: #F2F7F4; color: #14532D; border-color: #CFE0D5; }
         .nx-marca { display: flex; align-items: center; gap: .65rem; text-decoration: none; min-width: 0; }
-        .nx-logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: #fff; border: 2px solid #4ADE80; }
-        .nx-logo-ini { display: grid; place-items: center; background: #0E2A1F; color: #4ADE80; font-size: 1.1rem; }
+        .nx-logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: #fff; border: 1px solid #E3E8E5; box-shadow: 0 2px 6px rgba(15,31,23,.08); }
+        .nx-logo-ini { display: grid; place-items: center; background: #EEF5F0; color: #166534; font-size: 1.1rem; }
         .nx-marca-txt { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
-        .nx-marca-txt b { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; text-transform: uppercase; font-size: 1.15rem; line-height: 1; letter-spacing: .02em; color: #fff; max-width: 240px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-        .nx-marca-txt small { font-size: .66rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #86EFAC; }
-        .nx-toggler { border: 1px solid rgba(255,255,255,.18) !important; color: #fff; font-size: 1.6rem; padding: .1rem .5rem; border-radius: 11px; box-shadow: none !important; }
-        .nx-lista { gap: .15rem; }
-        .nx-link { display: flex; align-items: center; gap: .45rem; padding: .55rem .8rem; border-radius: 11px; color: #CFE3D8; font-weight: 600; font-size: .92rem; text-decoration: none; transition: background-color .15s, color .15s; white-space: nowrap; }
-        .nx-link i { font-size: 1.05rem; }
-        .nx-link:hover, .nx-link.show { background: rgba(255,255,255,.08); color: #fff; }
-        .nx-link.activo { background: rgba(34,197,94,.16); color: #fff; box-shadow: inset 0 -2px 0 #22C55E; }
-        .nx-link.activo i { color: #4ADE80; }
-        .nx-link.dropdown-toggle::after { margin-left: .15rem; opacity: .6; }
+        .nx-marca-txt b { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; text-transform: uppercase; font-size: 1.15rem; line-height: 1; letter-spacing: .02em;
+            color: #12261B; max-width: 240px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+        .nx-marca-txt small { font-size: .64rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #6B7A72; margin-top: .15rem; }
+        .nx-toggler { border: 1px solid #E3E8E5 !important; color: #12261B; font-size: 1.5rem; padding: .15rem .55rem; border-radius: 11px; box-shadow: none !important; background: #fff; }
+        .nx-lista { gap: .1rem; }
+        .nx-link { display: flex; align-items: center; gap: .45rem; padding: .55rem .8rem; border-radius: 11px; color: #3F4A45; font-weight: 600; font-size: .92rem;
+            text-decoration: none; transition: background-color .15s, color .15s; white-space: nowrap; position: relative; }
+        .nx-link i { font-size: 1.02rem; color: #6B7A72; transition: color .15s; }
+        .nx-link:hover, .nx-link.show { background: #F3F6F4; color: #12261B; }
+        .nx-link:hover i, .nx-link.show i { color: #166534; }
+        .nx-link.activo { background: #EEF5F0; color: #14532D; }
+        .nx-link.activo i { color: #166534; }
+        .nx-link.activo::before { content: ""; position: absolute; left: .8rem; right: .8rem; bottom: .2rem; height: 2px; border-radius: 2px; background: #166534; }
+        .nx-link.dropdown-toggle::after { margin-left: .15rem; opacity: .45; }
         .nx-ayuda { padding: .55rem .65rem; }
-        .nx-menu { border: 1px solid #E3E8EF; border-radius: 16px; padding: .45rem; min-width: 300px; box-shadow: 0 24px 40px -20px rgba(11,18,32,.45); margin-top: .5rem !important; }
-        .nx-item { display: flex; align-items: center; gap: .75rem; padding: .55rem .65rem; border-radius: 11px; text-decoration: none; color: #0B1220; width: 100%; background: none; border: 0; text-align: left; transition: background-color .12s; }
-        .nx-item:hover, .nx-item:focus-visible { background: #F0FDF4; color: #0B1220; }
-        .nx-item > i { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #F1F5F9; color: #15803D; font-size: 1.05rem; flex-shrink: 0; transition: background-color .12s, color .12s; }
-        .nx-item:hover > i { background: #15803D; color: #fff; }
+        .nx-menu { border: 1px solid #E6EAE8; border-radius: 16px; padding: .45rem; min-width: 300px; box-shadow: 0 22px 40px -22px rgba(15,31,23,.3); margin-top: .5rem !important; background: #fff; }
+        .nx-item { display: flex; align-items: center; gap: .75rem; padding: .55rem .65rem; border-radius: 11px; text-decoration: none; color: #12261B; width: 100%; background: none; border: 0; text-align: left; transition: background-color .12s; }
+        .nx-item:hover, .nx-item:focus-visible { background: #F4F8F5; color: #12261B; }
+        .nx-item > i { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #F1F5F2; color: #166534; font-size: 1.05rem; flex-shrink: 0; transition: background-color .12s, color .12s; }
+        .nx-item:hover > i { background: #E2EFE6; }
         .nx-item span { display: flex; flex-direction: column; line-height: 1.2; }
         .nx-item b { font-weight: 700; font-size: .9rem; }
-        .nx-item small { font-size: .76rem; color: #556072; }
-        .nx-salir b, .nx-salir > i { color: #B91C1C !important; }
-        .nx-salir:hover { background: #FEF2F2; }
-        .nx-salir:hover > i { background: #B91C1C !important; color: #fff !important; }
-        .nx-menu-cab { padding: .5rem .65rem .6rem; border-bottom: 1px solid #EEF2F6; margin-bottom: .35rem; display: flex; flex-direction: column; }
-        .nx-menu-cab small { color: #556072; font-size: .78rem; }
-        .nx-perfil { display: flex; align-items: center; gap: .55rem; padding: .3rem .6rem .3rem .3rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); text-decoration: none; color: #fff; margin-left: .35rem; transition: background-color .15s; }
-        .nx-perfil:hover, .nx-perfil.show { background: rgba(255,255,255,.08); color: #fff; }
-        .nx-perfil::after { opacity: .6; }
-        .nx-avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #22C55E; color: #052E16; font-weight: 800; font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; }
+        .nx-item small { font-size: .76rem; color: #5B6670; }
+        .nx-salir b, .nx-salir > i { color: #B42318 !important; }
+        .nx-salir > i { background: #FDF1F0 !important; }
+        .nx-salir:hover { background: #FDF6F5; }
+        .nx-menu-cab { padding: .5rem .65rem .6rem; border-bottom: 1px solid #EEF1EF; margin-bottom: .35rem; display: flex; flex-direction: column; }
+        .nx-menu-cab small { color: #5B6670; font-size: .78rem; }
+        .nx-perfil { display: flex; align-items: center; gap: .55rem; padding: .3rem .6rem .3rem .3rem; border-radius: 999px; border: 1px solid #E3E8E5; text-decoration: none; color: #12261B; margin-left: .35rem; background: #fff; transition: background-color .15s, border-color .15s; }
+        .nx-perfil:hover, .nx-perfil.show { background: #F3F6F4; border-color: #CFE0D5; color: #12261B; }
+        .nx-perfil::after { opacity: .45; }
+        .nx-avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #166534; color: #fff; font-weight: 800; font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; }
         .nx-perfil-txt { display: flex; flex-direction: column; line-height: 1.05; }
         .nx-perfil-txt b { font-size: .86rem; }
-        .nx-perfil-txt small { font-size: .7rem; color: #86EFAC; font-weight: 600; }
+        .nx-perfil-txt small { font-size: .7rem; color: #6B7A72; font-weight: 600; }
         .nx-acceso { display: flex; gap: .5rem; margin-left: .5rem; }
-        .nx-btn-claro, .nx-btn-verde { border-radius: 11px; padding: .5rem 1rem; font-weight: 700; font-size: .9rem; text-decoration: none; transition: background-color .15s; }
-        .nx-btn-claro { color: #fff; border: 1px solid rgba(255,255,255,.22); }
-        .nx-btn-claro:hover { background: rgba(255,255,255,.1); color: #fff; }
-        .nx-btn-verde { background: #22C55E; color: #052E16; }
-        .nx-btn-verde:hover { background: #4ADE80; color: #052E16; }
-        @media (prefers-reduced-motion: no-preference) {
-            .nx-menu.show { animation: nxBajar .18s cubic-bezier(.16,1,.3,1); }
-        }
+        .nx-btn-claro, .nx-btn-verde { border-radius: 11px; padding: .5rem 1rem; font-weight: 700; font-size: .9rem; text-decoration: none; transition: background-color .15s, border-color .15s; }
+        .nx-btn-claro { color: #12261B; border: 1px solid #DCE3DF; background: #fff; }
+        .nx-btn-claro:hover { background: #F3F6F4; color: #12261B; }
+        .nx-btn-verde { background: #166534; color: #fff; border: 1px solid #166534; }
+        .nx-btn-verde:hover { background: #14532D; color: #fff; }
+        @media (prefers-reduced-transparency: reduce) { .nx-nav { background: #fff; backdrop-filter: none; } }
         @keyframes nxBajar { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 
-        /* Celular: el menú se abre como panel con los grupos ya desplegados */
+        /* Pantallas medianas (tablet horizontal / laptop chica): solo íconos en los grupos para que nada se amontone */
+        @media (min-width: 992px) and (max-width: 1199.98px) {
+            .nx-marca-txt b { max-width: 170px; font-size: 1.05rem; }
+            .nx-link { padding: .5rem .6rem; font-size: .88rem; }
+            .nx-perfil-txt { display: none; }
+        }
+
+        /* Celular y tablet: el menú se abre como panel claro con los grupos desplegados */
         @media (max-width: 991.98px) {
-            .nx-nav .navbar-collapse { margin-top: .6rem; padding: .6rem; border-radius: 16px; background: #0B1F17; border: 1px solid rgba(255,255,255,.08); max-height: calc(100vh - 90px); overflow-y: auto; }
+            .nx-nav .navbar-collapse { margin-top: .6rem; padding: .6rem; border-radius: 16px; background: #fff; border: 1px solid #E6EAE8;
+                box-shadow: 0 18px 34px -24px rgba(15,31,23,.35); max-height: calc(100vh - 90px); overflow-y: auto; }
             .nx-lista { gap: .1rem; }
-            .nx-grupo > .dropdown-toggle { pointer-events: none; color: #86EFAC; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: .95rem; padding: .7rem .5rem .3rem; background: none !important; box-shadow: none !important; }
+            .nx-link.activo::before { display: none; }
+            .nx-grupo > .dropdown-toggle { pointer-events: none; color: #166534; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: .95rem; padding: .75rem .5rem .35rem; background: none !important; }
+            .nx-grupo > .dropdown-toggle i { color: #166534; }
             .nx-grupo > .dropdown-toggle::after { display: none; }
-            .nx-grupo > .nx-menu { display: grid !important; grid-template-columns: 1fr 1fr; gap: .3rem; position: static !important; transform: none !important; background: transparent; border: 0; box-shadow: none; padding: 0 0 .4rem; margin: 0 !important; min-width: 0; animation: none !important; }
-            .nx-grupo .nx-item { background: rgba(255,255,255,.05); color: #fff; padding: .55rem; }
+            .nx-grupo > .nx-menu { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .35rem; position: static !important; transform: none !important;
+                background: transparent; border: 0; box-shadow: none; padding: 0 0 .45rem; margin: 0 !important; min-width: 0; animation: none !important; }
+            .nx-grupo .nx-item { background: #F7F9F8; border: 1px solid #EDF1EE; padding: .55rem; }
             .nx-grupo .nx-item small { display: none; }
-            .nx-grupo .nx-item > i { width: 32px; height: 32px; background: rgba(255,255,255,.08); color: #4ADE80; }
-            .nx-grupo .nx-item:hover { background: rgba(34,197,94,.18); }
-            .nx-usuario { margin-top: .4rem; border-top: 1px solid rgba(255,255,255,.08); padding-top: .5rem; }
-            .nx-perfil { margin-left: 0; }
+            .nx-grupo .nx-item > i { width: 32px; height: 32px; background: #fff; }
+            .nx-usuario { margin-top: .4rem; border-top: 1px solid #EEF1EF; padding-top: .55rem; }
+            .nx-usuario > .nx-menu { position: static !important; transform: none !important; box-shadow: none; border: 0; padding: .3rem 0 0; margin: 0 !important; min-width: 0; }
+            .nx-perfil { margin-left: 0; display: inline-flex; }
             .nx-acceso { margin: .5rem 0 0; }
             .nx-acceso a { flex: 1; text-align: center; }
-            .nx-marca-txt b { max-width: 200px; font-size: 1.15rem; }
+            .nx-marca-txt b { max-width: 190px; font-size: 1.05rem; }
         }
     </style>
 </head>
@@ -793,6 +807,7 @@
                                 <div class="nx-menu-cab"><b>{{ user.get_full_name|default:user.username }}</b><small>{{ user.username }}</small></div>
                                 <a class="nx-item" href="{% url 'landing_principal' %}"><i class="bi bi-house-door"></i><span><b>Inicio global</b><small>Todas las canchas</small></span></a>
                                 <a class="nx-item" href="{% url 'centro_ayuda' %}"><i class="bi bi-life-preserver"></i><span><b>Centro de ayuda</b><small>Guías paso a paso</small></span></a>
+                                <a class="nx-item" href="https://wa.me/593987408528?text=Hola,%20necesito%20ayuda%20con%20NEXUS%20SPORTOPS." target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i><span><b>Soporte por WhatsApp</b><small>Te ayudamos al instante</small></span></a>
                                 <form action="{% url 'logout' %}" method="post" class="m-0">
                                     {% csrf_token %}
                                     <button type="submit" class="nx-item nx-salir"><i class="bi bi-box-arrow-right"></i><span><b>Cerrar sesión</b></span></button>

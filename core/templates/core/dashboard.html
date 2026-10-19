@@ -208,41 +208,45 @@
     .dash .dash-sec { font-family: var(--cond); font-weight: 800; text-transform: uppercase; letter-spacing: .03em; font-size: 1.35rem; margin: 0; display: flex; align-items: center; gap: .5rem; color: var(--tinta); }
     .dash .dash-sec i { color: var(--cesped); }
     .dash .text-muted.fw-bold.small.mb-2 { font-family: var(--cond); font-size: .95rem !important; text-transform: uppercase; letter-spacing: .06em; color: var(--suave) !important; }
-    .dash .date-pill { background: var(--noche); color: #86EFAC; font-family: var(--cond); font-size: .9rem; letter-spacing: .08em; border-radius: 8px; }
-    .dash .match-card-premium { background: radial-gradient(120% 120% at 100% 0%, #1F5C42 0%, transparent 55%), var(--noche); border-radius: 18px; border-color: rgba(255,255,255,.08); transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out); }
-    .dash .match-card-premium:hover { transform: translateY(-3px); box-shadow: 0 22px 34px -20px rgba(7,20,15,.8); }
-    .dash .match-card-premium::after { background: linear-gradient(90deg, #22C55E, #FACC15); }
-    .dash .match-time { font-family: var(--cond); font-size: 1.15rem; font-weight: 800; letter-spacing: .04em; background: rgba(250,204,21,.12); border-color: rgba(250,204,21,.35); color: #FACC15; }
-    .dash .match-tournament { font-family: var(--cond); font-size: .95rem; letter-spacing: .05em; color: #E7F5EE; }
-    .dash .match-tournament span { color: #86EFAC; }
-    .dash .team-name-premium { font-family: var(--cond); font-size: 1.05rem; letter-spacing: .03em; }
-    .dash .vs-badge { background: #22C55E; color: #052E16; box-shadow: 0 0 0 4px rgba(34,197,94,.18); border-color: var(--noche); font-family: var(--cond); font-size: 1rem; }
+    .dash .date-pill { background: #EEF5F0; color: #166534; font-family: var(--cond); font-size: .9rem; letter-spacing: .08em; border-radius: 8px; }
+    .dash .match-card-premium { background: #fff; border: 1px solid var(--borde); border-radius: 18px; box-shadow: 0 12px 26px -24px rgba(18,38,27,.45);
+        transition: transform .25s var(--ease-out), box-shadow .25s var(--ease-out); }
+    .dash .match-card-premium:hover { transform: translateY(-3px); box-shadow: 0 20px 32px -24px rgba(18,38,27,.5); }
+    .dash .match-card-premium::before { background: radial-gradient(circle at 50% 120%, rgba(22,101,52,.05), transparent 60%); }
+    .dash .match-card-premium::after { height: 3px; background: linear-gradient(90deg, #2F7A4C, #D4A72C); }
+    .dash .match-header { border-bottom-color: var(--separador); }
+    .dash .match-time { font-family: var(--cond); font-size: 1.15rem; font-weight: 800; letter-spacing: .04em; background: #FBF3DC; border-color: #EEDCA6; color: #7A5A06; }
+    .dash .match-tournament { font-family: var(--cond); font-size: .95rem; letter-spacing: .05em; color: var(--suave); }
+    .dash .match-tournament span { color: #166534; }
+    .dash .team-shield-glow { background: #F4F6F5; box-shadow: none; border: 1px solid var(--borde); }
+    .dash .team-name-premium { font-family: var(--cond); font-size: 1.05rem; letter-spacing: .03em; color: var(--tinta); }
+    .dash .vs-badge { background: #EEF5F0; color: #166534; box-shadow: none; border: 1px solid #D6E8DC; font-family: var(--cond); font-size: 1rem; font-style: normal; }
     .dash .admin-btn { background: #fff; border: 1px solid var(--borde); border-radius: 16px; padding: 1rem .5rem; box-shadow: 0 8px 18px -16px rgba(11,18,32,.45); transition: transform .18s var(--ease-out), border-color .18s, box-shadow .18s; }
-    .dash .admin-btn:hover { transform: translateY(-2px); border-color: #22C55E; box-shadow: 0 14px 22px -16px rgba(11,18,32,.5); color: var(--tinta); }
+    .dash .admin-btn:hover { transform: translateY(-2px); border-color: #9CC7AB; box-shadow: 0 14px 22px -16px rgba(11,18,32,.5); color: var(--tinta); }
     .dash .admin-btn i { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: #F1F5F9; font-size: 1.35rem; margin-bottom: .55rem; }
     .dash .admin-btn span { font-weight: 700; font-size: .82rem; }
     /* Cabecera: cancha con su logo */
     .dash .inicio-cancha { padding: 1.6rem 1.6rem 1.5rem; }
     .dash .logo-inicio { width: 96px; height: 96px; flex-shrink: 0; border-radius: 50%; object-fit: cover; background: #fff;
-        border: 3px solid #4ADE80; box-shadow: 0 0 0 7px rgba(74, 222, 128, .12), 0 14px 26px -12px rgba(0,0,0,.6); }
-    .dash .logo-ini { display: grid; place-items: center; background: var(--noche-2); color: #4ADE80; font-family: var(--cond); font-weight: 800; font-size: 2.2rem; }
+        border: 4px solid #fff; box-shadow: 0 0 0 1px #E3E8E5, 0 14px 28px -16px rgba(18,38,27,.45); }
+    .dash .logo-ini { display: grid; place-items: center; background: #EEF5F0; color: #166534; font-family: var(--cond); font-weight: 800; font-size: 2.2rem; }
     .dash .inicio-cancha h1 { font-size: clamp(1.9rem, 4.4vw, 3.1rem); overflow-wrap: anywhere; }
     .dash .inicio-acciones { align-items: stretch; }
     .dash .btn-estadisticas {
         position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: .8rem; text-decoration: none;
-        padding: .75rem 1rem .75rem .8rem; border-radius: 16px; color: #3B2A00;
-        background: linear-gradient(135deg, #FDE68A 0%, #FACC15 45%, #F59E0B 100%);
-        box-shadow: 0 14px 26px -14px rgba(245, 158, 11, .8), inset 0 1px 0 rgba(255,255,255,.55);
+        padding: .75rem 1rem .75rem .8rem; border-radius: 16px; color: #3A2E0B;
+        background: linear-gradient(135deg, #FFFCF3 0%, #FBF1D6 100%); border: 1px solid #EEDCA6;
+        box-shadow: 0 14px 26px -20px rgba(165, 122, 15, .55), inset 0 1px 0 rgba(255,255,255,.8);
         transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out);
     }
     .dash .btn-estadisticas::after { /* brillo que cruza al pasar el mouse */
         content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
         transform: translateX(-120%); transition: transform .6s var(--ease-out); pointer-events: none;
     }
-    .dash .btn-estadisticas:hover { transform: translateY(-2px); box-shadow: 0 20px 30px -14px rgba(245, 158, 11, .9), inset 0 1px 0 rgba(255,255,255,.55); color: #3B2A00; }
+    .dash .btn-estadisticas:hover { transform: translateY(-2px); box-shadow: 0 20px 30px -20px rgba(165, 122, 15, .6), inset 0 1px 0 rgba(255,255,255,.8); color: #3A2E0B; }
     .dash .btn-estadisticas:hover::after { transform: translateX(120%); }
     .dash .btn-estadisticas:active { transform: scale(.98); }
-    .dash .btn-estadisticas .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #3B2A00; color: #FACC15; font-size: 1.2rem; flex-shrink: 0; }
+    .dash .btn-estadisticas .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #D4A72C; color: #fff; font-size: 1.2rem; flex-shrink: 0; }
     .dash .btn-estadisticas .txt { display: flex; flex-direction: column; line-height: 1.1; }
     .dash .btn-estadisticas b { font-family: var(--cond); font-weight: 800; text-transform: uppercase; font-size: 1.35rem; letter-spacing: .03em; }
     .dash .btn-estadisticas small { font-size: .76rem; font-weight: 700; opacity: .8; }
@@ -342,7 +346,7 @@
                 {% if rol_nav_efectivo == 'DIR' and tengo_deudas %}
                 <button type="button" class="btn-mar" data-bs-toggle="modal" data-bs-target="#modalDeudasDir"><i class="bi bi-wallet2"></i>Debo ${{ monto_deuda }}</button>
                 {% endif %}
-                {% if rol_nav_efectivo == 'ORG' %}
+                {% if rol_nav_efectivo == 'ORG' and proximos_partidos %}
                 <a href="{% url 'generar_horarios_imagen' %}" target="_blank" rel="noopener" class="btn-mar"><i class="bi bi-image-fill"></i>Imagen de horarios</a>
                 {% endif %}
             </nav>
@@ -452,7 +456,7 @@
                             </div>
                         </td>
                         <td class="pe-4 text-end">
-                            <a href="{% url 'gestionar_vocalia' partido.id %}" class="btn btn-sm fw-bold rounded-pill shadow-sm py-1 px-3" style="font-size: 0.8rem; background: #22C55E; color: #052E16;">Pitar</a>
+                            <a href="{% url 'gestionar_vocalia' partido.id %}" class="btn btn-sm fw-bold rounded-pill shadow-sm py-1 px-3" style="font-size: 0.8rem; background: #166534; color: #fff;">Pitar</a>
                         </td>
                     </tr>
                     {% empty %}

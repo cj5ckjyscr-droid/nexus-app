@@ -95,25 +95,19 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="container-fluid px-0 animate__animated animate__fadeInUp">
     
     <!-- 🌟 CABECERA -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
-        <div class="mb-3 mb-md-0">
-            <span class="badge mb-2 rounded-pill px-3 py-2" style="background: #EBF8FF; color: #2B6CB0; font-weight: 800; border: 1px solid #BEE3F8;">
-                <i class="bi bi-shield-lock-fill me-1"></i> Panel de Seguridad
-            </span>
-            <h3 class="mb-0 text-dark fw-bold" style="letter-spacing: -0.5px;">Gestión de Usuarios</h3>
-            <p class="text-muted small mt-1 mb-0 fw-medium">Usuarios de <strong>{{ mi_complejo.nombre }}</strong>. Cada cancha es independiente: los roles de aquí no valen en otras canchas.</p>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-geo-alt-fill"></i>{{ mi_complejo.nombre }}</span><span><i class="bi bi-shield-lock-fill"></i>Los roles solo valen en esta cancha</span></div>
+                <h1><small>Mi cancha</small>Usuarios y roles</h1>
+            </div>
+            <div class="acciones">{% if soy_dueno %}<a href="{% url 'crear_usuario' %}" class="btn-mar verde"><i class="bi bi-person-plus-fill"></i>Crear cuenta de vocal</a>{% endif %}</div>
         </div>
-        {% if soy_dueno %}
-        <div>
-            <a href="{% url 'crear_usuario' %}" class="btn rounded-pill px-4 shadow-sm" style="background: #2B6CB0; color: white; font-weight: 600;">
-                <i class="bi bi-person-plus-fill me-2"></i>Crear cuenta de vocal
-            </a>
-        </div>
-        {% endif %}
-    </div>
+    </header>
 
     <!-- 🌟 BUSCADOR INTELIGENTE -->
     <form method="GET" class="search-box-ios">
@@ -300,5 +294,6 @@
         </div>
     </div>
 
+</div>
 </div>
 {% endblock %}

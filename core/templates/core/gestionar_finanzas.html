@@ -135,19 +135,19 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="container-fluid px-2 animate__animated animate__fadeIn pb-5">
 
     <!-- CABECERA PRINCIPAL -->
-    <div class="mb-3 mt-2 px-1 d-flex justify-content-between align-items-center">
-        <div>
-            <h3 class="fw-black text-dark mb-0">Control Financiero</h3>
-            <span class="text-muted small">Caja Fuerte NEXUS SPORTOPS</span>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-cash-stack"></i>Finanzas</span></div>
+                <h1><small>Cobros e inscripciones</small>Control financiero</h1>
+            </div>
+            <div class="acciones"><div class="caja-mar"><small>Total en caja</small><b>${{ total_caja|floatformat:2 }}</b></div></div>
         </div>
-        <div class="text-end">
-            <div class="text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Total en Caja</div>
-            <h2 class="fw-black text-success m-0 lh-1">${{ total_caja|floatformat:2 }}</h2>
-        </div>
-    </div>
+    </header>
 
     <!-- TARJETAS WALLET -->
     <div class="scroll-horizontal mb-2">
@@ -444,4 +444,5 @@
         sessionStorage.setItem('scrollPosFinanzas', window.scrollY);
     }
 </script>
+</div>
 {% endblock %}

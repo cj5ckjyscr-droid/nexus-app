@@ -192,21 +192,19 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="container-fluid px-2 animate__animated animate__fadeIn pb-5">
     
     <!-- CABECERA: TÍTULO Y BOTÓN DE DESPLEGAR FORMULARIO -->
-    <div class="d-flex justify-content-between align-items-center mb-3 mt-2 px-1">
-        <div>
-            <h5 class="ios-title mb-0">Directorio</h5>
-            <div class="text-muted" style="font-size: 0.85rem; font-weight: 500;">Torneos Activos ({{ equipos|length }})</div>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-shield-fill"></i>Torneos activos</span><span><i class="bi bi-people-fill"></i>{{ equipos|length }} equipo{{ equipos|length|pluralize }}</span></div>
+                <h1><small>Directorio de</small>Equipos</h1>
+            </div>
+            <div class="acciones"><button class="btn-mar verde" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFormulario" aria-expanded="{% if editando %}true{% else %}false{% endif %}" aria-controls="collapseFormulario"><i class="bi {% if editando %}bi-pencil-square{% else %}bi-plus-lg{% endif %}"></i>{% if editando %}Editando equipo{% else %}Nuevo equipo{% endif %}</button></div>
         </div>
-        
-        <!-- Botón que abre/cierra el formulario -->
-        <button class="btn btn-action-ios" style="background: var(--ios-blue); color: white; padding: 10px 16px; border-radius: 14px;" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFormulario" aria-expanded="{% if editando %}true{% else %}false{% endif %}" aria-controls="collapseFormulario">
-            <i class="bi {% if editando %}bi-pencil-square{% else %}bi-plus-lg{% endif %}"></i> 
-            {% if editando %}Editando{% else %}Nuevo Equipo{% endif %}
-        </button>
-    </div>
+    </header>
 
     <!-- EL FORMULARIO (RECOGIDO POR DEFECTO) -->
     <div class="collapse {% if editando %}show{% endif %} mb-4" id="collapseFormulario">
@@ -400,4 +398,5 @@
         });
     });
 </script>
+</div>
 {% endblock %}

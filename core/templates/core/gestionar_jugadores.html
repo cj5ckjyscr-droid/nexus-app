@@ -98,34 +98,20 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <!-- Contenedor para notificaciones profesionales -->
 <div id="toast-container"></div>
 
 <div class="container-fluid px-0">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-3 pb-2 border-bottom animate__animated animate__fadeInDown">
-        <div>
-            <h3 class="fw-black mb-0 text-dark" style="letter-spacing: -0.5px;">Nómina de Jugadores</h3>
-            {% if equipo_obj %}
-            <p class="text-muted small fw-bold mb-0 mt-1">
-                <i class="bi bi-shield-fill text-primary"></i> {{ equipo_obj.nombre }} &bull; 
-                <span class="text-warning"><i class="bi bi-trophy-fill"></i> {{ equipo_obj.torneo.nombre }}</span>
-            </p>
-            {% endif %}
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta">{% if equipo_obj %}<span><i class="bi bi-trophy-fill"></i>{{ equipo_obj.torneo.nombre }}</span>{% endif %}<span><i class="bi bi-people-fill"></i>{% if equipo_obj and equipo_obj.cupos_pagados > 0 %}{{ jugadores|length }} / {{ equipo_obj.cupos_pagados }} jugadores{% if equipo_obj.cupos_disponibles <= 0 %} · cupo lleno{% endif %}{% else %}{{ jugadores|length }} inscritos{% endif %}</span></div>
+                <h1><small>Nómina de jugadores</small>{% if equipo_obj %}{{ equipo_obj.nombre }}{% else %}Jugadores{% endif %}</h1>
+            </div>
+            <div class="acciones">{% if equipo_obj and es_admin %}<a href="{% url 'imprimir_carnets' equipo_obj.id %}" class="btn-mar verde"><i class="bi bi-person-vcard"></i>Imprimir carnets</a>{% endif %}</div>
         </div>
-        <div class="mt-2 mt-md-0 d-flex flex-wrap align-items-center gap-2">
-            {% if equipo_obj and es_admin %}
-                <a href="{% url 'imprimir_carnets' equipo_obj.id %}" class="btn btn-sm btn-outline-primary rounded-pill fw-bold px-3"><i class="bi bi-person-vcard me-1"></i>Imprimir carnets</a>
-            {% endif %}
-            {% if equipo_obj and equipo_obj.cupos_pagados > 0 %}
-                <span class="badge {% if equipo_obj.cupos_disponibles <= 0 %}bg-danger{% else %}bg-primary{% endif %} rounded-pill px-3 py-2 shadow-sm">
-                    {{ jugadores|length }} / {{ equipo_obj.cupos_pagados }} Jugadores
-                    {% if equipo_obj.cupos_disponibles <= 0 %} <i class="bi bi-lock-fill"></i>{% endif %}
-                </span>
-            {% else %}
-                <span class="badge bg-primary rounded-pill px-3 py-2 shadow-sm">{{ jugadores|length }} Inscritos</span>
-            {% endif %}
-        </div>
-    </div>
+    </header>
 
     <div class="row g-4 pb-5">
         <div class="col-lg-7 col-xl-8 animate__animated animate__fadeInLeft">
@@ -347,6 +333,7 @@
         </div>
 
     </div>
+</div>
 </div>
 {% endblock %}
 

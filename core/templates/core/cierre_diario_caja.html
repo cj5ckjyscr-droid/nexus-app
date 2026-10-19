@@ -61,22 +61,24 @@
 {% endblock %}
 
 {% block contenido %}
+<div class="dp dp-g">
 <div class="ambient-glow"></div>
 
 <div class="container-fluid px-0 pb-5">
 
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom reveal-up">
-        <div class="mb-3 mb-md-0">
-            <h2 class="fey-title m-0">Cierre de Caja Diaria</h2>
-            <p class="text-muted mt-1 mb-0 fw-medium">Movimientos de {{ fecha_seleccionada|date:"l, d \d\e F \d\e Y" }}.</p>
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div style="min-width: 0;">
+                <div class="marcador-meta"><span><i class="bi bi-calendar-event"></i>{{ fecha_seleccionada|date:"l, d \d\e F \d\e Y" }}</span></div>
+                <h1><small>Movimientos del día</small>Caja diaria</h1>
+            </div>
+            <div class="acciones"><form method="get" class="d-flex align-items-center gap-2 m-0">
+                    <label class="visually-hidden" for="fecha-caja">Fecha</label>
+                    <input id="fecha-caja" type="date" name="fecha" value="{{ fecha_seleccionada|date:'Y-m-d' }}" max="{{ fecha_hoy|date:'Y-m-d' }}" class="form-control input-mar">
+                    <button type="submit" class="btn-mar verde"><i class="bi bi-search"></i>Consultar</button>
+                </form></div>
         </div>
-        <form method="get" class="d-flex align-items-center gap-2">
-            <input type="date" name="fecha" value="{{ fecha_seleccionada|date:'Y-m-d' }}" max="{{ fecha_hoy|date:'Y-m-d' }}" class="form-control" style="max-width: 200px;">
-            <button type="submit" class="btn btn-dark rounded-pill px-4 fw-bold">
-                <i class="bi bi-search me-1"></i> Consultar
-            </button>
-        </form>
-    </div>
+    </header>
 
     <div class="hero-stat-card reveal-up">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
@@ -171,5 +173,6 @@
         {% endfor %}
     </div>
 
+</div>
 </div>
 {% endblock %}
