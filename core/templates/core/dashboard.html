@@ -221,6 +221,43 @@
     .dash .admin-btn:hover { transform: translateY(-2px); border-color: #22C55E; box-shadow: 0 14px 22px -16px rgba(11,18,32,.5); color: var(--tinta); }
     .dash .admin-btn i { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: #F1F5F9; font-size: 1.35rem; margin-bottom: .55rem; }
     .dash .admin-btn span { font-weight: 700; font-size: .82rem; }
+    /* Cabecera: cancha con su logo */
+    .dash .inicio-cancha { padding: 1.6rem 1.6rem 1.5rem; }
+    .dash .logo-inicio { width: 96px; height: 96px; flex-shrink: 0; border-radius: 50%; object-fit: cover; background: #fff;
+        border: 3px solid #4ADE80; box-shadow: 0 0 0 7px rgba(74, 222, 128, .12), 0 14px 26px -12px rgba(0,0,0,.6); }
+    .dash .logo-ini { display: grid; place-items: center; background: var(--noche-2); color: #4ADE80; font-family: var(--cond); font-weight: 800; font-size: 2.2rem; }
+    .dash .inicio-cancha h1 { font-size: clamp(1.9rem, 4.4vw, 3.1rem); overflow-wrap: anywhere; }
+    .dash .inicio-acciones { align-items: stretch; }
+    .dash .btn-estadisticas {
+        position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: .8rem; text-decoration: none;
+        padding: .75rem 1rem .75rem .8rem; border-radius: 16px; color: #3B2A00;
+        background: linear-gradient(135deg, #FDE68A 0%, #FACC15 45%, #F59E0B 100%);
+        box-shadow: 0 14px 26px -14px rgba(245, 158, 11, .8), inset 0 1px 0 rgba(255,255,255,.55);
+        transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out);
+    }
+    .dash .btn-estadisticas::after { /* brillo que cruza al pasar el mouse */
+        content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
+        transform: translateX(-120%); transition: transform .6s var(--ease-out); pointer-events: none;
+    }
+    .dash .btn-estadisticas:hover { transform: translateY(-2px); box-shadow: 0 20px 30px -14px rgba(245, 158, 11, .9), inset 0 1px 0 rgba(255,255,255,.55); color: #3B2A00; }
+    .dash .btn-estadisticas:hover::after { transform: translateX(120%); }
+    .dash .btn-estadisticas:active { transform: scale(.98); }
+    .dash .btn-estadisticas .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #3B2A00; color: #FACC15; font-size: 1.2rem; flex-shrink: 0; }
+    .dash .btn-estadisticas .txt { display: flex; flex-direction: column; line-height: 1.1; }
+    .dash .btn-estadisticas b { font-family: var(--cond); font-weight: 800; text-transform: uppercase; font-size: 1.35rem; letter-spacing: .03em; }
+    .dash .btn-estadisticas small { font-size: .76rem; font-weight: 700; opacity: .8; }
+    .dash .btn-estadisticas .flecha { margin-left: .3rem; font-size: 1.1rem; transition: transform .2s var(--ease-out); }
+    .dash .btn-estadisticas:hover .flecha { transform: translateX(3px); }
+    @media (max-width: 480px) {
+        .dash table .text-truncate[style*="width: 80px"] { width: 64px !important; }
+        .dash table td.ps-4 { padding-left: .75rem !important; }
+        .dash table td.pe-4 { padding-right: .75rem !important; }
+    }
+    @media (max-width: 576px) {
+        .dash .logo-inicio { width: 72px; height: 72px; }
+        .dash .inicio-acciones > * { flex: 1 1 100%; justify-content: center; }
+        .dash .btn-estadisticas { justify-content: flex-start; }
+    }
     @media (prefers-reduced-motion: no-preference) {
         .dash .match-card-premium, .dash .admin-btn { animation: subir .45s var(--ease-out) .25s both; }
     }
@@ -272,37 +309,48 @@
     {% endif %}
 </div>
 
-<!-- MARCADOR DE INICIO -->
+<!-- MARCADOR DE INICIO: la cancha con su logo -->
+{% load nexus_extras %}
 <div class="container-fluid px-2">
-    <header class="marcador">
-        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
-            <div>
-                <div class="marcador-meta">
-                    <span><i class="bi bi-calendar-event"></i>{% now "l, d \d\e F" %}</span>
-                    {% if rol_nav_efectivo == 'DIR' and mi_equipo %}<span><i class="bi bi-trophy-fill"></i>{{ mi_equipo.torneo.nombre }}</span>{% endif %}
+    <header class="marcador inicio-cancha">
+        <div class="d-flex flex-column flex-lg-row gap-4 justify-content-between align-items-lg-center">
+            <div class="d-flex align-items-center gap-3 gap-md-4" style="min-width: 0;">
+                {% if cancha_inicio.logo %}
+                    <img src="{{ cancha_inicio.logo.url }}" alt="Logo de {{ cancha_inicio.nombre }}" class="logo-inicio">
+                {% elif cancha_inicio %}
+                    <span class="logo-inicio logo-ini" aria-hidden="true">{{ cancha_inicio.nombre|iniciales }}</span>
+                {% else %}
+                    <span class="logo-inicio logo-ini" aria-hidden="true"><i class="bi bi-trophy-fill"></i></span>
+                {% endif %}
+                <div style="min-width: 0;">
+                    <div class="marcador-meta">
+                        <span><i class="bi bi-calendar-event"></i>{% now "l, d \d\e F" %}</span>
+                        <span><i class="bi bi-person-fill"></i>Hola, {{ user.first_name|default:user.username }}</span>
+                    </div>
+                    <h1>
+                        <small>{% if rol_nav_efectivo == 'ORG' %}Panel de la cancha{% elif rol_nav_efectivo == 'DIR' and mi_equipo %}{{ mi_equipo.nombre }}{% elif rol_nav_efectivo == 'VOC' %}Mesa de control{% else %}Tu fútbol, en vivo{% endif %}</small>
+                        {% if cancha_inicio %}{{ cancha_inicio.nombre }}{% else %}NEXUS SPORTOPS{% endif %}
+                    </h1>
                 </div>
-                <h1>
-                    <small>Hola, {{ user.first_name|default:user.username }}</small>
-                    {% if rol_nav_efectivo == 'ORG' and mi_complejo %}{{ mi_complejo.nombre }}
-                    {% elif rol_nav_efectivo == 'DIR' and mi_equipo %}{{ mi_equipo.nombre }}
-                    {% elif rol_nav_efectivo == 'VOC' %}Mesa de control
-                    {% else %}Tu fútbol, en vivo{% endif %}
-                </h1>
             </div>
-            <nav class="acciones" aria-label="Accesos rápidos">
-                <a href="{% url 'ver_torneos_activos' %}" class="btn-mar"><i class="bi bi-trophy-fill"></i>Torneos</a>
-                <a href="{% url 'seleccionar_reporte' %}" class="btn-mar"><i class="bi bi-bar-chart-fill"></i>Estadísticas</a>
+            <nav class="acciones inicio-acciones" aria-label="Accesos rápidos">
+                <a href="{% url 'seleccionar_reporte' %}" class="btn-estadisticas">
+                    <span class="ico"><i class="bi bi-bar-chart-fill"></i></span>
+                    <span class="txt"><b>Estadísticas</b><small>Tablas, goleadores y figuras</small></span>
+                    <i class="bi bi-arrow-right flecha"></i>
+                </a>
                 {% if rol_nav_efectivo == 'DIR' and tengo_deudas %}
                 <button type="button" class="btn-mar" data-bs-toggle="modal" data-bs-target="#modalDeudasDir"><i class="bi bi-wallet2"></i>Debo ${{ monto_deuda }}</button>
                 {% endif %}
                 {% if rol_nav_efectivo == 'ORG' %}
-                <a href="{% url 'generar_horarios_imagen' %}" target="_blank" rel="noopener" class="btn-mar verde"><i class="bi bi-image-fill"></i>Imagen de horarios</a>
+                <a href="{% url 'generar_horarios_imagen' %}" target="_blank" rel="noopener" class="btn-mar"><i class="bi bi-image-fill"></i>Imagen de horarios</a>
                 {% endif %}
             </nav>
         </div>
     </header>
 </div>
 
+{% if proximos_partidos or rol_nav_efectivo == 'ORG' %}
 <!-- 🔥 CARTELERA PREMIUM (DISEÑO BROADCAST) 🔥 -->
 <div class="container-fluid px-2 mb-4 animate__animated animate__fadeInUp">
     <div class="d-flex justify-content-between align-items-center mb-3 px-1">
@@ -352,6 +400,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 
 <!-- ==========================================
      PANELES SEGÚN ROL
@@ -403,7 +452,7 @@
                             </div>
                         </td>
                         <td class="pe-4 text-end">
-                            <a href="{% url 'gestionar_vocalia' partido.id %}" class="btn btn-sm btn-primary fw-bold rounded-pill shadow-sm py-1 px-3" style="font-size: 0.75rem;">Pitar</a>
+                            <a href="{% url 'gestionar_vocalia' partido.id %}" class="btn btn-sm fw-bold rounded-pill shadow-sm py-1 px-3" style="font-size: 0.8rem; background: #22C55E; color: #052E16;">Pitar</a>
                         </td>
                     </tr>
                     {% empty %}

@@ -238,6 +238,14 @@ def dashboard(request):
             mis_canchas_ids = list(RolComplejo.objects.filter(usuario=request.user).values_list('complejo_id', flat=True))
             ctx['mis_canchas'] = ComplejoDeportivo.objects.filter(id__in=mis_canchas_ids, activo=True).order_by('nombre')
 
+        # Cancha que se muestra en la cabecera del inicio (nombre + logo)
+        if ctx.get('mi_complejo'):
+            ctx['cancha_inicio'] = ctx['mi_complejo']
+        elif ctx.get('mi_equipo'):
+            ctx['cancha_inicio'] = ctx['mi_equipo'].torneo.complejo
+        elif ctx.get('mis_canchas'):
+            ctx['cancha_inicio'] = ctx['mis_canchas'].first()
+
     return render(request, 'core/dashboard.html', ctx)
 
 def complejo_del_dueno(user):

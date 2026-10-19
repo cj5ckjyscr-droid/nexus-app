@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="color-scheme" content="light">
-    <meta name="theme-color" content="#4F46E5">
+    <meta name="theme-color" content="#07140F">
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}{% if complejo %}{{ complejo.nombre }}{% else %}NEXUS SPORTOPS{% endif %}{% endblock %}</title>
 
@@ -609,164 +609,200 @@
         }
         a.enviando { pointer-events: none; opacity: 0.6; }
         @keyframes girar { to { transform: rotate(360deg); } }
+
+        /* ===================== BARRA SUPERIOR (estilo estadio) ===================== */
+        .nx-nav { background: #07140F; border-bottom: 1px solid rgba(255,255,255,.06); box-shadow: 0 10px 24px -18px rgba(0,0,0,.6); padding: .5rem 0; }
+        .nx-nav::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, #22C55E, #FACC15 60%, transparent); opacity: .7; }
+        .nx-atras { width: 38px; height: 38px; border-radius: 11px; display: inline-grid; place-items: center; color: #CFE3D8; text-decoration: none; margin-right: .6rem; border: 1px solid rgba(255,255,255,.12); transition: background-color .15s, color .15s; flex-shrink: 0; }
+        .nx-atras:hover { background: rgba(255,255,255,.1); color: #fff; }
+        .nx-marca { display: flex; align-items: center; gap: .65rem; text-decoration: none; min-width: 0; }
+        .nx-logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: #fff; border: 2px solid #4ADE80; }
+        .nx-logo-ini { display: grid; place-items: center; background: #0E2A1F; color: #4ADE80; font-size: 1.1rem; }
+        .nx-marca-txt { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
+        .nx-marca-txt b { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; text-transform: uppercase; font-size: 1.15rem; line-height: 1; letter-spacing: .02em; color: #fff; max-width: 240px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+        .nx-marca-txt small { font-size: .66rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #86EFAC; }
+        .nx-toggler { border: 1px solid rgba(255,255,255,.18) !important; color: #fff; font-size: 1.6rem; padding: .1rem .5rem; border-radius: 11px; box-shadow: none !important; }
+        .nx-lista { gap: .15rem; }
+        .nx-link { display: flex; align-items: center; gap: .45rem; padding: .55rem .8rem; border-radius: 11px; color: #CFE3D8; font-weight: 600; font-size: .92rem; text-decoration: none; transition: background-color .15s, color .15s; white-space: nowrap; }
+        .nx-link i { font-size: 1.05rem; }
+        .nx-link:hover, .nx-link.show { background: rgba(255,255,255,.08); color: #fff; }
+        .nx-link.activo { background: rgba(34,197,94,.16); color: #fff; box-shadow: inset 0 -2px 0 #22C55E; }
+        .nx-link.activo i { color: #4ADE80; }
+        .nx-link.dropdown-toggle::after { margin-left: .15rem; opacity: .6; }
+        .nx-ayuda { padding: .55rem .65rem; }
+        .nx-menu { border: 1px solid #E3E8EF; border-radius: 16px; padding: .45rem; min-width: 300px; box-shadow: 0 24px 40px -20px rgba(11,18,32,.45); margin-top: .5rem !important; }
+        .nx-item { display: flex; align-items: center; gap: .75rem; padding: .55rem .65rem; border-radius: 11px; text-decoration: none; color: #0B1220; width: 100%; background: none; border: 0; text-align: left; transition: background-color .12s; }
+        .nx-item:hover, .nx-item:focus-visible { background: #F0FDF4; color: #0B1220; }
+        .nx-item > i { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #F1F5F9; color: #15803D; font-size: 1.05rem; flex-shrink: 0; transition: background-color .12s, color .12s; }
+        .nx-item:hover > i { background: #15803D; color: #fff; }
+        .nx-item span { display: flex; flex-direction: column; line-height: 1.2; }
+        .nx-item b { font-weight: 700; font-size: .9rem; }
+        .nx-item small { font-size: .76rem; color: #556072; }
+        .nx-salir b, .nx-salir > i { color: #B91C1C !important; }
+        .nx-salir:hover { background: #FEF2F2; }
+        .nx-salir:hover > i { background: #B91C1C !important; color: #fff !important; }
+        .nx-menu-cab { padding: .5rem .65rem .6rem; border-bottom: 1px solid #EEF2F6; margin-bottom: .35rem; display: flex; flex-direction: column; }
+        .nx-menu-cab small { color: #556072; font-size: .78rem; }
+        .nx-perfil { display: flex; align-items: center; gap: .55rem; padding: .3rem .6rem .3rem .3rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); text-decoration: none; color: #fff; margin-left: .35rem; transition: background-color .15s; }
+        .nx-perfil:hover, .nx-perfil.show { background: rgba(255,255,255,.08); color: #fff; }
+        .nx-perfil::after { opacity: .6; }
+        .nx-avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #22C55E; color: #052E16; font-weight: 800; font-family: 'Barlow Condensed', sans-serif; font-size: 1.05rem; }
+        .nx-perfil-txt { display: flex; flex-direction: column; line-height: 1.05; }
+        .nx-perfil-txt b { font-size: .86rem; }
+        .nx-perfil-txt small { font-size: .7rem; color: #86EFAC; font-weight: 600; }
+        .nx-acceso { display: flex; gap: .5rem; margin-left: .5rem; }
+        .nx-btn-claro, .nx-btn-verde { border-radius: 11px; padding: .5rem 1rem; font-weight: 700; font-size: .9rem; text-decoration: none; transition: background-color .15s; }
+        .nx-btn-claro { color: #fff; border: 1px solid rgba(255,255,255,.22); }
+        .nx-btn-claro:hover { background: rgba(255,255,255,.1); color: #fff; }
+        .nx-btn-verde { background: #22C55E; color: #052E16; }
+        .nx-btn-verde:hover { background: #4ADE80; color: #052E16; }
+        @media (prefers-reduced-motion: no-preference) {
+            .nx-menu.show { animation: nxBajar .18s cubic-bezier(.16,1,.3,1); }
+        }
+        @keyframes nxBajar { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+        /* Celular: el menú se abre como panel con los grupos ya desplegados */
+        @media (max-width: 991.98px) {
+            .nx-nav .navbar-collapse { margin-top: .6rem; padding: .6rem; border-radius: 16px; background: #0B1F17; border: 1px solid rgba(255,255,255,.08); max-height: calc(100vh - 90px); overflow-y: auto; }
+            .nx-lista { gap: .1rem; }
+            .nx-grupo > .dropdown-toggle { pointer-events: none; color: #86EFAC; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: .95rem; padding: .7rem .5rem .3rem; background: none !important; box-shadow: none !important; }
+            .nx-grupo > .dropdown-toggle::after { display: none; }
+            .nx-grupo > .nx-menu { display: grid !important; grid-template-columns: 1fr 1fr; gap: .3rem; position: static !important; transform: none !important; background: transparent; border: 0; box-shadow: none; padding: 0 0 .4rem; margin: 0 !important; min-width: 0; animation: none !important; }
+            .nx-grupo .nx-item { background: rgba(255,255,255,.05); color: #fff; padding: .55rem; }
+            .nx-grupo .nx-item small { display: none; }
+            .nx-grupo .nx-item > i { width: 32px; height: 32px; background: rgba(255,255,255,.08); color: #4ADE80; }
+            .nx-grupo .nx-item:hover { background: rgba(34,197,94,.18); }
+            .nx-usuario { margin-top: .4rem; border-top: 1px solid rgba(255,255,255,.08); padding-top: .5rem; }
+            .nx-perfil { margin-left: 0; }
+            .nx-acceso { margin: .5rem 0 0; }
+            .nx-acceso a { flex: 1; text-align: center; }
+            .nx-marca-txt b { max-width: 200px; font-size: 1.15rem; }
+        }
     </style>
 </head>
 <body>
     
-    <nav class="navbar navbar-expand-lg fixed-top navbar-custom">
+    <nav class="navbar navbar-expand-lg fixed-top nx-nav" aria-label="Navegación principal">
         <div class="container">
-            
-            <div class="d-flex align-items-center">
-                
+            <div class="d-flex align-items-center" style="min-width: 0;">
                 {% if user.is_authenticated and request.resolver_match.url_name != 'dashboard' and request.resolver_match.url_name != 'dashboard_saas' and request.resolver_match.url_name != 'landing_principal' %}
-                    <a href="javascript:history.back()" class="btn-back-nav text-decoration-none d-flex align-items-center me-2 pe-3 border-end border-light" title="Volver a la pantalla anterior">
-                        <i class="bi bi-arrow-left-short fs-3"></i>
-                    </a>
+                    <a href="javascript:history.back()" class="nx-atras" title="Volver a la pantalla anterior" aria-label="Volver"><i class="bi bi-arrow-left"></i></a>
                 {% endif %}
 
-                <a class="navbar-brand d-flex align-items-center m-0" href="
-                    {% if user.is_superuser and not complejo_soporte %}
-                        {% url 'dashboard_saas' %}
-                    {% elif user.is_authenticated and rol_nav_efectivo != 'FAN' %}
-                        {% url 'dashboard' %}
-                    {% elif complejo %}
-                        {% url 'portal_complejo' complejo.slug %}
+                <a class="nx-marca" href="{% if user.is_superuser and not complejo_soporte %}{% url 'dashboard_saas' %}{% elif user.is_authenticated and rol_nav_efectivo != 'FAN' %}{% url 'dashboard' %}{% elif complejo %}{% url 'portal_complejo' complejo.slug %}{% else %}{% url 'landing_principal' %}{% endif %}">
+                    {% with marca=complejo|default:cancha_nav %}
+                    {% if marca %}
+                        {% if marca.logo %}<img src="{{ marca.logo.url }}" alt="" class="nx-logo">{% else %}<span class="nx-logo nx-logo-ini" aria-hidden="true"><i class="bi bi-trophy-fill"></i></span>{% endif %}
+                        <span class="nx-marca-txt" title="{{ marca.nombre }}"><b>{{ marca.nombre }}</b><small>NEXUS SPORTOPS</small></span>
                     {% else %}
-                        {% url 'landing_principal' %}
+                        {% if config_global.logo_sistema %}<img src="{{ config_global.logo_sistema.url }}" alt="" class="nx-logo">{% else %}<span class="nx-logo nx-logo-ini" aria-hidden="true"><i class="bi bi-layers-fill"></i></span>{% endif %}
+                        <span class="nx-marca-txt"><b>NEXUS SPORTOPS</b><small>Gestión deportiva</small></span>
                     {% endif %}
-                ">
-                    {% if complejo %}
-                        {% if complejo.logo %}
-                            <img src="{{ complejo.logo.url }}" alt="{{ complejo.nombre }}" class="brand-logo-img">
-                        {% else %}
-                            <i class="bi bi-geo-alt-fill text-primary me-2 fs-4"></i>
-                        {% endif %}
-                        <span class="brand-text" style="background: none; -webkit-text-fill-color: var(--text-main);">{{ complejo.nombre }}</span>
-                    {% else %}
-                        {% if config_global.logo_sistema %}
-                            <img src="{{ config_global.logo_sistema.url }}" alt="Logo Nexus" class="brand-logo-img">
-                        {% else %}
-                            <i class="bi bi-layers-fill me-2 fs-4" style="color: var(--brand-primary);"></i>
-                        {% endif %}
-                        <span class="brand-text">NEXUS SPORTOPS</span>
-                    {% endif %}
+                    {% endwith %}
                 </a>
             </div>
-            
-            <button class="navbar-toggler border-0 p-1 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <i class="bi bi-list fs-2" style="color: var(--text-main);"></i>
+
+            <button class="navbar-toggler nx-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Abrir menú">
+                <i class="bi bi-list"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+                <ul class="navbar-nav ms-auto align-items-lg-center nx-lista">
 
                     {% if not user.is_authenticated or rol_nav_efectivo == 'FAN' %}
-                    <li class="nav-item">
-                        <a class="nav-link fw-bold {% if request.resolver_match.url_name == 'landing_principal' %}text-primary{% endif %}" href="{% url 'landing_principal' %}">
-                            <i class="bi bi-grid-fill me-1"></i> Explorar Canchas
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link fw-bold {% if request.resolver_match.url_name == 'precios_publicos' %}text-primary{% endif %}" href="{% url 'precios_publicos' %}">
-                            Planes y Precios
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {% if request.resolver_match.url_name == 'centro_ayuda' or request.resolver_match.url_name == 'guia_ayuda' %}text-primary{% endif %}" href="{% url 'centro_ayuda' %}">
-                            <i class="bi bi-life-preserver me-1"></i>Ayuda
-                        </a>
-                    </li>
-
-                    {% if complejo %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'portal_complejo' %}active{% endif %}" href="{% url 'portal_complejo' complejo.slug %}">
-                                Torneos
-                            </a>
-                        </li>
+                        <li><a class="nx-link {% if request.resolver_match.url_name == 'landing_principal' %}activo{% endif %}" href="{% url 'landing_principal' %}"><i class="bi bi-geo-alt"></i>Explorar canchas</a></li>
+                        {% if complejo %}<li><a class="nx-link {% if request.resolver_match.url_name == 'portal_complejo' %}activo{% endif %}" href="{% url 'portal_complejo' complejo.slug %}"><i class="bi bi-trophy"></i>Torneos</a></li>{% endif %}
+                        <li><a class="nx-link {% if request.resolver_match.url_name == 'precios_publicos' %}activo{% endif %}" href="{% url 'precios_publicos' %}"><i class="bi bi-tags"></i>Planes y precios</a></li>
                     {% endif %}
 
                     {% if user.is_authenticated %}
-                        
                         {% if user.is_superuser and not complejo_soporte %}
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-primary fw-semibold" href="#" data-bs-toggle="dropdown"><i class="bi bi-shield-lock-fill me-1"></i>Panel SaaS</a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="{% url 'dashboard_saas' %}"><i class="bi bi-speedometer2 me-2"></i>Resumen</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_canchas_saas' %}"><i class="bi bi-buildings me-2"></i>Canchas</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_planes_saas' %}"><i class="bi bi-tags me-2"></i>Planes</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'registrar_pago_saas' %}"><i class="bi bi-cash-coin me-2"></i>Pagos</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_roles_prueba' %}"><i class="bi bi-person-badge me-2"></i>Rol de prueba</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'precios_publicos' %}"><i class="bi bi-globe me-2"></i>Precios públicos</a></li>
-                                </ul>
+                            <li class="dropdown nx-grupo">
+                                <a class="nx-link dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-shield-lock-fill"></i>Panel SaaS</a>
+                                <div class="dropdown-menu dropdown-menu-end nx-menu">
+                                    <a class="nx-item" href="{% url 'dashboard_saas' %}"><i class="bi bi-speedometer2"></i><span><b>Resumen</b><small>Ingresos, clientes y vencimientos</small></span></a>
+                                    <a class="nx-item" href="{% url 'gestionar_canchas_saas' %}"><i class="bi bi-buildings"></i><span><b>Canchas</b><small>Clientes y modo soporte</small></span></a>
+                                    <a class="nx-item" href="{% url 'gestionar_planes_saas' %}"><i class="bi bi-tags"></i><span><b>Planes</b><small>Paquetes y precios</small></span></a>
+                                    <a class="nx-item" href="{% url 'registrar_pago_saas' %}"><i class="bi bi-cash-coin"></i><span><b>Pagos</b><small>Mensualidades de las canchas</small></span></a>
+                                    <a class="nx-item" href="{% url 'gestionar_roles_prueba' %}"><i class="bi bi-person-badge"></i><span><b>Rol de prueba</b><small>Canchas demo para probar</small></span></a>
+                                    <a class="nx-item" href="{% url 'precios_publicos' %}"><i class="bi bi-globe"></i><span><b>Precios públicos</b><small>Lo que ve un cliente nuevo</small></span></a>
+                                </div>
                             </li>
 
                         {% elif rol_nav_efectivo == 'ORG' %}
-                            <li class="nav-item"><a class="nav-link fw-semibold" href="{% url 'dashboard' %}"><i class="bi bi-house-door-fill me-1"></i>Inicio</a></li>
-                            {% if es_entorno_prueba %}
-                                <li class="nav-item"><a class="nav-link text-warning fw-bold" href="{% url 'prueba_seleccionar_equipo' %}">🧪 Dirigente de Equipo</a></li>
-                            {% endif %}
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Competencia</a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_torneos' %}"><i class="bi bi-trophy me-2"></i>Torneos</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_categorias' %}"><i class="bi bi-tags me-2"></i>Categorías</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'programar_partidos' %}"><i class="bi bi-calendar-event me-2"></i>Campeonato y fixture</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_equipos' %}"><i class="bi bi-shield me-2"></i>Equipos</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'admin_gestion_jugadores' %}"><i class="bi bi-people me-2"></i>Jugadores</a></li>
-                                </ul>
+                            <li><a class="nx-link {% if seccion_nav == 'inicio' %}activo{% endif %}" href="{% url 'dashboard' %}"><i class="bi bi-house-door"></i>Inicio</a></li>
+                            <li class="dropdown nx-grupo">
+                                <a class="nx-link dropdown-toggle {% if seccion_nav == 'competicion' %}activo{% endif %}" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-trophy"></i>Competición</a>
+                                <div class="dropdown-menu nx-menu">
+                                    <a class="nx-item" href="{% url 'gestionar_torneos' %}"><i class="bi bi-trophy"></i><span><b>Torneos</b><small>Crear, precios y multas</small></span></a>
+                                    <a class="nx-item" href="{% url 'gestionar_categorias' %}"><i class="bi bi-tags"></i><span><b>Categorías</b><small>Divisiones y color de carnet</small></span></a>
+                                    <a class="nx-item" href="{% url 'programar_partidos' %}"><i class="bi bi-calendar-event"></i><span><b>Campeonato y fixture</b><small>Fechas, mesa y actas</small></span></a>
+                                    <a class="nx-item" href="{% url 'seleccionar_reporte' %}"><i class="bi bi-bar-chart"></i><span><b>Estadísticas</b><small>Tablas, goleadores y figuras</small></span></a>
+                                </div>
                             </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Administración</a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_finanzas' %}"><i class="bi bi-cash-stack me-2"></i>Finanzas</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'trazabilidad_financiera' %}"><i class="bi bi-journal-text me-2"></i>Trazabilidad financiera</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'cierre_diario_caja' %}"><i class="bi bi-clock-history me-2"></i>Caja diaria</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{% url 'gestionar_usuarios' %}"><i class="bi bi-person-gear me-2"></i>Usuarios y roles</a></li>
-                                </ul>
+                            <li class="dropdown nx-grupo">
+                                <a class="nx-link dropdown-toggle {% if seccion_nav == 'equipos' %}activo{% endif %}" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-shield"></i>Equipos</a>
+                                <div class="dropdown-menu nx-menu">
+                                    <a class="nx-item" href="{% url 'gestionar_solicitudes' %}"><i class="bi bi-inbox"></i><span><b>Solicitudes</b><small>Aprobar inscripciones</small></span></a>
+                                    <a class="nx-item" href="{% url 'gestionar_equipos' %}"><i class="bi bi-shield"></i><span><b>Equipos</b><small>Registro, cupos y carnets</small></span></a>
+                                    <a class="nx-item" href="{% url 'admin_gestion_jugadores' %}"><i class="bi bi-people"></i><span><b>Jugadores</b><small>Traspasos y sanciones</small></span></a>
+                                    <a class="nx-item" href="{% url 'gestionar_jugadores' %}"><i class="bi bi-person-plus"></i><span><b>Fichar jugadores</b><small>Inscribir en un equipo</small></span></a>
+                                </div>
+                            </li>
+                            <li class="dropdown nx-grupo">
+                                <a class="nx-link dropdown-toggle {% if seccion_nav == 'finanzas' %}activo{% endif %}" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-cash-stack"></i>Finanzas</a>
+                                <div class="dropdown-menu nx-menu">
+                                    <a class="nx-item" href="{% url 'gestionar_finanzas' %}"><i class="bi bi-cash-stack"></i><span><b>Cobros</b><small>Inscripciones y multas</small></span></a>
+                                    <a class="nx-item" href="{% url 'cierre_diario_caja' %}"><i class="bi bi-clock-history"></i><span><b>Caja diaria</b><small>Lo que entró hoy</small></span></a>
+                                    <a class="nx-item" href="{% url 'trazabilidad_financiera' %}"><i class="bi bi-journal-text"></i><span><b>Trazabilidad</b><small>Historial de cada movimiento</small></span></a>
+                                </div>
+                            </li>
+                            <li class="dropdown nx-grupo">
+                                <a class="nx-link dropdown-toggle {% if seccion_nav == 'cancha' %}activo{% endif %}" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-geo-alt"></i>Mi cancha</a>
+                                <div class="dropdown-menu dropdown-menu-end nx-menu">
+                                    <a class="nx-item" href="{% url 'gestionar_usuarios' %}"><i class="bi bi-person-gear"></i><span><b>Usuarios y roles</b><small>Vocales, staff y dirigentes</small></span></a>
+                                    <a class="nx-item" href="{% url 'gestionar_medios' %}"><i class="bi bi-image"></i><span><b>Medios</b><small>Galería de fotos</small></span></a>
+                                    <a class="nx-item" href="{% url 'gestionar_configuracion' %}"><i class="bi bi-sliders"></i><span><b>Ajustes</b><small>Logo y valores base</small></span></a>
+                                    {% if cancha_nav %}<a class="nx-item" href="{% url 'portal_complejo' cancha_nav.slug %}"><i class="bi bi-globe"></i><span><b>Portal público</b><small>Lo que ven jugadores e hinchas</small></span></a>{% endif %}
+                                    {% if es_entorno_prueba %}<a class="nx-item" href="{% url 'prueba_seleccionar_equipo' %}"><i class="bi bi-person-badge"></i><span><b>Probar como dirigente</b><small>Entorno de prueba</small></span></a>{% endif %}
+                                </div>
                             </li>
 
-                        {% elif rol_nav_efectivo == 'DIR' or rol_nav_efectivo == 'VOC' %}
-                            <li class="nav-item"><a class="nav-link fw-semibold" href="{% url 'dashboard' %}"><i class="bi bi-house-door-fill me-1"></i>Inicio</a></li>
+                        {% elif rol_nav_efectivo == 'DIR' %}
+                            <li><a class="nx-link {% if seccion_nav == 'inicio' %}activo{% endif %}" href="{% url 'dashboard' %}"><i class="bi bi-house-door"></i>Inicio</a></li>
+                            <li><a class="nx-link {% if seccion_nav == 'equipos' %}activo{% endif %}" href="{% url 'gestionar_jugadores' %}"><i class="bi bi-shield"></i>Mi equipo</a></li>
+                            <li><a class="nx-link {% if seccion_nav == 'inscribirse' %}activo{% endif %}" href="{% url 'ver_torneos_activos' %}"><i class="bi bi-trophy"></i>Inscribirse</a></li>
+                            <li><a class="nx-link {% if seccion_nav == 'finanzas' %}activo{% endif %}" href="{% url 'mis_finanzas_equipo' %}"><i class="bi bi-wallet2"></i>Mis pagos</a></li>
+                            <li><a class="nx-link {% if seccion_nav == 'competicion' %}activo{% endif %}" href="{% url 'seleccionar_reporte' %}"><i class="bi bi-bar-chart"></i>Estadísticas</a></li>
+
+                        {% elif rol_nav_efectivo == 'VOC' %}
+                            <li><a class="nx-link {% if seccion_nav == 'inicio' %}activo{% endif %}" href="{% url 'dashboard' %}"><i class="bi bi-house-door"></i>Partidos</a></li>
+                            <li><a class="nx-link {% if seccion_nav == 'competicion' %}activo{% endif %}" href="{% url 'seleccionar_reporte' %}"><i class="bi bi-bar-chart"></i>Estadísticas</a></li>
                         {% endif %}
+                    {% endif %}
 
-                        <li class="nav-item dropdown ms-lg-2 mt-2 mt-lg-0">
-                            <a class="nav-link dropdown-toggle btn-outline-nexus d-flex align-items-center justify-content-center" href="#" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle me-2"></i>
-                                {{ user.username|capfirst }}
+                    <li><a class="nx-link nx-ayuda {% if seccion_nav == 'ayuda' %}activo{% endif %}" href="{% url 'centro_ayuda' %}" title="Centro de ayuda"><i class="bi bi-question-circle"></i><span class="d-lg-none">Ayuda</span><span class="visually-hidden d-none d-lg-inline">Ayuda</span></a></li>
+
+                    {% if user.is_authenticated %}
+                        <li class="dropdown nx-usuario">
+                            <a class="nx-perfil dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="nx-avatar" aria-hidden="true">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
+                                <span class="nx-perfil-txt"><b>{{ user.first_name|default:user.username|capfirst }}</b><small>{% if user.is_superuser and not complejo_soporte %}Administrador general{% elif rol_nav_efectivo == 'ORG' %}Organizador{% elif rol_nav_efectivo == 'DIR' %}Dirigente{% elif rol_nav_efectivo == 'VOC' %}Vocal de mesa{% else %}Aficionado{% endif %}</small></span>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center" href="{% url 'landing_principal' %}">
-                                        <i class="bi bi-house-door me-2"></i> Inicio Global
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center" href="{% url 'centro_ayuda' %}">
-                                        <i class="bi bi-life-preserver me-2"></i> Centro de ayuda
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form action="{% url 'logout' %}" method="post" class="m-0">
-                                        {% csrf_token %}
-                                        <button type="submit" class="dropdown-item text-danger d-flex align-items-center">
-                                            <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
+                            <div class="dropdown-menu dropdown-menu-end nx-menu nx-menu-usuario">
+                                <div class="nx-menu-cab"><b>{{ user.get_full_name|default:user.username }}</b><small>{{ user.username }}</small></div>
+                                <a class="nx-item" href="{% url 'landing_principal' %}"><i class="bi bi-house-door"></i><span><b>Inicio global</b><small>Todas las canchas</small></span></a>
+                                <a class="nx-item" href="{% url 'centro_ayuda' %}"><i class="bi bi-life-preserver"></i><span><b>Centro de ayuda</b><small>Guías paso a paso</small></span></a>
+                                <form action="{% url 'logout' %}" method="post" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="nx-item nx-salir"><i class="bi bi-box-arrow-right"></i><span><b>Cerrar sesión</b></span></button>
+                                </form>
+                            </div>
                         </li>
                     {% else %}
-                        <li class="nav-item ms-lg-3 d-flex flex-column flex-lg-row gap-2 mt-3 mt-lg-0">
-                            <a class="btn-outline-nexus" href="{% url 'login' %}">Iniciar Sesión</a>
-                            <a class="btn-nexus" href="{% url 'registro_publico' %}">Crear Cuenta</a>
+                        <li class="nx-acceso">
+                            <a class="nx-btn-claro" href="{% url 'login' %}">Iniciar sesión</a>
+                            <a class="nx-btn-verde" href="{% url 'registro_publico' %}">Crear cuenta</a>
                         </li>
                     {% endif %}
                 </ul>
