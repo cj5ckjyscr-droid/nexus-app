@@ -103,6 +103,7 @@ urlpatterns = [
     path('finanzas/', views.gestionar_finanzas, name='gestionar_finanzas'),
     path('finanzas/caja-diaria/', views.cierre_diario_caja, name='cierre_diario_caja'),
     path('finanzas/trazabilidad/', views.trazabilidad_financiera, name='trazabilidad_financiera'),
+    path('trazabilidad/cambios/', views.trazabilidad_cambios, name='trazabilidad_cambios'),
     path('finanzas/notificar-whatsapp/<int:equipo_id>/', views.notificar_equipo_whatsapp, name='notificar_equipo_whatsapp'),
     path('pago/registrar/', views.registrar_pago, name='registrar_pago'),
     path('pago/historial/<int:equipo_id>/', views.historial_pagos_equipo, name='historial_pagos_equipo'),

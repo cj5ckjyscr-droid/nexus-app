@@ -1,0 +1,33 @@
+{% comment %}Uso del plan de la cancha. Parámetros: uso (dict de uso_plan), compacto (opcional).{% endcomment %}
+{% if uso %}
+<section class="uso-plan {% if compacto %}compacto{% endif %}" aria-label="Uso de tu plan">
+    <div class="uso-cab">
+        <div>
+            <span class="uso-titulo">Tu plan{% if uso.plan %} · {{ uso.plan.nombre }}{% endif %}</span>
+            {% if not compacto %}<span class="uso-sub">Lo que permite tu suscripción a NEXUS SPORTOPS</span>{% endif %}
+        </div>
+        {% if uso.jugadores.lleno or uso.torneos.lleno %}<span class="uso-chip lleno"><i class="bi bi-exclamation-octagon-fill"></i>Límite alcanzado</span>
+        {% elif uso.jugadores.cerca or uso.torneos.cerca %}<span class="uso-chip cerca"><i class="bi bi-exclamation-triangle-fill"></i>Cerca del límite</span>{% endif %}
+    </div>
+    <div class="uso-medidas">
+        <div class="uso-m {% if uso.jugadores.lleno %}lleno{% elif uso.jugadores.cerca %}cerca{% endif %}">
+            <div class="uso-fila"><span><i class="bi bi-people-fill"></i>Jugadores inscritos</span><b>{{ uso.jugadores.usado }}<small> / {{ uso.jugadores.limite }}</small></b></div>
+            <div class="uso-barra" role="progressbar" aria-valuenow="{{ uso.jugadores.usado }}" aria-valuemin="0" aria-valuemax="{{ uso.jugadores.limite }}"><i style="width: {{ uso.jugadores.pct }}%;"></i></div>
+            <span class="uso-nota">{% if uso.jugadores.lleno %}Ya no se pueden fichar más jugadores en tu cancha.{% else %}Quedan {{ uso.jugadores.quedan }} cupo{{ uso.jugadores.quedan|pluralize }}.{% endif %}</span>
+        </div>
+        {% if not compacto %}
+        <div class="uso-m {% if uso.torneos.lleno %}lleno{% elif uso.torneos.cerca %}cerca{% endif %}">
+            <div class="uso-fila"><span><i class="bi bi-trophy-fill"></i>Torneos activos</span><b>{{ uso.torneos.usado }}<small> / {{ uso.torneos.limite }}</small></b></div>
+            <div class="uso-barra" role="progressbar" aria-valuenow="{{ uso.torneos.usado }}" aria-valuemin="0" aria-valuemax="{{ uso.torneos.limite }}"><i style="width: {{ uso.torneos.pct }}%;"></i></div>
+            <span class="uso-nota">Hasta {{ uso.categorias_por_torneo }} categoría{{ uso.categorias_por_torneo|pluralize }} por torneo.</span>
+        </div>
+        {% endif %}
+    </div>
+    {% if uso.jugadores.lleno or uso.torneos.lleno %}
+    <div class="uso-aviso">
+        <i class="bi bi-arrow-up-circle-fill"></i>
+        <span>Para inscribir más, mejora tu plan. <a href="https://wa.me/593987408528?text={{ 'Hola, quiero ampliar el plan de mi cancha en NEXUS SPORTOPS.'|urlencode }}" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>.</span>
+    </div>
+    {% endif %}
+</section>
+{% endif %}

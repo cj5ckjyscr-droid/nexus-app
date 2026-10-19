@@ -17,7 +17,7 @@ SECCION_POR_PANTALLA = {
     'admin_gestion_jugadores': 'equipos', 'gestionar_jugadores': 'equipos', 'traspasar_jugador': 'equipos',
     'asignar_cupos': 'equipos', 'sancionar_equipo': 'equipos',
     'gestionar_finanzas': 'finanzas', 'cierre_diario_caja': 'finanzas', 'trazabilidad_financiera': 'finanzas',
-    'historial_pagos_equipo': 'finanzas', 'registrar_pago': 'finanzas', 'mis_finanzas_equipo': 'finanzas',
+    'trazabilidad_cambios': 'finanzas', 'historial_pagos_equipo': 'finanzas', 'registrar_pago': 'finanzas', 'mis_finanzas_equipo': 'finanzas',
     'gestionar_usuarios': 'cancha', 'crear_usuario': 'cancha', 'credenciales_cuenta': 'cancha',
     'gestionar_medios': 'cancha', 'gestionar_configuracion': 'cancha',
     'ver_torneos_activos': 'inscribirse', 'solicitar_inscripcion': 'inscribirse',

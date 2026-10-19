@@ -225,6 +225,9 @@
     .dash .admin-btn:hover { transform: translateY(-2px); border-color: #9CC7AB; box-shadow: 0 14px 22px -16px rgba(11,18,32,.5); color: var(--tinta); }
     .dash .admin-btn i { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: #F1F5F9; font-size: 1.35rem; margin-bottom: .55rem; }
     .dash .admin-btn span { font-weight: 700; font-size: .82rem; }
+    .dash .btn-primary { background: #166534; border-color: #166534; }
+    .dash .btn-primary:hover { background: #14532D; border-color: #14532D; }
+    .dash .logo-inicio { font-size: 0; color: transparent; } /* si la imagen falla, no mostrar el texto alternativo desbordado */
     /* Cabecera: cancha con su logo */
     .dash .inicio-cancha { padding: 1.6rem 1.6rem 1.5rem; }
     .dash .logo-inicio { width: 96px; height: 96px; flex-shrink: 0; border-radius: 50%; object-fit: cover; background: #fff;
@@ -352,6 +355,7 @@
             </nav>
         </div>
     </header>
+    {% if rol_nav_efectivo == 'ORG' %}{% include 'core/_uso_plan.html' with uso=uso_plan %}{% endif %}
 </div>
 
 {% if proximos_partidos or rol_nav_efectivo == 'ORG' %}

@@ -362,6 +362,27 @@ class Equipo(models.Model):
             return self.cupos_disponibles > 0
         return self.torneo.inscripcion_abierta
 
+    def motivo_no_fichar_dirigente(self):
+        """Por qué el DIRIGENTE no puede fichar en este equipo, o None si puede.
+        Reglas: equipo aprobado, sin sanción, con cupos asignados por el
+        organizador y sin pasar de esos cupos ni del límite del plan de la cancha."""
+        if self.estado_inscripcion != 'APROBADO':
+            return ("Tu equipo aún no está aprobado. Podrás fichar jugadores cuando el "
+                    "organizador acepte tu inscripción.")
+        if self.esta_sancionado:
+            return f"Tu equipo está sancionado hasta el {self.sancionado_hasta:%d/%m/%Y}."
+        if self.cupos_pagados <= 0:
+            return ("El organizador todavía no habilita cuántos jugadores puedes inscribir. "
+                    "Pídele que asigne los cupos de tu equipo.")
+        if self.cupos_disponibles <= 0:
+            return f"Llegaste al límite de {self.cupos_pagados} jugadores habilitados para tu equipo."
+        complejo = self.torneo.complejo
+        if complejo:
+            limite = complejo.plan.max_jugadores if complejo.plan else 1
+            if Jugador.objects.filter(equipo__torneo__complejo=complejo).count() >= limite:
+                return "La cancha llegó al límite de jugadores de su plan. Avísale al organizador."
+        return None
+
     def total_pagado(self):
         resultado = self.pagos.aggregate(total=Sum('monto'))['total']
         return resultado or 0
@@ -704,3 +725,38 @@ class PagoSuscripcionSaaS(models.Model):
     def __str__(self):
         return f"Pago de {self.complejo.nombre} - ${self.monto}"
     
+
+class RegistroCambio(models.Model):
+    """Bitácora de cambios administrativos (no de dinero) en una cancha:
+    quién editó un jugador, un equipo o un torneo, qué campos cambió y si lo
+    hizo el soporte técnico de NEXUS en modo soporte. No se edita ni se borra."""
+    ENTIDADES = [
+        ('JUGADOR', 'Jugador'),
+        ('EQUIPO', 'Equipo'),
+        ('TORNEO', 'Torneo'),
+    ]
+    ACCIONES = [
+        ('CREAR', 'Fichaje / creación'),
+        ('EDITAR', 'Edición'),
+        ('ELIMINAR', 'Eliminación'),
+        ('TRASPASO', 'Traspaso'),
+        ('SANCION', 'Sanción'),
+        ('CUPOS', 'Cupos'),
+    ]
+    complejo = models.ForeignKey(ComplejoDeportivo, on_delete=models.CASCADE, related_name='cambios', null=True, blank=True)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='cambios_registrados')
+    usuario_nombre = models.CharField(max_length=150, blank=True)
+    en_soporte = models.BooleanField(default=False)
+    fecha = models.DateTimeField(auto_now_add=True, db_index=True)
+    entidad = models.CharField(max_length=10, choices=ENTIDADES)
+    accion = models.CharField(max_length=10, choices=ACCIONES)
+    objeto_id = models.IntegerField(null=True, blank=True)
+    objeto = models.CharField(max_length=200)
+    cambios = models.JSONField(default=list, blank=True)
+    detalle = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['-fecha', '-id']
+
+    def __str__(self):
+        return f"{self.get_accion_display()} · {self.objeto}"

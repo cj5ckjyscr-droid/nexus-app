@@ -1,0 +1,83 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Cambios administrativos | NEXUS SPORTOPS{% endblock %}
+
+{% block contenido %}
+<div class="dp dp-g">
+    {% include 'core/_trazabilidad_tabs.html' with activa='cambios' %}
+
+    <div class="tz-kpis">
+        <div class="tz-kpi"><div class="l"><i class="bi bi-journal-text"></i>Cambios registrados</div><div class="v">{{ resumen.total }}</div></div>
+        <div class="tz-kpi"><div class="l"><i class="bi bi-people"></i>En jugadores</div><div class="v">{{ resumen.jugadores }}</div></div>
+        <div class="tz-kpi"><div class="l"><i class="bi bi-calendar-day"></i>Hoy</div><div class="v">{{ resumen.hoy }}</div></div>
+        <div class="tz-kpi"><div class="l"><i class="bi bi-life-preserver"></i>Por soporte técnico</div><div class="v">{{ resumen.soporte }}</div></div>
+    </div>
+
+    <details class="tz-filtros" {% if f.q or f.entidad or f.accion or f.usuario or f.soporte or f.desde or f.hasta %}open{% endif %}>
+        <summary><i class="bi bi-funnel"></i>Filtrar
+            {% if f.q or f.entidad or f.accion or f.usuario or f.soporte or f.desde or f.hasta %}<span class="tz-activos">activos</span>{% endif %}
+            <i class="bi bi-chevron-down flecha"></i></summary>
+        <form method="get" class="cuerpo">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-4"><label for="f-q">Buscar</label><input id="f-q" type="search" name="q" value="{{ f.q }}" class="form-control" placeholder="Jugador, equipo, torneo o usuario"></div>
+                <div class="col-6 col-md-2"><label for="f-ent">Sobre</label>
+                    <select id="f-ent" name="entidad" class="form-select"><option value="">Todo</option>{% for v, n in entidades %}<option value="{{ v }}" {% if f.entidad == v %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+                <div class="col-6 col-md-2"><label for="f-acc">Acción</label>
+                    <select id="f-acc" name="accion" class="form-select"><option value="">Todas</option>{% for v, n in acciones %}<option value="{{ v }}" {% if f.accion == v %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+                <div class="col-12 col-md-4"><label for="f-usu">Usuario</label>
+                    <select id="f-usu" name="usuario" class="form-select"><option value="">Todos</option>{% for u in usuarios %}<option value="{{ u.id }}" {% if f.usuario == u.id|stringformat:"d" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></div>
+                <div class="col-6 col-md-3"><label for="f-des">Desde</label><input id="f-des" type="date" name="desde" value="{{ f.desde }}" class="form-control"></div>
+                <div class="col-6 col-md-3"><label for="f-has">Hasta</label><input id="f-has" type="date" name="hasta" value="{{ f.hasta }}" class="form-control"></div>
+                <div class="col-12 col-md-3">
+                    <label class="d-flex align-items-center gap-2 mb-2" style="cursor:pointer;"><input type="checkbox" class="form-check-input m-0" name="soporte" value="1" {% if f.soporte == '1' %}checked{% endif %}> Solo soporte técnico</label>
+                </div>
+                <div class="col-12 col-md-3 d-flex gap-2 justify-content-md-end">
+                    <a href="{% url 'trazabilidad_cambios' %}" class="btn btn-light border rounded-3 flex-fill">Limpiar</a>
+                    <button class="btn btn-primary rounded-3 flex-fill"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+                </div>
+            </div>
+        </form>
+    </details>
+
+    <ol class="bitacora">
+        {% for r in registros %}
+        <li class="bit {% if r.en_soporte %}soporte{% endif %}" style="--i: {{ forloop.counter0 }};">
+            <span class="bit-ico {{ r.entidad }}" aria-hidden="true"><i class="bi {% if r.entidad == 'JUGADOR' %}bi-person-fill{% elif r.entidad == 'EQUIPO' %}bi-shield-fill{% else %}bi-trophy-fill{% endif %}"></i></span>
+            <div class="bit-cab">
+                <span class="bit-objeto">{{ r.objeto }}</span>
+                <span class="bit-accion {{ r.accion }}">{{ r.get_accion_display }}</span>
+            </div>
+            <div class="bit-quien">
+                <span><i class="bi bi-person-circle me-1"></i><b>{{ r.usuario_nombre|default:"Sistema" }}</b></span>
+                {% if r.en_soporte %}<span class="bit-soporte"><i class="bi bi-life-preserver"></i>Soporte técnico NEXUS</span>{% endif %}
+                <span><i class="bi bi-clock me-1"></i><time datetime="{{ r.fecha|date:'c' }}">{{ r.fecha|date:"d/m/Y H:i" }}</time></span>
+            </div>
+            <div>
+                {% if r.cambios %}
+                <div class="bit-cambios">
+                    {% for c in r.cambios %}
+                    <div class="bit-cambio"><span class="campo">{{ c.campo }}</span><span class="valores"><span class="antes">{{ c.antes }}</span><i class="bi bi-arrow-right flecha" aria-label="cambió a"></i><span class="despues">{{ c.despues }}</span></span></div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if r.detalle %}<div class="bit-detalle">{{ r.detalle }}</div>{% endif %}
+            </div>
+        </li>
+        {% empty %}
+        <li class="bloque vacio">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z"/><path d="M9 11h6M9 15h4"/></svg>
+            <strong>{% if f.q or f.entidad or f.accion or f.usuario or f.soporte or f.desde or f.hasta %}No hay cambios con estos filtros{% else %}Todavía no hay cambios registrados{% endif %}</strong>
+            <span>Cada vez que alguien edite, fiche, traspase, sancione o elimine un jugador, o edite un equipo o torneo, quedará anotado aquí.</span>
+        </li>
+        {% endfor %}
+    </ol>
+
+    {% if registros.has_other_pages %}
+    <nav class="mt-3" aria-label="Páginas"><ul class="pagination justify-content-center flex-wrap">
+        {% if registros.has_previous %}<li class="page-item"><a class="page-link" href="?{{ query_string }}&page={{ registros.previous_page_number }}">‹</a></li>{% endif %}
+        <li class="page-item active"><span class="page-link">{{ registros.number }} / {{ registros.paginator.num_pages }}</span></li>
+        {% if registros.has_next %}<li class="page-item"><a class="page-link" href="?{{ query_string }}&page={{ registros.next_page_number }}">›</a></li>{% endif %}
+    </ul></nav>
+    {% endif %}
+</div>
+{% endblock %}

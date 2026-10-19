@@ -38,7 +38,7 @@ from .forms import (
 from .models import (
     Configuracion, Torneo, Equipo, Jugador, Partido, 
     DetallePartido, Pago, Perfil, Sancion, FotoGaleria, 
-    AbonoSancion, ComplejoDeportivo, PlanSuscripcion, Categoria,
+    AbonoSancion, ComplejoDeportivo, PlanSuscripcion, Categoria, RegistroCambio,
     PagoSuscripcionSaaS, RolComplejo, Llave, MovimientoFinanciero, EdicionPartido
 )
 
@@ -150,6 +150,93 @@ def limite_jugadores_alcanzado(complejo):
     actuales = Jugador.objects.filter(equipo__torneo__complejo=complejo).count()
     return actuales >= limite
 
+def _valor_legible(valor):
+    """Texto corto para mostrar un valor en la bitácora."""
+    from datetime import date as _date
+    from django.db.models import Model
+    from django.db.models.fields.files import FieldFile
+    from django.core.files.uploadedfile import UploadedFile
+    if valor is None or valor == '':
+        return '—'
+    if isinstance(valor, bool):
+        return 'Sí' if valor else 'No'
+    if isinstance(valor, (FieldFile, UploadedFile)):
+        return 'archivo' if valor else '—'
+    if isinstance(valor, Model):
+        return getattr(valor, 'nombre', None) or str(valor)
+    if isinstance(valor, _date):
+        return valor.strftime('%d/%m/%Y')
+    return str(valor)[:120]
+
+
+def cambios_de_form(form, excluir=()):
+    """Lista [{'campo','antes','despues'}] de lo que cambió en un ModelForm."""
+    from django.forms import ModelChoiceField
+    lista = []
+    for campo in form.changed_data:
+        if campo in excluir or campo not in form.cleaned_data:
+            continue
+        field = form.fields[campo]
+        antes = form.initial.get(campo)
+        if isinstance(field, ModelChoiceField) and antes not in (None, ''):
+            antes = field.queryset.model.objects.filter(pk=getattr(antes, 'pk', antes)).first()
+        despues = form.cleaned_data[campo]
+        if campo == 'foto' or getattr(field.widget, 'input_type', '') == 'file':
+            if despues:
+                lista.append({'campo': str(field.label or campo), 'antes': 'anterior', 'despues': 'nueva'})
+            continue
+        a, d = _valor_legible(antes), _valor_legible(despues)
+        if a != d:
+            lista.append({'campo': str(field.label or campo), 'antes': a, 'despues': d})
+    return lista
+
+
+def registrar_cambio(request, complejo, entidad, accion, objeto, objeto_id=None, cambios=None, detalle=''):
+    """Guarda una entrada en la bitácora de cambios administrativos."""
+    u = request.user if request.user.is_authenticated else None
+    RegistroCambio.objects.create(
+        complejo=complejo, usuario=u,
+        usuario_nombre=(u.get_full_name() or u.username) if u else 'Sistema',
+        en_soporte=bool(u and u.is_superuser and complejo_en_soporte(u)),
+        entidad=entidad, accion=accion, objeto=str(objeto)[:200], objeto_id=objeto_id,
+        cambios=cambios or [], detalle=str(detalle)[:255],
+    )
+
+
+def _cambios_ficha(jugador, form):
+    """Diferencias de nombre, dorsal y foto entre la ficha guardada y el formulario."""
+    lista = []
+    for campo, etiqueta in (('nombres', 'Nombres'), ('dorsal', 'Dorsal')):
+        antes, despues = getattr(jugador, campo), form.cleaned_data.get(campo)
+        if str(antes) != str(despues):
+            lista.append({'campo': etiqueta, 'antes': _valor_legible(antes), 'despues': _valor_legible(despues)})
+    if form.cleaned_data.get('foto'):
+        lista.append({'campo': 'Foto', 'antes': 'anterior', 'despues': 'nueva'})
+    return lista
+
+
+def _ficha_jugador(j):
+    return f"{j.nombres} (#{j.dorsal}) · {j.equipo.nombre}"
+
+
+def uso_plan(complejo):
+    """Cuánto del plan SaaS está usando la cancha (torneos activos y jugadores)."""
+    if not complejo:
+        return None
+    plan = complejo.plan
+    lim_torneos = plan.max_torneos if plan else 1
+    lim_jugadores = plan.max_jugadores if plan else 1
+    torneos = Torneo.objects.filter(complejo=complejo, activo=True).count()
+    jugadores = Jugador.objects.filter(equipo__torneo__complejo=complejo).count()
+
+    def medida(usado, limite):
+        pct = min(100, round(100 * usado / limite)) if limite else 100
+        return {'usado': usado, 'limite': limite, 'pct': pct, 'lleno': usado >= limite,
+                'cerca': not usado >= limite and pct >= 85, 'quedan': max(0, limite - usado)}
+    return {'plan': plan, 'torneos': medida(torneos, lim_torneos), 'jugadores': medida(jugadores, lim_jugadores),
+            'categorias_por_torneo': plan.max_categorias_por_torneo if plan else 1}
+
+
 def obtener_rol_principal(user):
     """Infiere el rol principal del usuario para pintar la interfaz adecuadamente"""
     if user.is_superuser: return 'ORG'
@@ -213,6 +300,7 @@ def dashboard(request):
             ctx['total_por_cobrar'] = total + saldo_inscripciones 
             ctx['equipos_pendientes'] = Equipo.objects.filter(torneo__complejo=mi_complejo, estado_inscripcion='PENDIENTE')
             ctx['progreso_ayuda'] = _progreso_organizador(mi_complejo)
+            ctx['uso_plan'] = uso_plan(mi_complejo)
 
         elif rol == 'DIR':
             mis_equipos = equipos_del_dirigente(request).exclude(estado_inscripcion='RECHAZADO')
@@ -485,7 +573,10 @@ def editar_torneo(request, torneo_id):
     if request.method == 'POST':
         form = TorneoForm(request.POST, instance=torneo, complejo=mi_complejo)
         if form.is_valid():
+            cambios = cambios_de_form(form)
             form.save()
+            if cambios:
+                registrar_cambio(request, mi_complejo, 'TORNEO', 'EDITAR', torneo.nombre, torneo.id, cambios)
             messages.success(request, f'✅ Torneo "{torneo.nombre}" actualizado correctamente.')
             return redirect('gestionar_torneos')
         messages.error(request, "❌ Revisa los campos marcados en el formulario.")
@@ -628,7 +719,10 @@ def editar_equipo(request, equipo_id):
                 messages.error(request, "⛔ Este equipo ya tiene partidos en su torneo: no se puede cambiar de torneo.")
                 return redirect('editar_equipo', equipo_id=equipo.id)
         if form.is_valid():
+            cambios = cambios_de_form(form)
             form.save()
+            if cambios:
+                registrar_cambio(request, mi_complejo, 'EQUIPO', 'EDITAR', equipo.nombre, equipo.id, cambios)
             asegurar_rol_dirigente(equipo.dirigente, mi_complejo)
             messages.success(request, 'Equipo actualizado correctamente.')
             return redirect('gestionar_equipos')
@@ -681,6 +775,7 @@ def gestionar_jugadores(request):
     if equipo_simulado:
         rol_principal = 'DIR'
     puede_fichar = True
+    motivo_bloqueo = None
     query = request.GET.get('q', '').strip()
 
     if rol_principal == 'DIR':
@@ -702,21 +797,20 @@ def gestionar_jugadores(request):
             jugadores = jugadores.filter(Q(nombres__icontains=query) | Q(cedula__icontains=query))
         equipo_seleccionado = mi_equipo.id
         
-        if mi_equipo.esta_sancionado:
-            puede_fichar = False
-            messages.error(request, f'⛔ TU EQUIPO ESTÁ SANCIONADO HASTA {mi_equipo.sancionado_hasta}.')
-        else:
-            puede_fichar = mi_equipo.puede_fichar
-        
-        if request.method == 'POST':
-            if not puede_fichar:
-                messages.error(request, '⛔ Fichajes cerrados o límite de jugadores alcanzado. No se permiten más inscripciones.')
-                return redirect(f"{request.path}?equipo={mi_equipo.id}")
+        # 🔒 Regla única del fichaje del dirigente: equipo aprobado, sin sanción,
+        # con cupos asignados por el organizador y sin pasar de ellos ni del plan.
+        motivo_bloqueo = mi_equipo.motivo_no_fichar_dirigente()
+        puede_fichar = motivo_bloqueo is None
 
-            # 🔒 Segundo candado de seguridad: si el equipo tiene cupos asignados,
-            # nunca se pasa de ese tope, sin importar el flag cobro_por_jugador.
-            if mi_equipo.cupos_pagados > 0 and mi_equipo.cupos_disponibles <= 0:
-                messages.error(request, f'⛔ LÍMITE ALCANZADO: El equipo "{mi_equipo.nombre}" ya tiene el máximo de {mi_equipo.cupos_pagados} jugadores permitidos.')
+        if request.method == 'POST':
+            # El dirigente solo agrega jugadores nuevos; si la cédula ya está en
+            # su equipo es una actualización de datos y se permite aunque no
+            # queden cupos (pero nunca sin aprobación ni con sanción).
+            cedula_post = (request.POST.get('cedula') or '').strip().upper().replace(' ', '')
+            es_actualizacion = bool(cedula_post) and Jugador.objects.filter(equipo=mi_equipo, cedula=cedula_post).exists()
+            bloqueo_fuerte = mi_equipo.estado_inscripcion != 'APROBADO' or mi_equipo.esta_sancionado
+            if motivo_bloqueo and (bloqueo_fuerte or not es_actualizacion):
+                messages.error(request, f'⛔ {motivo_bloqueo}')
                 return redirect(f"{request.path}?equipo={mi_equipo.id}")
 
             form = JugadorForm(request.POST, request.FILES, es_admin=False)
@@ -743,11 +837,14 @@ def gestionar_jugadores(request):
                         messages.error(request, f"⛔ ¡ALERTA! Este jugador ya compite en el equipo '{misma_categoria.equipo.nombre}' en esta misma categoría.")
                         return redirect(f"{request.path}?equipo={mi_equipo.id}")
                     else:
+                        cambios = _cambios_ficha(misma_categoria, form)
                         misma_categoria.nombres = form.cleaned_data.get('nombres')
                         misma_categoria.dorsal = form.cleaned_data.get('dorsal')
                         if form.cleaned_data.get('foto'):
                             misma_categoria.foto = form.cleaned_data.get('foto')
                         misma_categoria.save()
+                        if cambios:
+                            registrar_cambio(request, mi_complejo, 'JUGADOR', 'EDITAR', _ficha_jugador(misma_categoria), misma_categoria.id, cambios, 'Desde la nómina del dirigente')
                         messages.success(request, f'¡Datos de {misma_categoria.nombres} actualizados!')
                 elif limite_jugadores_alcanzado(mi_complejo):
                     limite = mi_complejo.plan.max_jugadores if mi_complejo.plan else 1
@@ -769,6 +866,8 @@ def gestionar_jugadores(request):
                         nuevo_jugador.sancionado_hasta = None
 
                     nuevo_jugador.save()
+                    registrar_cambio(request, mi_complejo, 'JUGADOR', 'CREAR', _ficha_jugador(nuevo_jugador), nuevo_jugador.id,
+                                     detalle=f"Fichado por el dirigente · cédula {nuevo_jugador.cedula}")
                     
                     if jugador_historial:
                         messages.success(request, f'¡{nuevo_jugador.nombres} fichado! (Ahora compite en múltiples categorías)')
@@ -828,11 +927,14 @@ def gestionar_jugadores(request):
                     messages.error(request, f"⛔ ¡ALERTA! El jugador ya compite en '{misma_categoria.equipo.nombre}' en esa categoría.")
                 else:
                     if misma_categoria and misma_categoria.equipo == equipo_destino:
+                        cambios = _cambios_ficha(misma_categoria, form)
                         misma_categoria.nombres = form.cleaned_data.get('nombres')
                         misma_categoria.dorsal = form.cleaned_data.get('dorsal')
                         if form.cleaned_data.get('foto'):
                             misma_categoria.foto = form.cleaned_data.get('foto')
                         misma_categoria.save()
+                        if cambios:
+                            registrar_cambio(request, mi_complejo, 'JUGADOR', 'EDITAR', _ficha_jugador(misma_categoria), misma_categoria.id, cambios)
                         messages.success(request, 'Jugador actualizado.')
                     elif limite_jugadores_alcanzado(mi_complejo):
                         limite = mi_complejo.plan.max_jugadores if mi_complejo.plan else 1
@@ -845,6 +947,8 @@ def gestionar_jugadores(request):
                         if jugador_historial and not nuevo_jugador.foto and jugador_historial.foto:
                             nuevo_jugador.foto = jugador_historial.foto
                         nuevo_jugador.save()
+                        registrar_cambio(request, mi_complejo, 'JUGADOR', 'CREAR', _ficha_jugador(nuevo_jugador), nuevo_jugador.id,
+                                         detalle=f"Fichado por la organización · cédula {nuevo_jugador.cedula}")
                         messages.success(request, 'Jugador registrado en nueva categoría por Administración.')
                         
                 return redirect(f"{request.path}?equipo={form.cleaned_data['equipo'].id}")
@@ -888,6 +992,8 @@ def gestionar_jugadores(request):
         'equipo_seleccionado': equipo_seleccionado, 
         'es_dirigente': (rol_principal == 'DIR'),
         'puede_fichar': puede_fichar,
+        'motivo_bloqueo': motivo_bloqueo if rol_principal == 'DIR' else None,
+        'uso_plan': uso_plan(mi_complejo) if rol_principal == 'ORG' else None,
         'equipo_obj': mi_equipo,
         'query': query,
         'es_admin': rol_principal == 'ORG',
@@ -913,7 +1019,10 @@ def editar_jugador(request, jugador_id):
         form = JugadorForm(request.POST, request.FILES, instance=jugador, es_admin=True)
         form.fields['equipo'].queryset = equipos_activos
         if form.is_valid():
+            cambios = cambios_de_form(form)
             form.save()
+            if cambios:
+                registrar_cambio(request, mi_complejo, 'JUGADOR', 'EDITAR', _ficha_jugador(jugador), jugador.id, cambios)
             messages.success(request, f'✅ Datos de {jugador.nombres} actualizados correctamente.')
             return redirect(f"/jugadores/?equipo={jugador.equipo.id}")
         else:
@@ -955,6 +1064,8 @@ def eliminar_jugador(request, jugador_id):
         else: return redirect('gestionar_jugadores')
 
     nombre = jugador.nombres
+    registrar_cambio(request, jugador.equipo.torneo.complejo, 'JUGADOR', 'ELIMINAR', _ficha_jugador(jugador), jugador.id,
+                     detalle=f"Cédula {jugador.cedula}")
     jugador.delete()
     messages.success(request, f'Jugador "{nombre}" eliminado correctamente.')
     if es_admin: return redirect('admin_gestion_jugadores')
@@ -984,6 +1095,8 @@ def traspasar_jugador(request, jugador_id):
         if form.is_valid():
             nuevo_equipo = form.cleaned_data['nuevo_equipo']
             nuevo_dorsal = form.cleaned_data['nuevo_dorsal']
+            cambios = [{'campo': 'Equipo', 'antes': jugador.equipo.nombre, 'despues': nuevo_equipo.nombre},
+                       {'campo': 'Dorsal', 'antes': str(jugador.dorsal), 'despues': str(nuevo_dorsal)}]
             
             jugador.equipo = nuevo_equipo
             jugador.dorsal = nuevo_dorsal
@@ -992,6 +1105,8 @@ def traspasar_jugador(request, jugador_id):
             jugador.expulsado_torneo = False
             jugador.sancionado_hasta = None
             jugador.save()
+            registrar_cambio(request, mi_complejo, 'JUGADOR', 'TRASPASO', _ficha_jugador(jugador), jugador.id, cambios,
+                             'Se limpiaron sus suspensiones al cambiar de equipo')
             
             messages.success(request, f'✅ ¡Traspaso Exitoso! {jugador.nombres} pasó a {nuevo_equipo.nombre} (Dorsal {nuevo_dorsal}).')
             return redirect('admin_gestion_jugadores')
@@ -1017,6 +1132,9 @@ def asignar_cupos(request, equipo_id):
             nuevos_cupos = equipo_actualizado.cupos_pagados
             diferencia = nuevos_cupos - cupos_anteriores
             equipo_actualizado.save()
+            if diferencia:
+                registrar_cambio(request, mi_complejo, 'EQUIPO', 'CUPOS', equipo.nombre, equipo.id,
+                                 [{'campo': 'Cupos de jugadores', 'antes': str(cupos_anteriores), 'despues': str(nuevos_cupos)}])
             
             if diferencia > 0 and equipo.torneo.cobro_por_jugador:
                 costo_adicional = diferencia * equipo.torneo.costo_inscripcion_jugador
@@ -1045,7 +1163,10 @@ def sancionar_equipo(request, equipo_id):
     if request.method == 'POST':
         form = SancionListaNegraForm(request.POST, instance=equipo)
         if form.is_valid():
+            cambios = cambios_de_form(form)
             equipo = form.save()
+            registrar_cambio(request, mi_complejo, 'EQUIPO', 'SANCION', equipo.nombre, equipo.id, cambios,
+                             'Equipo a lista negra' if equipo.sancionado_hasta else 'Sanción levantada')
             if equipo.sancionado_hasta:
                 equipo.dirigente.perfil.sancionado_hasta = equipo.sancionado_hasta
                 equipo.dirigente.perfil.save()
@@ -1125,6 +1246,9 @@ def suspender_jugador(request, jugador_id):
     elif accion == 'levantar':
         jugador.motivo_suspension = ''
     jugador.save()
+    import re as _re
+    registrar_cambio(request, mi_complejo, 'JUGADOR', 'SANCION', _ficha_jugador(jugador), jugador.id,
+                     detalle=(_re.sub(r'^\W+\s*', '', texto) + (f" Motivo: {motivo}" if motivo else ''))[:255])
     messages.success(request, texto)
     return redirect(volver)
 
@@ -2932,6 +3056,49 @@ def trazabilidad_financiera(request):
 
 @login_required
 @user_passes_test(es_organizador)
+def trazabilidad_cambios(request):
+    """Bitácora de cambios administrativos de ESTA cancha: ediciones de
+    jugadores, equipos y torneos, quién las hizo y si fue el soporte de NEXUS."""
+    mi_complejo = obtener_mi_complejo(request.user)
+    registros = RegistroCambio.objects.filter(complejo=mi_complejo).select_related('usuario')
+
+    f = {k: request.GET.get(k, '') for k in ('entidad', 'accion', 'usuario', 'soporte', 'desde', 'hasta', 'q')}
+    if f['entidad'] in dict(RegistroCambio.ENTIDADES):
+        registros = registros.filter(entidad=f['entidad'])
+    if f['accion'] in dict(RegistroCambio.ACCIONES):
+        registros = registros.filter(accion=f['accion'])
+    if f['usuario'].isdigit():
+        registros = registros.filter(usuario_id=f['usuario'])
+    if f['soporte'] == '1':
+        registros = registros.filter(en_soporte=True)
+    for clave, lookup in (('desde', 'fecha__date__gte'), ('hasta', 'fecha__date__lte')):
+        try:
+            if f[clave]:
+                registros = registros.filter(**{lookup: datetime.strptime(f[clave], '%Y-%m-%d').date()})
+        except ValueError:
+            f[clave] = ''
+    if f['q']:
+        registros = registros.filter(Q(objeto__icontains=f['q']) | Q(detalle__icontains=f['q']) | Q(usuario_nombre__icontains=f['q']))
+
+    base = RegistroCambio.objects.filter(complejo=mi_complejo)
+    resumen = {
+        'total': base.count(),
+        'jugadores': base.filter(entidad='JUGADOR').count(),
+        'hoy': base.filter(fecha__date=timezone.localdate()).count(),
+        'soporte': base.filter(en_soporte=True).count(),
+    }
+    query_sin_pagina = request.GET.copy()
+    query_sin_pagina.pop('page', None)
+    return render(request, 'core/trazabilidad_cambios.html', {
+        'registros': Paginator(registros, 30).get_page(request.GET.get('page')), 'f': f, 'resumen': resumen,
+        'entidades': RegistroCambio.ENTIDADES, 'acciones': RegistroCambio.ACCIONES,
+        'usuarios': User.objects.filter(id__in=base.exclude(usuario=None).values('usuario_id')).order_by('username'),
+        'query_string': query_sin_pagina.urlencode(),
+    })
+
+
+@login_required
+@user_passes_test(es_organizador)
 def notificar_equipo_whatsapp(request, equipo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
@@ -3098,7 +3265,7 @@ def admin_gestion_jugadores(request):
             Q(cedula__icontains=query)
         )
 
-    return render(request, 'core/admin_jugadores.html', {'jugadores': jugadores})
+    return render(request, 'core/admin_jugadores.html', {'jugadores': jugadores, 'uso_plan': uso_plan(mi_complejo)})
 
 @login_required
 @user_passes_test(es_organizador)

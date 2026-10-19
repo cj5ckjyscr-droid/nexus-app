@@ -549,7 +549,7 @@ class DirigenteSoloSuEquipoTest(DosCanchasTestCase):
 
     def test_el_dirigente_no_elige_equipo_al_fichar(self):
         dirigente = User.objects.create_user("dir_dos", password="pass12345")
-        mio = Equipo.objects.create(torneo=self.torneo_a, dirigente=dirigente, nombre="Mi Equipo", estado_inscripcion="APROBADO")
+        mio = Equipo.objects.create(torneo=self.torneo_a, dirigente=dirigente, nombre="Mi Equipo", estado_inscripcion="APROBADO", cupos_pagados=10)
         otro_mio = Equipo.objects.create(torneo=self.torneo_a, dirigente=dirigente, nombre="Mi Otro", estado_inscripcion="APROBADO")
         RolComplejo.objects.create(usuario=dirigente, complejo=self.complejo_a, rol="DIR")
         self.client.login(username="dir_dos", password="pass12345")
@@ -695,3 +695,103 @@ class TorneoCategoriaObligatoriaTest(DosCanchasTestCase):
         self.assertContains(r, 'value="2026-03-15"')
         self.assertContains(r, f'<option value="{cat.id}" selected>')
         self.assertContains(r, f'value="{self.torneo_a.nombre}"')
+
+
+
+class ReglasDeFichajeDelDirigenteTest(DosCanchasTestCase):
+    def setUp(self):
+        super().setUp()
+        self.dirigente = User.objects.create_user("dir_reglas", password="pass12345")
+        RolComplejo.objects.create(usuario=self.dirigente, complejo=self.complejo_a, rol="DIR")
+        self.complejo_a.plan.max_jugadores = 500
+        self.complejo_a.plan.save()
+        self.client.login(username="dir_reglas", password="pass12345")
+
+    def _equipo(self, **kw):
+        datos = dict(torneo=self.torneo_a, dirigente=self.dirigente, nombre="Los Reglamentarios", estado_inscripcion="APROBADO", cupos_pagados=2)
+        datos.update(kw)
+        return Equipo.objects.create(**datos)
+
+    def _fichar(self, equipo, cedula, dorsal):
+        return self.client.post(f"/jugadores/?equipo={equipo.id}", {"equipo": str(equipo.id), "nombres": "Jugador Prueba",
+                                                                    "dorsal": str(dorsal), "cedula": cedula})
+
+    def test_equipo_pendiente_no_puede_fichar(self):
+        eq = self._equipo(estado_inscripcion="PENDIENTE")
+        r = self.client.get(f"/jugadores/?equipo={eq.id}")
+        self.assertContains(r, "Esperando aprobación")
+        self._fichar(eq, "1710034065", 9)
+        self.assertEqual(eq.jugadores.count(), 0)
+
+    def test_sin_cupos_asignados_no_puede_fichar(self):
+        eq = self._equipo(cupos_pagados=0)
+        r = self.client.get(f"/jugadores/?equipo={eq.id}")
+        self.assertContains(r, "Cupos sin asignar")
+        self._fichar(eq, "1710034065", 9)
+        self.assertEqual(eq.jugadores.count(), 0)
+
+    def test_solo_ficha_hasta_el_limite_de_cupos(self):
+        eq = self._equipo(cupos_pagados=2)
+        for i, ced in enumerate(["1710034065", "1713175071", "1714616123"]):
+            self._fichar(eq, ced, i + 1)
+        self.assertEqual(eq.jugadores.count(), 2)
+        r = self.client.get(f"/jugadores/?equipo={eq.id}")
+        self.assertContains(r, "Límite alcanzado")
+
+    def test_limite_de_jugadores_del_plan_de_la_cancha(self):
+        self.complejo_a.plan.max_jugadores = Jugador.objects.filter(equipo__torneo__complejo=self.complejo_a).count()
+        self.complejo_a.plan.save()
+        eq = self._equipo(cupos_pagados=5)
+        self._fichar(eq, "1710034065", 9)
+        self.assertEqual(eq.jugadores.count(), 0)
+
+
+class BitacoraDeCambiosTest(DosCanchasTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.login(username="org_a", password="pass12345")
+
+    def test_editar_jugador_queda_registrado_campo_por_campo(self):
+        from .models import RegistroCambio
+        j = self.jugador_a
+        datos = {"equipo": j.equipo_id, "nombres": "Nombre Corregido", "dorsal": "77",
+                 "tipo_documento": j.tipo_documento or "EC", "cedula": j.cedula}
+        self.client.post(f"/jugadores/editar/{j.id}/", datos)
+        r = RegistroCambio.objects.get(accion="EDITAR", entidad="JUGADOR")
+        campos = {c["campo"]: (c["antes"], c["despues"]) for c in r.cambios}
+        self.assertEqual(campos["Dorsal"][1], "77")
+        self.assertEqual(campos["Nombres"][1], "Nombre Corregido")
+        self.assertEqual(r.complejo, self.complejo_a)
+        self.assertFalse(r.en_soporte)
+        page = self.client.get("/trazabilidad/cambios/")
+        self.assertContains(page, "Nombre Corregido")
+
+    def test_los_cambios_del_soporte_tecnico_quedan_marcados(self):
+        from .models import RegistroCambio
+        User.objects.create_superuser("jefe_bit", password="pass12345")
+        self.client.login(username="jefe_bit", password="pass12345")
+        self.client.post(f"/nexus-admin/soporte/entrar/{self.complejo_a.id}/")
+        j = self.jugador_a
+        self.client.post(f"/jugadores/editar/{j.id}/", {"equipo": j.equipo_id, "nombres": j.nombres, "dorsal": "55",
+                                                         "tipo_documento": j.tipo_documento or "EC", "cedula": j.cedula})
+        r = RegistroCambio.objects.get(accion="EDITAR")
+        self.assertTrue(r.en_soporte)
+        self.assertContains(self.client.get("/trazabilidad/cambios/?soporte=1"), "Soporte técnico NEXUS")
+
+    def test_cada_cancha_solo_ve_su_bitacora(self):
+        from .models import RegistroCambio
+        RegistroCambio.objects.create(complejo=self.complejo_b, entidad="JUGADOR", accion="EDITAR", objeto="Secreto de B")
+        self.assertNotContains(self.client.get("/trazabilidad/cambios/"), "Secreto de B")
+
+
+class BotonHorariosTest(DosCanchasTestCase):
+    def test_solo_con_partidos_proximos_y_solo_para_el_organizador(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from .models import Partido
+        self.client.login(username="org_a", password="pass12345")
+        Partido.objects.filter(torneo__complejo=self.complejo_a).update(fecha_hora=None)
+        self.assertNotContains(self.client.get("/dashboard/"), "Imagen de horarios")
+        Partido.objects.create(torneo=self.torneo_a, equipo_local=self.equipo_a, equipo_visita=self.equipo_a2,
+                               estado="PROG", fecha_hora=timezone.now() + timedelta(days=1))
+        self.assertContains(self.client.get("/dashboard/"), "Imagen de horarios")

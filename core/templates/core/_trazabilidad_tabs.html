@@ -1,0 +1,13 @@
+{% comment %}Cabecera y pestañas de Trazabilidad. Parámetro: activa = 'dinero' | 'cambios'.{% endcomment %}
+<header class="marcador">
+    <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+        <div style="min-width: 0;">
+            <div class="marcador-meta"><span><i class="bi bi-lock-fill"></i>Registro permanente: no se edita ni se borra</span></div>
+            <h1><small>Quién hizo qué, cuándo y desde dónde</small>Trazabilidad</h1>
+        </div>
+        <nav class="segmento" aria-label="Tipo de registro">
+            <a href="{% url 'trazabilidad_financiera' %}" class="{% if activa == 'dinero' %}activo{% endif %}" {% if activa == 'dinero' %}aria-current="page"{% endif %}><i class="bi bi-cash-stack"></i>Dinero</a>
+            <a href="{% url 'trazabilidad_cambios' %}" class="{% if activa == 'cambios' %}activo{% endif %}" {% if activa == 'cambios' %}aria-current="page"{% endif %}><i class="bi bi-pencil-square"></i>Cambios administrativos</a>
+        </nav>
+    </div>
+</header>

@@ -94,6 +94,11 @@
         .action-btn { width: 28px; height: 28px; font-size: 0.75rem; }
         #toast-container { top: 10px; right: 10px; left: 10px; align-items: stretch; }
     }
+    .aviso-fichaje { display: flex; gap: .75rem; align-items: flex-start; border-radius: 14px; padding: .85rem 1rem; margin-bottom: 1rem; font-size: .86rem; }
+    .aviso-fichaje i { font-size: 1.3rem; line-height: 1; margin-top: .1rem; }
+    .aviso-fichaje strong { display: block; margin-bottom: .15rem; }
+    .aviso-fichaje.ambar { background: #FFFBEB; border: 1px solid #F5DE9A; color: #6B4E07; }
+    .aviso-fichaje.rojo { background: #FEF3F2; border: 1px solid #F8C9C4; color: #8A1C12; }
 </style>
 {% endblock %}
 
@@ -112,6 +117,7 @@
             <div class="acciones">{% if equipo_obj and es_admin %}<a href="{% url 'imprimir_carnets' equipo_obj.id %}" class="btn-mar verde"><i class="bi bi-person-vcard"></i>Imprimir carnets</a>{% endif %}</div>
         </div>
     </header>
+    {% include 'core/_uso_plan.html' with uso=uso_plan compacto=True %}
 
     <div class="row g-4 pb-5">
         <div class="col-lg-7 col-xl-8 animate__animated animate__fadeInLeft">
@@ -229,11 +235,11 @@
             <div class="form-dark-glass position-sticky" style="top: 100px;">
                 <div class="card-body p-4">
                     {% if not puede_fichar %}
-                    <div class="alert alert-danger rounded-3 mb-3 d-flex align-items-center" style="font-size: 0.85rem;">
-                        <i class="bi bi-exclamation-octagon-fill fs-4 me-3"></i>
+                    <div class="aviso-fichaje {% if equipo_obj.estado_inscripcion != 'APROBADO' or equipo_obj.cupos_pagados == 0 %}ambar{% else %}rojo{% endif %}" role="status">
+                        <i class="bi {% if equipo_obj.estado_inscripcion != 'APROBADO' %}bi-hourglass-split{% elif equipo_obj.cupos_pagados == 0 %}bi-person-lock{% else %}bi-exclamation-octagon-fill{% endif %}"></i>
                         <div>
-                            <strong>Límite Alcanzado</strong><br>
-                            <small>Este equipo ya tiene el número máximo de <strong>{{ equipo_obj.cupos_pagados }} jugadores</strong> permitidos. No se aceptan más inscripciones.</small>
+                            <strong>{% if equipo_obj.estado_inscripcion != 'APROBADO' %}Esperando aprobación{% elif equipo_obj.cupos_pagados == 0 %}Cupos sin asignar{% elif equipo_obj.esta_sancionado %}Equipo sancionado{% else %}Límite alcanzado{% endif %}</strong>
+                            <span>{{ motivo_bloqueo|default:"No se pueden fichar más jugadores en este equipo." }}</span>
                         </div>
                     </div>
                     {% endif %}

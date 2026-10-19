@@ -11,6 +11,21 @@
         ],
         "createdAt": "2026-10-19T01:41:35.921Z",
         "reason": "agent: el texto en mayúsculas es el h1 del marcador; el detector suma las etiquetas {% if %} de la plantilla (86 car. de fuente), en pantalla son ~40 car. de titular"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-10-19T02:33:14.345Z",
+        "reason": "agent: Inter es la fuente base que el proyecto ya usaba en toda la app; el carácter deportivo lo da Barlow Condensed en títulos y cifras"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "core/static/core/deportivo.css"
+        ],
+        "createdAt": "2026-10-19T02:33:14.355Z",
+        "reason": "agent: la franja de 3px marca la zona de clasificación en la tabla de posiciones (dato, no decoración)"
       }
     ]
   }

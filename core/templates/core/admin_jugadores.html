@@ -159,6 +159,7 @@
                 {% if request.GET.q %}<a href="{% url 'admin_gestion_jugadores' %}" class="btn-mar"><i class="bi bi-x-circle"></i>Limpiar</a>{% endif %}</div>
         </div>
     </header>
+    {% include 'core/_uso_plan.html' with uso=uso_plan compacto=True %}
 
     <!-- CONTENEDOR PRINCIPAL DE LA LISTA -->
     <div class="card card-pro border-0 shadow-sm overflow-hidden rounded-4 mb-3">
