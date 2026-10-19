@@ -89,71 +89,57 @@
 {% endblock %}
 
 {% block contenido %}
-<div class="ambient-glow"></div>
-
-<div class="container py-4 pb-5">
-    
-    <div class="text-center mb-5 reveal-up">
-        <a href="javascript:history.back()" class="btn btn-light border border-secondary rounded-pill px-4 py-2 fw-bold text-dark shadow-sm transition-all mb-4 d-inline-flex align-items-center hover-lift">
-            <i class="bi bi-arrow-left me-2"></i> Volver atrás
-        </a>
-        <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
-            <i class="bi bi-heptagon-fill text-success fs-1"></i>
-            <h2 class="fey-title m-0">Top Goleadores</h2>
-        </div>
-        <p class="text-slate-600 fw-bold m-0" style="font-size: 1.05rem;">Ranking oficial de los máximos artilleros del torneo.</p>
-    </div>
-
-    <div class="row justify-content-center reveal-up" style="animation-delay: 0.1s;">
-        <div class="col-md-10 col-lg-8">
-            
-            <div class="fey-card">
-                
-                <div class="bg-slate-50 border-bottom border-secondary px-4 py-3 d-flex justify-content-between text-slate-600 fw-bold small text-uppercase" style="letter-spacing: 1px;">
-                    <span>Posición & Jugador</span>
-                    <span>Total Goles</span>
+{% load nexus_extras %}
+<div class="dp" style="max-width: 860px; margin: 0 auto; padding-bottom: 3rem;">
+    <header class="marcador">
+        <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-end">
+            <div>
+                <div class="marcador-meta">
+                    {% if torneo.complejo %}<span><i class="bi bi-geo-alt-fill"></i>{{ torneo.complejo.nombre }}</span>{% endif %}
+                    {% if torneo.categoria %}<span><i class="bi bi-tag-fill"></i>{{ torneo.categoria.nombre }}</span>{% endif %}
                 </div>
+                <h1><small>Tabla de goleadores</small>{{ torneo.nombre }}</h1>
+            </div>
+            <nav class="acciones" aria-label="Acciones">
+                <a href="javascript:history.back()" class="btn-mar"><i class="bi bi-arrow-left"></i>Volver</a>
+            </nav>
+        </div>
+    </header>
 
-                <div class="card-body p-0">
-                    {% for g in goleadores %}
-                    <div class="scorer-strip {% if forloop.counter > 3 %}rank-other-strip{% endif %}">
-                        
-                        <div class="rank-badge {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-other{% endif %}">
-                            {{ forloop.counter }}
-                        </div>
-                        
-                        <div class="flex-grow-1 min-w-0 pe-3">
-                            <div class="player-name text-truncate" title="{{ g.jugador__nombres }}">{{ g.jugador__nombres }}</div>
-                            <div class="d-flex align-items-center text-slate-600 fw-bold mt-1" style="font-size: 0.8rem;">
-                                {% if g.jugador__equipo__escudo %}
-                                    <img src="/media/{{ g.jugador__equipo__escudo }}" class="team-shield-mini">
-                                {% else %}
-                                    <i class="bi bi-shield-fill text-muted opacity-50 me-2 fs-6"></i>
-                                {% endif %}
-                                <span class="text-truncate">{{ g.jugador__equipo__nombre }}</span>
-                            </div>
-                        </div>
-
-                        <div class="ms-auto">
-                            <div class="goals-pill">
-                                {{ g.total_goles }}
-                            </div>
-                        </div>
-
-                    </div>
-                    {% empty %}
-                    <div class="text-center py-5 bg-white">
-                        <div class="bg-slate-100 rounded-circle d-inline-flex justify-content-center align-items-center mb-3 border shadow-sm" style="width: 80px; height: 80px;">
-                            <i class="bi bi-slash-circle text-slate-400" style="font-size: 2.5rem;"></i>
-                        </div>
-                        <h5 class="fw-black text-dark mt-2" style="font-family: 'Outfit', sans-serif;">Sin anotaciones</h5>
-                        <p class="text-slate-600 fw-bold mb-0">Aún no hay goles registrados en este torneo.</p>
-                    </div>
-                    {% endfor %}
+    <section class="bloque">
+        <div class="bloque-h">
+            <h2><svg viewBox="0 0 24 24" fill="none" stroke="var(--cesped)" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m12 7 4 3-1.5 4.5h-5L8 10z"/><path d="M12 3v4M21 10l-5 0M18 19l-3.5-4.5M6 19l3.5-4.5M3 10h5"/></svg>Goleadores</h2>
+            <span class="nota">Top 15 del torneo</span>
+        </div>
+        {% if goleadores %}
+            {% with lider=goleadores.0 maximo=goleadores.0.total_goles %}
+            <div class="lider gol">
+                <div class="cifra">{{ lider.total_goles }}</div>
+                <div style="min-width: 0;">
+                    <div class="que">Máximo goleador</div>
+                    <div class="quien">{{ lider.jugador__nombres }}</div>
+                    <div class="de">{% if lider.jugador__equipo__escudo %}<img src="{{ lider.jugador__equipo__escudo|url_archivo }}" alt="">{% endif %}{{ lider.jugador__equipo__nombre }}</div>
                 </div>
             </div>
-
-        </div>
-    </div>
+            <ol class="ranking gol-lista" start="2">
+                {% for g in goleadores %}{% if not forloop.first %}
+                <li class="rk">
+                    <span class="n">{{ forloop.counter }}</span>
+                    <span class="quien">{{ g.jugador__nombres }}</span>
+                    <span class="valor cifra">{{ g.total_goles }}</span>
+                    <span class="de">{% if g.jugador__equipo__escudo %}<img src="{{ g.jugador__equipo__escudo|url_archivo }}" alt="">{% endif %}{{ g.jugador__equipo__nombre }}</span>
+                    <span class="barra" aria-hidden="true"><i style="width: {% widthratio g.total_goles maximo 100 %}%;"></i></span>
+                </li>
+                {% endif %}{% endfor %}
+            </ol>
+            {% endwith %}
+        {% else %}
+            <div class="vacio">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m12 7 4 3-1.5 4.5h-5L8 10z"/></svg>
+                <strong>Todavía no hay goles</strong>
+                <span>Los goles que anote el vocal en la mesa aparecen aquí al cerrar cada acta.</span>
+            </div>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}

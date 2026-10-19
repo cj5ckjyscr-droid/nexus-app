@@ -4,225 +4,100 @@
 
 {% block contenido %}
 <style>
-    /* =========================================================
-       ESTÉTICA FEY - PORTAL PÚBLICO (LIGHT MODE)
-       ========================================================= */
-    .ambient-glow {
-        position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
-        background: 
-            radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
-        z-index: -1; pointer-events: none;
-    }
+    .portal { max-width: 1180px; margin: 0 auto; padding-bottom: 3rem; }
+    .portal .marcador { padding: 2rem 1.6rem 1.7rem; text-align: center; }
+    .portal .logo-cancha { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 3px solid #4ADE80; box-shadow: 0 0 0 6px rgba(74, 222, 128, .12); background: #fff; }
+    .portal .logo-vacio { display: inline-grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; background: var(--noche-2); border: 3px solid #4ADE80; color: #4ADE80; font-size: 2.4rem; }
+    .portal .marcador h1 { margin-top: .9rem; }
+    .portal .marcador .bajada { color: #CFE3D8; margin: .5rem auto 0; max-width: 56ch; font-size: .95rem; }
+    .portal .acciones { justify-content: center; margin-top: 1.2rem; }
+    .en-vivo { display: inline-flex; align-items: center; gap: .45rem; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #86EFAC; }
+    .en-vivo::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); }
+    @media (prefers-reduced-motion: no-preference) { .en-vivo::before { animation: latido 2s ease-out infinite; } }
+    @keyframes latido { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .55); } 70% { box-shadow: 0 0 0 9px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
 
-    .fey-title {
-        font-family: 'Outfit', sans-serif; font-weight: 900;
-        font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.03em; line-height: 1.1; color: #0F172A;
-    }
-
-    .fey-pill {
-        display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(12px); border: 1px solid #E2E8F0; padding: 6px 16px;
-        border-radius: 100px; font-weight: 600; font-size: 0.8rem; color: #475569;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-
-    .fey-card {
-        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
-        border: 1px solid #E2E8F0; border-radius: 20px; padding: 30px;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-        display: flex; flex-direction: column; height: 100%;
-    }
-    .fey-card:hover {
-        transform: translateY(-5px); box-shadow: 0 15px 35px rgba(15, 23, 42, 0.06);
-        border-color: #CBD5E1; background: #FFFFFF;
-    }
-
-    /* Banner VIP Épico (Llamado a la acción) */
-    .vip-banner {
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-        border-radius: 24px; padding: 30px; position: relative; overflow: hidden;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15); border: 1px solid #334155;
-    }
-    .vip-banner::before {
-        content: ''; position: absolute; top: -50%; right: -10%; width: 250px; height: 250px;
-        background: radial-gradient(circle, rgba(79, 70, 229, 0.3) 0%, transparent 70%); border-radius: 50%;
-    }
-
-    /* Botones de acción dentro de la tarjeta de Torneo */
-    .action-btn {
-        display: flex; align-items: center; justify-content: center; gap: 8px;
-        background: #F8FAFC; border: 1px solid #E2E8F0; color: #0F172A;
-        font-weight: 600; font-size: 0.85rem; padding: 10px 16px; border-radius: 12px;
-        text-decoration: none; transition: all 0.2s ease;
-    }
-    .action-btn:hover {
-        background: #FFFFFF; border-color: var(--brand-primary); color: var(--brand-primary);
-        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.1); transform: translateY(-1px);
-    }
-    
-    /* Botón de Inscripción (Premium) */
-    .btn-inscribir {
-        background: linear-gradient(135deg, var(--brand-primary), #0EA5E9);
-        color: white !important; border: none; font-size: 0.95rem; font-weight: 800;
-        letter-spacing: 0.5px; text-transform: uppercase; padding: 14px 20px;
-        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3); transition: all 0.3s ease;
-    }
-    .btn-inscribir:hover {
-        transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
-    }
-
-    /* Animaciones */
-    .reveal-up { opacity: 0; animation: revealUpAnim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; }
-    @keyframes revealUpAnim { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-
-    @media (max-width: 576px) {
-        .fey-card { padding: 20px; border-radius: 16px; }
-        .action-btn { padding: 8px 12px; font-size: 0.8rem; }
-        .logo-cancha { width: 70px !important; height: 70px !important; }
-        .vip-banner { padding: 20px; text-align: center; }
+    .torneo { position: relative; background: #fff; border: 1px solid var(--borde); border-radius: 18px; overflow: hidden; height: 100%; display: flex; flex-direction: column;
+        box-shadow: 0 10px 24px -20px rgba(11, 18, 32, .35); transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out); }
+    .torneo:hover { transform: translateY(-3px); box-shadow: 0 18px 30px -22px rgba(11, 18, 32, .45); }
+    .torneo-franja { height: 6px; background: var(--cat, var(--cesped)); }
+    .torneo-cuerpo { padding: 1.1rem 1.15rem 1.15rem; display: flex; flex-direction: column; gap: .9rem; flex: 1; }
+    .torneo-tags { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .tag-cat { font-size: .78rem; font-weight: 800; color: #334155; display: inline-flex; align-items: center; gap: .4rem; }
+    .tag-cat i { width: 10px; height: 10px; border-radius: 3px; background: var(--cat, var(--cesped)); display: inline-block; }
+    .tag-estado { font-size: .74rem; font-weight: 800; border-radius: 999px; padding: .2rem .6rem; }
+    .tag-estado.abierto { background: #DCFCE7; color: #166534; }
+    .tag-estado.juego { background: var(--noche); color: #86EFAC; }
+    .torneo h3 { font-family: var(--cond); font-weight: 800; text-transform: uppercase; font-size: 1.7rem; line-height: .98; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+    .torneo-links { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .t-link { display: flex; align-items: center; justify-content: center; gap: .45rem; padding: .62rem .7rem; border-radius: 12px; font-weight: 700; font-size: .86rem; text-decoration: none;
+        color: var(--tinta); background: #F1F5F9; border: 1px solid transparent; transition: background-color .15s, border-color .15s, color .15s; }
+    .t-link:hover { background: #fff; border-color: #22C55E; color: #15803D; }
+    .t-link.ancho { grid-column: 1 / -1; }
+    .t-link.inscribir { grid-column: 1 / -1; background: #22C55E; color: #052E16; font-weight: 800; padding: .78rem; }
+    .t-link.inscribir:hover { background: #4ADE80; color: #052E16; border-color: transparent; }
+    @media (prefers-reduced-motion: no-preference) {
+        .torneo { animation: subir .5s var(--ease-out) both; animation-delay: calc(.3s + min(var(--i, 0), 8) * 60ms); }
     }
 </style>
 
-<div class="ambient-glow"></div>
-
-<div class="container text-center pt-5 pb-4 reveal-up">
-    <div class="mb-3">
-        {% if complejo.logo %}
-            <div class="d-inline-block p-1 bg-white rounded-circle shadow-sm border border-light">
-                <img src="{{ complejo.logo.url }}" alt="Logo {{ complejo.nombre }}" class="rounded-circle logo-cancha" style="width: 90px; height: 90px; object-fit: cover;">
-            </div>
-        {% else %}
-            <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow-sm border border-light logo-cancha" style="width: 90px; height: 90px;">
-                <i class="bi bi-trophy-fill fs-1 text-primary"></i>
-            </div>
-        {% endif %}
-    </div>
-
-    <h1 class="fey-title mb-3">{{ complejo.nombre }}</h1>
-    
-    <div class="fey-pill mx-auto mb-4">
-        <span class="bg-success rounded-circle animate__animated animate__pulse animate__infinite" style="width: 8px; height: 8px;"></span>
-        Portal Oficial de Torneos
-    </div>
-
-    
-    {% if url_whatsapp %}
-        <div>
-            <a href="{{ url_whatsapp }}" target="_blank" class="btn btn-dark fw-bold rounded-pill px-4 py-2 shadow-sm" style="font-size: 0.9rem;">
-                <i class="bi bi-whatsapp text-success me-1"></i> Contactar Organizador
-            </a>
-        </div>
-    {% endif %}
-</div>
-
-<div class="container mb-5 reveal-up delay-1" style="max-width: 850px;">
-    <div class="vip-banner d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
-        <div class="d-flex align-items-center gap-3">
-            <div class="bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0" style="width: 60px; height: 60px;">
-                <i class="bi bi-shield-shaded fs-3"></i>
-            </div>
-            <div>
-                {% if not user.is_authenticated %}
-                    <h4 class="fw-black text-white m-0" style="font-family: 'Outfit', sans-serif;">¿Tienes un equipo listo para la gloria?</h4>
-                    <p class="text-white-50 small m-0 mt-1 fw-medium" style="line-height: 1.4;">Crea tu cuenta de Dirigente, inscribe a tu plantilla en los torneos disponibles y gestiona todo desde tu celular.</p>
-                {% else %}
-                    <h4 class="fw-black text-white m-0" style="font-family: 'Outfit', sans-serif;">Hola de nuevo, {{ user.first_name|default:user.username }}</h4>
-                    <p class="text-white-50 small m-0 mt-1 fw-medium">Revisa las estadísticas de tus torneos o inscribe a tu equipo en uno nuevo abajo.</p>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="w-100 flex-shrink-0" style="max-width: 250px;">
-            {% if not user.is_authenticated %}
-                <a href="{% url 'login' %}" class="btn btn-light w-100 rounded-pill py-2 fw-black text-dark shadow-sm">
-                    <i class="bi bi-person-circle me-1"></i> Únete como Dirigente
-                </a>
+<div class="portal dp">
+    <header class="marcador">
+        {% if complejo.logo %}<img src="{{ complejo.logo.url }}" alt="Logo de {{ complejo.nombre }}" class="logo-cancha">
+        {% else %}<span class="logo-vacio" aria-hidden="true"><i class="bi bi-trophy-fill"></i></span>{% endif %}
+        <h1><small><span class="en-vivo">Portal oficial de torneos</span></small>{{ complejo.nombre }}</h1>
+        <p class="bajada">
+            {% if user.is_authenticated %}Hola, {{ user.first_name|default:user.username }}. Sigue posiciones, fixture y goleadores, o inscribe a tu equipo.
+            {% else %}Posiciones, fixture y goleadores en vivo. ¿Tienes equipo? Crea tu cuenta de dirigente e inscríbelo desde el celular.{% endif %}
+        </p>
+        <div class="acciones">
+            {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="btn-mar verde">Ir a mi panel <i class="bi bi-arrow-right"></i></a>
             {% else %}
-                <a href="{% url 'dashboard' %}" class="btn btn-primary w-100 rounded-pill py-2 fw-black border-0 shadow-sm" style="background: var(--brand-primary);">
-                    Ir a mi Panel <i class="bi bi-arrow-right ms-1"></i>
-                </a>
+                <a href="{% url 'login' %}" class="btn-mar verde"><i class="bi bi-person-circle"></i>Únete como dirigente</a>
+            {% endif %}
+            {% if url_whatsapp %}
+                <a href="{{ url_whatsapp }}" target="_blank" rel="noopener" class="btn-mar"><i class="bi bi-whatsapp"></i>Contactar organizador</a>
             {% endif %}
         </div>
-    </div>
-</div>
+    </header>
 
-<div class="container pb-5 reveal-up delay-2">
-    
-    <div class="d-flex align-items-center mb-4 px-2">
-        <h4 class="fw-black text-dark m-0" style="font-family: 'Outfit', sans-serif;">
-            <i class="bi bi-lightning-charge-fill text-warning me-2"></i> Competiciones Activas
-        </h4>
+    <div class="bloque-h px-0">
+        <h2><i class="bi bi-trophy-fill" style="color: var(--cesped);"></i>Competiciones</h2>
+        <span class="nota">{{ torneos|length }} activa{{ torneos|length|pluralize }}</span>
     </div>
-    
-    <div class="row g-3 g-md-4">
+
+    <div class="row g-3">
         {% for torneo in torneos %}
         <div class="col-12 col-md-6 col-xl-4">
-            <div class="fey-card">
-                
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <span class="badge bg-slate-50 text-slate-600 border border-secondary border-opacity-25 px-2 py-1 rounded-2 fw-bold">
-                        {{ torneo.categoria.nombre|default:"Categoría Única" }}
-                    </span>
-                    
-                    {% if torneo.inscripcion_abierta %}
-                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-2 fw-bold">
-                            <i class="bi bi-door-open-fill me-1"></i> Cupos Abiertos
-                        </span>
-                    {% else %}
-                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-2 fw-bold">
-                            <i class="bi bi-play-circle-fill me-1"></i> En Juego
-                        </span>
-                    {% endif %}
-                </div>
-                
-                <h4 class="fw-black text-dark mb-4" style="font-family: 'Outfit', sans-serif; line-height: 1.2;">
-                    {{ torneo.nombre }}
-                </h4>
-                
-                <div class="mt-auto d-flex flex-column gap-2">
-                    
-                    {% if torneo.inscripcion_abierta and not torneo.campeonato_iniciado %}
-                        {% if user.is_authenticated %}
-                            <a href="{% url 'solicitar_inscripcion' torneo.id %}" class="action-btn btn-inscribir mb-2 rounded-pill">
-                                <i class="bi bi-shield-plus fs-5"></i> ¡Inscribir mi Equipo!
-                            </a>
+            <article class="torneo" style="--cat: {{ torneo.categoria.color_carnet|default:'#15803D' }}; --i: {{ forloop.counter0 }};">
+                <div class="torneo-franja"></div>
+                <div class="torneo-cuerpo">
+                    <div class="torneo-tags">
+                        <span class="tag-cat"><i></i>{{ torneo.categoria.nombre|default:"Categoría única" }}</span>
+                        {% if torneo.inscripcion_abierta and not torneo.campeonato_iniciado %}
+                            <span class="tag-estado abierto">Inscripciones abiertas</span>
                         {% else %}
-                            <a href="{% url 'login' %}?next={% url 'solicitar_inscripcion' torneo.id %}" class="action-btn btn-inscribir mb-2 rounded-pill">
-                                <i class="bi bi-shield-plus fs-5"></i> ¡Inscribir mi Equipo!
-                            </a>
+                            <span class="tag-estado juego">En juego</span>
                         {% endif %}
-                    {% endif %}
-
-                    <a href="{% if torneo.formato == 'CLASICO' %}{% url 'tabla_posiciones' torneo.id %}{% else %}{% url 'ver_campeonato' torneo.id %}{% endif %}" class="action-btn">
-                        <i class="bi bi-list-ol text-primary fs-6"></i> Posiciones y Resultados
-                    </a>
-                    
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <a href="{% url 'proxima_jornada' torneo.id %}" class="action-btn w-100">
-                                <i class="bi bi-calendar-event text-info"></i> Fixture
-                            </a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{% url 'tabla_goleadores' torneo.id %}" class="action-btn w-100">
-                                <i class="bi bi-heptagon-fill text-warning"></i> Goleadores
-                            </a>
-                        </div>
+                    </div>
+                    <h3>{{ torneo.nombre }}</h3>
+                    <div class="torneo-links">
+                        {% if torneo.inscripcion_abierta and not torneo.campeonato_iniciado %}
+                            <a href="{% if user.is_authenticated %}{% url 'solicitar_inscripcion' torneo.id %}{% else %}{% url 'login' %}?next={% url 'solicitar_inscripcion' torneo.id %}{% endif %}" class="t-link inscribir"><i class="bi bi-shield-plus"></i>Inscribir mi equipo</a>
+                        {% endif %}
+                        <a href="{% if torneo.formato == 'CLASICO' %}{% url 'tabla_posiciones' torneo.id %}{% else %}{% url 'ver_campeonato' torneo.id %}{% endif %}" class="t-link ancho"><i class="bi bi-list-ol"></i>Posiciones y resultados</a>
+                        <a href="{% url 'proxima_jornada' torneo.id %}" class="t-link"><i class="bi bi-calendar-event"></i>Fixture</a>
+                        <a href="{% url 'tabla_goleadores' torneo.id %}" class="t-link"><i class="bi bi-bullseye"></i>Goleadores</a>
                     </div>
                 </div>
-
-            </div>
+            </article>
         </div>
         {% empty %}
-        <div class="col-12 text-center py-5">
-            <div class="fey-card mx-auto" style="max-width: 450px; background: transparent; box-shadow: none; border-style: dashed;">
-                <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow-sm border mx-auto" style="width: 80px; height: 80px;">
-                    <i class="bi bi-hourglass-split fs-1 text-slate-400 opacity-50"></i>
-                </div>
-                <h5 class="fw-black text-dark" style="font-family: 'Outfit', sans-serif;">Sin torneos activos</h5>
-                <p class="text-muted small m-0">El organizador de este complejo aún no ha publicado los campeonatos. ¡Vuelve pronto!</p>
+        <div class="col-12">
+            <div class="bloque vacio">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 20h8"/></svg>
+                <strong>Todavía no hay torneos publicados</strong>
+                <span>Cuando el organizador abra un campeonato aparecerá aquí con sus posiciones y su fixture.</span>
             </div>
         </div>
         {% endfor %}

@@ -4,70 +4,8 @@
 {% block title %}Estadísticas · {{ torneo.nombre }} | NEXUS SPORTOPS{% endblock %}
 
 {% block extra_css %}
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
 <style>
-    /* =================================================================
-       ESTADÍSTICAS · estilo transmisión deportiva / marcador de estadio
-       ================================================================= */
-    @view-transition { navigation: auto; }
-
-    .est {
-        --noche: #07140F;          /* pantalla del estadio */
-        --noche-2: #0E2A1F;
-        --cesped: #15803D;
-        --cesped-claro: #DCFCE7;
-        --linea: rgba(255, 255, 255, .09);
-        --oro: #F5B301; --plata: #A8B3C2; --bronce: #C77D3A;
-        --amarilla: #EAB308; --roja: #DC2626;
-        --tinta: #0B1220; --suave: #556072; --borde: #E3E8EF; --fondo-fila: #F7F9FB;
-        --cond: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-        --ease-out: cubic-bezier(.16, 1, .3, 1);
-        max-width: 1240px; margin: 0 auto; padding-bottom: 3rem; color: var(--tinta);
-    }
-    .est ::selection { background: #BBF7D0; color: var(--tinta); }
-    .est .num, .est .c-pts, .est .cifra { font-variant-numeric: tabular-nums; }
-    .est a:focus-visible, .est button:focus-visible, .est select:focus-visible, .est input:focus-visible, .est summary:focus-visible {
-        outline: 3px solid #4ADE80; outline-offset: 2px; border-radius: 10px;
-    }
-
-    /* ---------- Cabecera tipo marcador ---------- */
-    .marcador {
-        position: relative; overflow: hidden; isolation: isolate;
-        background: radial-gradient(120% 140% at 85% -20%, #1F5C42 0%, transparent 55%), var(--noche);
-        color: #fff; border-radius: 22px; margin: .75rem 0 1.25rem; padding: 1.6rem 1.6rem 1.4rem;
-        box-shadow: 0 22px 40px -24px rgba(7, 20, 15, .75);
-    }
-    /* líneas de la cancha */
-    .marcador::before {
-        content: ""; position: absolute; inset: 14px; z-index: -1; border: 1.5px solid var(--linea); border-radius: 12px;
-        background:
-            radial-gradient(circle at 50% 50%, transparent 58px, var(--linea) 59px, var(--linea) 60.5px, transparent 61.5px),
-            linear-gradient(90deg, transparent calc(50% - .75px), var(--linea) calc(50% - .75px), var(--linea) calc(50% + .75px), transparent calc(50% + .75px));
-    }
-    .marcador::after { /* reflector */
-        content: ""; position: absolute; right: -10%; top: -60%; width: 55%; height: 200%; z-index: -1;
-        background: linear-gradient(200deg, rgba(255,255,255,.10), transparent 60%); transform: rotate(8deg); pointer-events: none;
-    }
-    .marcador-meta { display: flex; flex-wrap: wrap; gap: .4rem .9rem; color: #CFE3D8; font-size: .82rem; font-weight: 600; }
-    .marcador-meta span { display: inline-flex; align-items: center; gap: .35rem; }
-    .marcador h1 {
-        font-family: var(--cond); font-weight: 800; text-transform: uppercase; letter-spacing: .01em; line-height: .95;
-        font-size: clamp(2rem, 5.2vw, 3.4rem); margin: .35rem 0 0; color: #fff; text-wrap: balance;
-    }
-    .marcador h1 small { display: block; font-size: .42em; font-weight: 700; letter-spacing: .14em; color: #4ADE80; margin-bottom: .25rem; }
-    .acciones { display: flex; flex-wrap: wrap; gap: .5rem; }
-    .btn-mar {
-        display: inline-flex; align-items: center; gap: .45rem; padding: .6rem 1rem; border-radius: 12px;
-        font-weight: 700; font-size: .86rem; text-decoration: none; color: #E7F5EE; cursor: pointer;
-        background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16);
-        transition: background-color .18s var(--ease-out), border-color .18s var(--ease-out), transform .18s var(--ease-out);
-    }
-    .btn-mar:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); color: #fff; }
-    .btn-mar:active { transform: scale(.97); }
-    .btn-mar.on { background: #fff; color: var(--noche); border-color: #fff; }
-    .btn-mar.verde { background: #22C55E; border-color: #22C55E; color: #052E16; }
-    .btn-mar.verde:hover { background: #4ADE80; }
+    .est { max-width: 1240px; margin: 0 auto; padding-bottom: 3rem; }
 
     /* ---------- Herramienta de cuota (organizador) ---------- */
     .cuota { background: #fff; border: 1px solid var(--borde); border-radius: 16px; margin-bottom: 1.25rem; }
@@ -78,88 +16,6 @@
     .cuota[open] summary .flecha { transform: rotate(180deg); }
     .cuota-cuerpo { padding: 0 1.1rem 1.1rem; }
     .cuota-cuerpo p { color: var(--suave); font-size: .88rem; max-width: 70ch; }
-
-    /* ---------- Bloques ---------- */
-    .bloque { background: #fff; border: 1px solid var(--borde); border-radius: 18px; overflow: hidden; box-shadow: 0 10px 24px -20px rgba(11, 18, 32, .35); }
-    .bloque-h { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: 1rem 1.15rem .85rem; }
-    .bloque-h h2 { font-family: var(--cond); font-weight: 800; text-transform: uppercase; letter-spacing: .02em; font-size: 1.45rem; line-height: 1; margin: 0; display: flex; align-items: center; gap: .55rem; }
-    .bloque-h h2 svg, .bloque-h h2 i { width: 22px; height: 22px; flex-shrink: 0; }
-    .bloque-h .nota { color: var(--suave); font-size: .8rem; font-weight: 600; }
-    .grupo-rotulo { font-family: var(--cond); font-weight: 800; text-transform: uppercase; font-size: 1.25rem; letter-spacing: .03em; }
-    .grupo-rotulo b { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--noche); color: #4ADE80; margin-right: .45rem; font-size: 1.1rem; }
-
-    /* ---------- Tabla de posiciones estilo TV ---------- */
-    .est-tabla-scroll { overflow-x: auto; scrollbar-width: thin; scrollbar-color: #C7D0DB transparent; }
-    .est-tabla { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .9rem; }
-    .est-tabla thead th {
-        background: var(--noche); color: #9FB7AA; font-family: var(--cond); font-weight: 700; font-size: .92rem;
-        letter-spacing: .06em; text-transform: uppercase; padding: .6rem .5rem; text-align: center; white-space: nowrap;
-    }
-    .est-tabla thead th abbr { text-decoration: none; cursor: help; }
-    .est-tabla thead th.c-eq { text-align: left; }
-    .est-tabla thead th.c-pts { color: #4ADE80; }
-    .est-tabla td { padding: .55rem .5rem; text-align: center; border-bottom: 1px solid #EEF2F6; white-space: nowrap; }
-    .est-tabla tbody tr:last-child td { border-bottom: 0; }
-    .est-fila { transition: background-color .15s ease; }
-    .est-fila:hover td { background: var(--fondo-fila); }
-    .est-tabla .c-pos { width: 48px; padding-left: .85rem; }
-    .pos {
-        display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px;
-        font-family: var(--cond); font-weight: 800; font-size: 1.05rem; background: #EEF2F6; color: #334155;
-    }
-    .pos.oro { background: var(--oro); color: #3B2A00; }
-    .pos.plata { background: var(--plata); color: #18202B; }
-    .pos.bronce { background: var(--bronce); color: #2A1404; }
-    .zona-clasifica .c-pos { box-shadow: inset 4px 0 0 #22C55E; }
-    .zona-mejor .c-pos { box-shadow: inset 4px 0 0 #F59E0B; }
-    .excluido { opacity: .45; }
-    .est-tabla .c-eq { text-align: left; min-width: 190px; }
-    .eq { display: flex; align-items: center; gap: .6rem; min-width: 0; }
-    .escudo { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(11,18,32,.18); }
-    .escudo-ini { display: grid; place-items: center; background: var(--noche-2); color: #86EFAC; font-family: var(--cond); font-weight: 800; font-size: .82rem; border-color: var(--noche-2); }
-    .eq-nombre { font-weight: 700; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
-    @media (min-width: 1200px) { .col-xl-6 .eq-nombre { max-width: 150px; } .col-xl-6 .est-tabla td, .col-xl-6 .est-tabla th { padding-left: .35rem; padding-right: .35rem; } }
-    .est-tabla .num { color: #334155; font-weight: 600; }
-    .est-tabla .dg { font-weight: 800; }
-    .est-tabla .pos-dg { color: #15803D; } .est-tabla .neg-dg { color: #B91C1C; }
-    .est-tabla td.c-pts { padding-right: .85rem; }
-    .c-pts span {
-        display: inline-grid; place-items: center; min-width: 40px; height: 32px; padding: 0 .4rem; border-radius: 8px;
-        background: var(--noche); color: #fff; font-family: var(--cond); font-weight: 800; font-size: 1.25rem;
-    }
-    .zona-clasifica .c-pts span, tr:first-child .c-pts span { background: var(--cesped); }
-    .est-vacio-celda { padding: 2.4rem 1rem !important; white-space: normal !important; }
-    .est-vacio-celda svg, .vacio svg { width: 34px; height: 34px; fill: none; stroke: #9AA7B6; stroke-width: 1.5; display: block; margin: 0 auto .5rem; }
-    .est-vacio-celda strong, .vacio strong { display: block; color: var(--tinta); }
-    .est-vacio-celda span, .vacio span { color: var(--suave); font-size: .85rem; }
-
-    /* ---------- Rankings: goleadores y MVP ---------- */
-    .lider { display: flex; align-items: center; gap: .9rem; margin: 0 1.15rem .6rem; padding: .9rem 1rem; border-radius: 14px; color: #fff; position: relative; overflow: hidden; }
-    .lider.gol { background: linear-gradient(120deg, #0E2A1F, #14532D); }
-    .lider.mvp { background: linear-gradient(120deg, #2A1F02, #713F12); }
-    .lider .cifra { font-family: var(--cond); font-weight: 800; font-size: 3.1rem; line-height: .85; min-width: 64px; text-align: center; }
-    .lider.gol .cifra { color: #4ADE80; } .lider.mvp .cifra { color: #FCD34D; }
-    .lider .que { font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
-    .lider .quien { font-weight: 800; font-size: 1.05rem; line-height: 1.2; overflow-wrap: anywhere; }
-    .lider .de { font-size: .8rem; opacity: .8; display: flex; align-items: center; gap: .35rem; margin-top: .15rem; }
-    .lider .de img, .rk .de img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
-    .ranking { list-style: none; margin: 0; padding: 0 0 .5rem; }
-    .rk { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; grid-template-areas: "n quien valor" "n de valor" "n barra valor"; align-items: center; gap: .05rem .7rem; padding: .5rem 1.15rem; }
-    .rk:hover { background: var(--fondo-fila); }
-    .rk .n { grid-area: n; font-family: var(--cond); font-weight: 800; color: #64748B; font-size: 1.05rem; text-align: center; }
-    .rk .quien { grid-area: quien; font-weight: 700; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .rk .de { grid-area: de; min-width: 0; text-overflow: ellipsis; font-size: .75rem; color: var(--suave); display: flex; align-items: center; gap: .3rem; overflow: hidden; white-space: nowrap; }
-    .rk .valor { grid-area: valor; font-family: var(--cond); font-weight: 800; font-size: 1.35rem; min-width: 1.6ch; text-align: right; }
-    .rk .barra { grid-area: barra; margin-top: .3rem; height: 4px; border-radius: 4px; background: #EEF2F6; overflow: hidden; }
-    .rk .barra i { display: block; height: 100%; border-radius: 4px; transform-origin: left center; }
-    .gol-lista .barra i { background: #22C55E; } .mvp-lista .barra i { background: #F59E0B; }
-    .vacio { text-align: center; padding: 2.2rem 1.2rem; }
-
-    /* ---------- Tarjetas (fútbol) dibujadas ---------- */
-    .tarjeta { display: inline-block; width: 11px; height: 15px; border-radius: 2px; vertical-align: -2px; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
-    .tarjeta.am { background: var(--amarilla); } .tarjeta.ro { background: var(--roja); }
-    .tarjeta.doble { background: linear-gradient(135deg, var(--amarilla) 50%, var(--roja) 50%); }
-    .cuenta { display: inline-flex; align-items: center; gap: .3rem; font-weight: 800; }
 
     /* ---------- Disciplina ---------- */
     .sancion { display: grid; grid-template-columns: auto 1fr; gap: .2rem .75rem; padding: .75rem 1.15rem; border-top: 1px solid #EEF2F6; }
@@ -184,48 +40,12 @@
     .plantel .cero { color: #64748B; font-weight: 400; }
     .plantel-scroll { max-height: 440px; overflow: auto; scrollbar-width: thin; scrollbar-color: #C7D0DB transparent; }
 
-    /* ---------- Movimiento: el «saque inicial» (un solo momento) ---------- */
-    @media (prefers-reduced-motion: no-preference) {
-        .marcador { animation: barrido .7s var(--ease-out) both; }
-        .marcador h1, .marcador-meta, .acciones { animation: subir .6s var(--ease-out) .18s both; }
-        .est-fila { animation: subir .45s var(--ease-out) both; animation-delay: calc(.32s + min(var(--i, 0), 12) * 35ms); }
-        .rk .barra i { animation: llenar .8s var(--ease-out) .55s both; }
-        .lider .cifra { animation: marcar .6s var(--ease-out) .45s both; }
-        ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .22s; }
-    }
-    @keyframes barrido { from { clip-path: inset(0 100% 0 0 round 22px); } to { clip-path: inset(0 0 0 0 round 22px); } }
-    @keyframes subir { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-    @keyframes llenar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-    @keyframes marcar { from { opacity: 0; transform: scale(.6); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
-
-    /* ---------- Móvil ---------- */
-    @media (max-width: 767px) {
-        .marcador { padding: 1.25rem 1.1rem 1.1rem; border-radius: 18px; }
-        .acciones { width: 100%; }
-        .btn-mar { flex: 1 1 auto; justify-content: center; }
-        .est-tabla .c-sec { display: none; }
-        .est-tabla .c-eq { min-width: 0; }
-        .eq-nombre { max-width: 130px; }
-        .escudo { width: 24px; height: 24px; }
-        .pos { width: 26px; height: 26px; font-size: .95rem; }
-        .c-pts span { min-width: 34px; height: 28px; font-size: 1.1rem; }
-        .lider .cifra { font-size: 2.6rem; min-width: 52px; }
-    }
-
-    /* ---------- Impresión ---------- */
-    @media print {
-        .no-print, .btn-flotante-ayuda, .btn-flotante-wsp { display: none !important; }
-        .marcador { box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .est * { animation: none !important; }
-        .bloque { box-shadow: none; break-inside: avoid; }
-        .plantel-scroll { max-height: none; overflow: visible; }
-        .est-tabla thead th, .c-pts span, .pos, .lider, .tarjeta, .sancion .resta { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
+    @media print { .plantel-scroll { max-height: none; overflow: visible; } }
 </style>
 {% endblock %}
 
 {% block contenido %}
-<div class="est">
+<div class="est dp">
 
     <!-- ============ MARCADOR ============ -->
     <header class="marcador">

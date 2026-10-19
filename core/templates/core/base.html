@@ -9,7 +9,7 @@
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}{% if complejo %}{{ complejo.nombre }}{% else %}NEXUS SPORTOPS{% endif %}{% endblock %}</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -489,6 +489,7 @@
             .table > thead th, .table > tbody td { padding: 0.65rem 0.7rem; font-size: 0.85rem; }
         }
     </style>
+    <link rel="stylesheet" href="{% static 'core/deportivo.css' %}">
     {% block extra_css %}{% endblock %}
 
     <style>

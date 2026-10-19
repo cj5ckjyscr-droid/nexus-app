@@ -3,7 +3,7 @@
 {% block extra_css %}{% include 'core/_estilos_campeonato.html' %}{% endblock %}
 
 {% block contenido %}
-<div class="mt-3 mb-5" style="max-width: 1200px; margin: 0 auto;">
+<div class="mt-3 mb-5 dp" style="max-width: 1200px; margin: 0 auto;">
 
     <div class="camp-hero mb-4">
         <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
@@ -43,7 +43,7 @@
 
     {% if cuadro.campeon or campeon_liga %}
     <div class="campeon-banner mb-4 d-flex align-items-center gap-3">
-        <div style="font-size: 2.4rem;">🏆</div>
+        <i class="bi bi-trophy-fill" style="font-size: 2.6rem; color: #FCD34D;" aria-hidden="true"></i>
         <div><div class="small fw-bold text-uppercase">Campeón</div><h3 class="fw-black m-0">{% if cuadro.campeon %}{{ cuadro.campeon.nombre }}{% else %}{{ campeon_liga.nombre }}{% endif %}</h3></div>
     </div>
     {% endif %}
@@ -70,9 +70,7 @@
                 <div class="col-12 col-lg-6 col-xxl-4">
                     <div class="camp-card h-100">
                         <div class="camp-card-h"><span class="camp-titulo">Grupo {{ letra }}</span></div>
-                        <div class="table-responsive border-0">
-                            {% include 'core/_tabla_pos.html' with tabla=tabla %}
-                        </div>
+                        {% include 'core/_est_tabla.html' with tabla=tabla %}
                     </div>
                 </div>
                 {% endfor %}
@@ -94,7 +92,7 @@
             {% endif %}
             {% else %}
             <div class="camp-card">
-                <div class="table-responsive border-0">{% include 'core/_tabla_pos.html' with tabla=tabla_liga %}</div>
+                {% include 'core/_est_tabla.html' with tabla=tabla_liga %}
             </div>
             {% endif %}
         </div>
