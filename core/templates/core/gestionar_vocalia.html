@@ -148,6 +148,27 @@
         .ios-step-val { font-size: 0.85rem; }
     }
 
+
+    /* ===== Estilo deportivo (solo apariencia; los controles no cambian) ===== */
+    .scoreboard-ios {
+        background: radial-gradient(120% 160% at 50% -40%, #1F5C42 0%, transparent 60%), #07140F;
+        border: 1px solid rgba(255,255,255,.08); box-shadow: 0 16px 30px -18px rgba(7,20,15,.85);
+    }
+    .score-digit {
+        font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; font-size: 3.4rem; letter-spacing: 0;
+        background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); font-variant-numeric: tabular-nums; min-width: 64px; text-align: center;
+    }
+    .team-name-header { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; text-transform: uppercase; font-size: 1rem; letter-spacing: .03em; max-width: 110px; }
+    #faltasLocalVal, #faltasVisitaVal { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif !important; font-weight: 800 !important; font-size: 2.6rem !important; font-variant-numeric: tabular-nums; }
+    .ios-team-name { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; text-transform: uppercase; font-size: 1.15rem; letter-spacing: .02em; }
+    @media (prefers-reduced-motion: reduce) { .animate__animated.animate__infinite { animation: none !important; } }
+    .scoreboard-ios > div { min-width: 0; }
+    @media (max-width: 480px) {
+        .scoreboard-ios { padding: 14px 10px; gap: 6px; }
+        .scoreboard-ios .gap-3 { gap: .45rem !important; }
+        .score-digit { font-size: 2.5rem; min-width: 46px; padding: 2px 8px; }
+        .team-name-header { font-size: .85rem; max-width: 78px; }
+    }
 </style>
 {% endblock %}
 

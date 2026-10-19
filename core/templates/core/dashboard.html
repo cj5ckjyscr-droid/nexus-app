@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block contenido %}
+<div class="dp dash">
 
 <style>
     /* ==============================================================
@@ -21,7 +22,6 @@
     body { 
         background-color: var(--bg-app); 
         color: var(--text-main); 
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         -webkit-font-smoothing: antialiased;
     }
 
@@ -203,6 +203,27 @@
     .ios-sponsor-card:active { transform: scale(0.95); }
     .ios-sponsor-card img { width: 100%; height: 100%; object-fit: contain; }
 
+
+    /* ===== Estilo deportivo (alineado con core/deportivo.css) ===== */
+    .dash .dash-sec { font-family: var(--cond); font-weight: 800; text-transform: uppercase; letter-spacing: .03em; font-size: 1.35rem; margin: 0; display: flex; align-items: center; gap: .5rem; color: var(--tinta); }
+    .dash .dash-sec i { color: var(--cesped); }
+    .dash .text-muted.fw-bold.small.mb-2 { font-family: var(--cond); font-size: .95rem !important; text-transform: uppercase; letter-spacing: .06em; color: var(--suave) !important; }
+    .dash .date-pill { background: var(--noche); color: #86EFAC; font-family: var(--cond); font-size: .9rem; letter-spacing: .08em; border-radius: 8px; }
+    .dash .match-card-premium { background: radial-gradient(120% 120% at 100% 0%, #1F5C42 0%, transparent 55%), var(--noche); border-radius: 18px; border-color: rgba(255,255,255,.08); transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out); }
+    .dash .match-card-premium:hover { transform: translateY(-3px); box-shadow: 0 22px 34px -20px rgba(7,20,15,.8); }
+    .dash .match-card-premium::after { background: linear-gradient(90deg, #22C55E, #FACC15); }
+    .dash .match-time { font-family: var(--cond); font-size: 1.15rem; font-weight: 800; letter-spacing: .04em; background: rgba(250,204,21,.12); border-color: rgba(250,204,21,.35); color: #FACC15; }
+    .dash .match-tournament { font-family: var(--cond); font-size: .95rem; letter-spacing: .05em; color: #E7F5EE; }
+    .dash .match-tournament span { color: #86EFAC; }
+    .dash .team-name-premium { font-family: var(--cond); font-size: 1.05rem; letter-spacing: .03em; }
+    .dash .vs-badge { background: #22C55E; color: #052E16; box-shadow: 0 0 0 4px rgba(34,197,94,.18); border-color: var(--noche); font-family: var(--cond); font-size: 1rem; }
+    .dash .admin-btn { background: #fff; border: 1px solid var(--borde); border-radius: 16px; padding: 1rem .5rem; box-shadow: 0 8px 18px -16px rgba(11,18,32,.45); transition: transform .18s var(--ease-out), border-color .18s, box-shadow .18s; }
+    .dash .admin-btn:hover { transform: translateY(-2px); border-color: #22C55E; box-shadow: 0 14px 22px -16px rgba(11,18,32,.5); color: var(--tinta); }
+    .dash .admin-btn i { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: #F1F5F9; font-size: 1.35rem; margin-bottom: .55rem; }
+    .dash .admin-btn span { font-weight: 700; font-size: .82rem; }
+    @media (prefers-reduced-motion: no-preference) {
+        .dash .match-card-premium, .dash .admin-btn { animation: subir .45s var(--ease-out) .25s both; }
+    }
 </style>
 
 <!-- ALERTAS DE SISTEMA PUSH -->
@@ -251,49 +272,41 @@
     {% endif %}
 </div>
 
-<!-- CABECERA HERO -->
-<div class="container-fluid px-2 animate__animated animate__fadeInDown">
-    <div class="hero-header d-flex justify-content-between align-items-end">
-        <div>
-            <div class="hero-subtitle">Complejo Deportivo</div>
-            <h1 class="hero-title">Sistema<br>Gestión</h1>
+<!-- MARCADOR DE INICIO -->
+<div class="container-fluid px-2">
+    <header class="marcador">
+        <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-end">
+            <div>
+                <div class="marcador-meta">
+                    <span><i class="bi bi-calendar-event"></i>{% now "l, d \d\e F" %}</span>
+                    {% if rol_nav_efectivo == 'DIR' and mi_equipo %}<span><i class="bi bi-trophy-fill"></i>{{ mi_equipo.torneo.nombre }}</span>{% endif %}
+                </div>
+                <h1>
+                    <small>Hola, {{ user.first_name|default:user.username }}</small>
+                    {% if rol_nav_efectivo == 'ORG' and mi_complejo %}{{ mi_complejo.nombre }}
+                    {% elif rol_nav_efectivo == 'DIR' and mi_equipo %}{{ mi_equipo.nombre }}
+                    {% elif rol_nav_efectivo == 'VOC' %}Mesa de control
+                    {% else %}Tu fútbol, en vivo{% endif %}
+                </h1>
+            </div>
+            <nav class="acciones" aria-label="Accesos rápidos">
+                <a href="{% url 'ver_torneos_activos' %}" class="btn-mar"><i class="bi bi-trophy-fill"></i>Torneos</a>
+                <a href="{% url 'seleccionar_reporte' %}" class="btn-mar"><i class="bi bi-bar-chart-fill"></i>Estadísticas</a>
+                {% if rol_nav_efectivo == 'DIR' and tengo_deudas %}
+                <button type="button" class="btn-mar" data-bs-toggle="modal" data-bs-target="#modalDeudasDir"><i class="bi bi-wallet2"></i>Debo ${{ monto_deuda }}</button>
+                {% endif %}
+                {% if rol_nav_efectivo == 'ORG' %}
+                <a href="{% url 'generar_horarios_imagen' %}" target="_blank" rel="noopener" class="btn-mar verde"><i class="bi bi-image-fill"></i>Imagen de horarios</a>
+                {% endif %}
+            </nav>
         </div>
-        <div class="text-end mb-2">
-            <div class="fw-bold text-dark" style="font-size: 1rem;">Hola, {{ user.first_name|default:user.username }}</div>
-            <div class="text-muted fw-bold text-capitalize" style="font-size: 0.8rem;"><i class="bi bi-calendar-event me-1"></i>{% now "d M" %}</div>
-        </div>
-    </div>
-</div>
-
-<!-- BOTONES DE ACCIÓN RÁPIDA -->
-<div class="container-fluid px-2 mb-4 animate__animated animate__fadeInUp">
-    <div class="row g-3">
-        <div class="col-6">
-            <a href="{% url 'ver_torneos_activos' %}" class="quick-action-card qa-reserva">
-                <div class="qa-icon"><i class="bi bi-trophy-fill"></i></div>
-                <div class="fw-bold lh-1 mb-1" style="font-size: 1rem;">Torneos</div>
-                <div class="text-white-50 fw-medium" style="font-size: 0.75rem;">Ver campeonatos activos</div>
-            </a>
-        </div>
-        <div class="col-6">
-            <a href="{% url 'seleccionar_reporte' %}" class="quick-action-card qa-stats">
-                <div class="qa-icon"><i class="bi bi-trophy"></i></div>
-                <div class="fw-bold lh-1 mb-1" style="font-size: 1rem;">Estadísticas</div>
-                <div class="text-white-50 fw-medium" style="font-size: 0.75rem;">Tablas y resultados</div>
-            </a>
-        </div>
-    </div>
+    </header>
 </div>
 
 <!-- 🔥 CARTELERA PREMIUM (DISEÑO BROADCAST) 🔥 -->
 <div class="container-fluid px-2 mb-4 animate__animated animate__fadeInUp">
     <div class="d-flex justify-content-between align-items-center mb-3 px-1">
-        <h5 class="fw-bold m-0 text-dark"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Cartelera Oficial</h5>
-        {% if user.is_authenticated and rol_nav_efectivo == 'ORG' %}
-        <a href="{% url 'generar_horarios_imagen' %}" target="_blank" class="btn btn-sm rounded-pill fw-bold text-white shadow-sm" style="background: linear-gradient(135deg, #1B5E3A, #2E8B57);">
-            <i class="bi bi-image-fill me-1"></i> Generar Imagen
-        </a>
-        {% endif %}
+        <h2 class="dash-sec"><i class="bi bi-broadcast"></i>Próximos partidos</h2>
     </div>
 
     <div>
@@ -345,7 +358,7 @@
      ========================================== -->
 {% if user.is_authenticated and not rol_nav_efectivo == 'ORG' and not rol_nav_efectivo == 'VOC' %}
 <div class="container-fluid px-2 mb-4 animate__animated animate__fadeInUp">
-    <h6 class="fw-bold text-muted text-uppercase small mb-3 ps-1">Mi Panel</h6>
+    <h2 class="dash-sec mb-3"><i class="bi bi-shield-fill"></i>Mi panel</h2>
     <div class="admin-grid">
         {% if rol_nav_efectivo == 'DIR' %}<a href="{% url 'gestionar_jugadores' %}" class="admin-btn"><i class="bi bi-shield-shaded text-success"></i><span>Mi Equipo</span></a>{% endif %}
         <a href="{% url 'ver_torneos_activos' %}" class="admin-btn"><i class="bi bi-trophy text-warning"></i><span>Inscribirse</span></a>
@@ -370,7 +383,7 @@
 <!-- Panel Vocal Omitido visualmente aquí para brevedad, PERO SE MANTIENE EL CÓDIGO -->
 <div class="container-fluid px-2 animate__animated animate__fadeInUp mb-4">
     <div class="d-flex align-items-center justify-content-between mb-3 ps-1">
-        <h5 class="fw-bold text-dark m-0"><i class="bi bi-clipboard-data text-primary me-2"></i>Mesa de Control (Vocal)</h5>
+        <h2 class="dash-sec"><i class="bi bi-clipboard-data"></i>Partidos para pitar</h2>
     </div>
     <div class="card border-0 rounded-4 shadow-sm bg-white overflow-hidden" style="border-radius: 24px;">
         <div class="table-responsive">
@@ -421,7 +434,7 @@
     </div>
     {% endif %}
 
-    <h6 class="fw-bold text-muted text-uppercase small mb-3 ps-1">Gestor Administrativo</h6>
+    <h2 class="dash-sec mb-3"><i class="bi bi-grid-3x3-gap-fill"></i>Gestor Administrativo</h2>
 
     <div class="mb-3">
         <div class="text-muted fw-bold small mb-2 ps-1">Competición</div>
@@ -542,4 +555,5 @@
     }
 </script>
 
+</div>
 {% endblock %}
