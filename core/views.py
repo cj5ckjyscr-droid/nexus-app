@@ -418,34 +418,43 @@ def gestionar_usuarios(request):
     })
 
 
-@login_required
-@user_passes_test(es_organizador)
-def gestionar_torneos(request):
-    mi_complejo = obtener_mi_complejo(request.user)
-    
-    # 1. LEER LÍMITES DEL PLAN SAAS (Solo contamos torneos ACTIVOS)
+def _contexto_torneos(request, mi_complejo, form, torneo_edit=None, abrir=False):
+    """Contexto común de la pantalla de torneos (crear y editar)."""
     limite_torneos = mi_complejo.plan.max_torneos if mi_complejo.plan else 1
-    torneos_activos_count = Torneo.objects.filter(complejo=mi_complejo, activo=True).count()
-    puede_crear = torneos_activos_count < limite_torneos
-
+    activos = Torneo.objects.filter(complejo=mi_complejo, activo=True).count()
     torneos_list = Torneo.objects.filter(complejo=mi_complejo).select_related('categoria').order_by('categoria__nombre', '-fecha_inicio')
-    
-    paginator = Paginator(torneos_list, 10) 
-    page = request.GET.get('page')
+    paginator = Paginator(torneos_list, 10)
     try:
-        torneos = paginator.page(page)
+        torneos = paginator.page(request.GET.get('page'))
     except PageNotAnInteger:
         torneos = paginator.page(1)
     except EmptyPage:
         torneos = paginator.page(paginator.num_pages)
-    
+    return {
+        'form': form, 'torneos': torneos,
+        'puede_crear': activos < limite_torneos, 'limite': limite_torneos, 'actuales': activos,
+        'tiene_categorias': Categoria.objects.filter(complejo=mi_complejo).exists(),
+        'editando': torneo_edit is not None, 'torneo_edit': torneo_edit,
+        'abrir_formulario': abrir or torneo_edit is not None,
+    }
+
+
+@login_required
+@user_passes_test(es_organizador)
+def gestionar_torneos(request):
+    mi_complejo = obtener_mi_complejo(request.user)
+    limite_torneos = mi_complejo.plan.max_torneos if mi_complejo.plan else 1
+    puede_crear = Torneo.objects.filter(complejo=mi_complejo, activo=True).count() < limite_torneos
+
     if request.method == 'POST':
-        # 2. APLICAR CANDADO AL GUARDAR
         if not puede_crear:
             messages.error(request, f"⛔ Límite alcanzado: Tu plan solo permite {limite_torneos} torneos activos simultáneamente. Finaliza uno viejo o mejora tu plan.")
             return redirect('gestionar_torneos')
+        if not Categoria.objects.filter(complejo=mi_complejo).exists():
+            messages.error(request, "⛔ Primero crea una categoría: todo torneo pertenece a una categoría.")
+            return redirect('gestionar_categorias')
 
-        form = TorneoForm(request.POST)
+        form = TorneoForm(request.POST, complejo=mi_complejo)
         if form.is_valid():
             t = form.save(commit=False)
             t.organizador = mi_complejo.organizador if request.user.is_superuser else request.user
@@ -453,22 +462,12 @@ def gestionar_torneos(request):
             t.save()
             messages.success(request, f'✅ Torneo "{t.nombre}" creado.')
             return redirect('gestionar_torneos')
-        else:
-            for campo, errores in form.errors.items():
-                for error in errores:
-                    messages.error(request, f"❌ Error en {campo}: {error}")
-    else:
-        form = TorneoForm()
-    
-    form.fields['categoria'].queryset = Categoria.objects.filter(complejo=mi_complejo).order_by('nombre')
-    
-    return render(request, 'core/gestionar_torneos.html', {
-        'form': form, 
-        'torneos': torneos,
-        'puede_crear': puede_crear,
-        'limite': limite_torneos,
-        'actuales': torneos_activos_count
-    })
+        messages.error(request, "❌ Revisa los campos marcados en el formulario.")
+        return render(request, 'core/gestionar_torneos.html', _contexto_torneos(request, mi_complejo, form, abrir=True))
+
+    form = TorneoForm(complejo=mi_complejo)
+    return render(request, 'core/gestionar_torneos.html',
+                  _contexto_torneos(request, mi_complejo, form, abrir='nuevo' in request.GET))
 
 @login_required
 @user_passes_test(es_organizador)
@@ -476,24 +475,15 @@ def editar_torneo(request, torneo_id):
     mi_complejo = obtener_mi_complejo(request.user)
     torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
     if request.method == 'POST':
-        form = TorneoForm(request.POST, instance=torneo)
+        form = TorneoForm(request.POST, instance=torneo, complejo=mi_complejo)
         if form.is_valid():
             form.save()
             messages.success(request, f'✅ Torneo "{torneo.nombre}" actualizado correctamente.')
             return redirect('gestionar_torneos')
-        else:
-            for campo, errores in form.errors.items():
-                for error in errores:
-                    messages.error(request, f"❌ Error en {campo}: {error}")
+        messages.error(request, "❌ Revisa los campos marcados en el formulario.")
     else:
-        form = TorneoForm(instance=torneo)
-    
-    # 🔥 AISLAMIENTO: Restringe la lista en modo edición
-    form.fields['categoria'].queryset = Categoria.objects.filter(complejo=mi_complejo).order_by('nombre')
-        
-    return render(request, 'core/gestionar_torneos.html', {
-        'form': form, 'torneos': Torneo.objects.filter(complejo=mi_complejo).order_by('-id'), 'editando': True, 'torneo_edit': torneo
-    })
+        form = TorneoForm(instance=torneo, complejo=mi_complejo)
+    return render(request, 'core/gestionar_torneos.html', _contexto_torneos(request, mi_complejo, form, torneo_edit=torneo))
 
 @login_required
 @user_passes_test(es_organizador)

@@ -262,6 +262,10 @@
             box-shadow: 0 6px 18px rgba(6, 78, 59, .35); transition: transform .2s ease, background .2s ease;
         }
         .btn-flotante-ayuda:hover { transform: translateY(-2px); background: #065F46; color: #fff; }
+        /* Compacto (solo «?») para no tapar contenido; muestra el texto al pasar el mouse o con teclado */
+        .btn-flotante-ayuda { padding: .45rem; gap: 0; }
+        .btn-flotante-ayuda .txt { max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0; transition: max-width .25s cubic-bezier(.16,1,.3,1), opacity .2s, margin .25s; }
+        .btn-flotante-ayuda:hover .txt, .btn-flotante-ayuda:focus-visible .txt { max-width: 260px; opacity: 1; margin: 0 .55rem 0 .45rem; }
         .btn-flotante-ayuda .q { width: 28px; height: 28px; border-radius: 50%; background: #34D399; color: #064E3B; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; }
         @media (max-width: 576px) { .btn-flotante-ayuda .txt { display: none; } .btn-flotante-ayuda { padding: .45rem; left: 16px; bottom: 24px; } }
         @media print { .btn-flotante-ayuda, .btn-flotante-wsp { display: none !important; } }

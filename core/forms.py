@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 # Importamos SOLO lo que sobrevivió a la limpieza SaaS
 from .models import (
     Perfil, Torneo, Equipo, Jugador, Partido, Pago,
-    Cupon, FotoGaleria, Configuracion, Sancion,
+    Cupon, FotoGaleria, Configuracion, Sancion, Categoria,
     ComplejoDeportivo, PlanSuscripcion, PagoSuscripcionSaaS,
     RolComplejo, ComplejoDeportivo, validar_cedula_db, validar_documento
 )
@@ -80,8 +80,10 @@ class TorneoForm(forms.ModelForm):
             'costo_roja'
         ]
         widgets = {
-            'fecha_inicio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            # El calendario del navegador solo entiende AAAA-MM-DD: sin este
+            # formato la fecha llegaba vacía al editar y el guardado fallaba.
+            'fecha_inicio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}, format='%Y-%m-%d'),
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Liga Máster 2026'}),
             'categoria': forms.Select(attrs={'class': 'form-select'}),
             'costo_inscripcion': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'costo_inscripcion_jugador': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
@@ -90,8 +92,47 @@ class TorneoForm(forms.ModelForm):
             'cobro_por_jugador': forms.CheckboxInput(attrs={'class': 'form-check-input fs-4 shadow-sm border-secondary', 'role': 'switch'}),
         }
         labels = {
-            'cobro_por_jugador': '¿Cobrar tarifa individual por Jugador?',
+            'nombre': 'Nombre del torneo',
+            'categoria': 'Categoría',
+            'fecha_inicio': 'Fecha de inicio',
+            'inscripcion_abierta': 'Inscripciones abiertas',
+            'activo': 'Torneo en curso',
+            'costo_inscripcion': 'Inscripción por equipo ($)',
+            'cobro_por_jugador': 'Cobrar la inscripción por jugador',
+            'costo_inscripcion_jugador': 'Inscripción por jugador ($)',
+            'costo_amarilla': 'Multa por amarilla ($)',
+            'costo_roja': 'Multa por roja ($)',
         }
+        help_texts = {
+            'inscripcion_abierta': 'Los dirigentes pueden inscribir equipos desde el portal.',
+            'activo': 'Apágalo solo para archivar un torneo terminado.',
+            'cobro_por_jugador': 'Si lo activas se cobra por cada jugador fichado en lugar de una tarifa por equipo.',
+        }
+
+    def __init__(self, *args, complejo=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        categoria = self.fields['categoria']
+        categoria.required = True
+        categoria.empty_label = '— Elige la categoría —'
+        categoria.label_from_instance = lambda c: c.nombre  # sin repetir el nombre de la cancha
+        categoria.error_messages['required'] = 'Elige la categoría del torneo. Si no tienes ninguna, créala primero en Categorías.'
+        if complejo is not None:
+            categoria.queryset = Categoria.objects.filter(complejo=complejo).order_by('nombre')
+        for campo in ('costo_inscripcion', 'costo_inscripcion_jugador', 'costo_amarilla', 'costo_roja'):
+            self.fields[campo].widget.attrs['min'] = '0'
+        for campo in ('inscripcion_abierta', 'activo', 'cobro_por_jugador'):
+            self.fields[campo].widget.attrs.update({'class': 'form-check-input', 'role': 'switch'})
+        if not self.instance.pk and not self.is_bound:
+            from django.utils import timezone
+            self.initial.setdefault('fecha_inicio', timezone.localdate())  # hoy en Ecuador, no en UTC
+
+    def clean(self):
+        datos = super().clean()
+        for campo in ('costo_inscripcion', 'costo_inscripcion_jugador', 'costo_amarilla', 'costo_roja'):
+            valor = datos.get(campo)
+            if valor is not None and valor < 0:
+                self.add_error(campo, 'No puede ser negativo.')
+        return datos
 
 # =====================================================
 # 3. CREAR EQUIPOS 

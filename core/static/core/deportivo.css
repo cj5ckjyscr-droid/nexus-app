@@ -56,6 +56,7 @@
 }
 .btn-mar:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); color: #fff; }
 .btn-mar:active { transform: scale(.97); }
+.btn-mar:disabled, .btn-mar[aria-disabled="true"] { opacity: .4; cursor: not-allowed; transform: none; }
 .btn-mar.on { background: #fff; color: var(--noche); border-color: #fff; }
 .btn-mar.verde { background: #22C55E; border-color: #22C55E; color: #052E16; }
 .btn-mar.verde:hover { background: #4ADE80; }

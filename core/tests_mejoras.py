@@ -617,9 +617,10 @@ class ModoSoporteSuperAdminTest(DosCanchasTestCase):
         self.assertRedirects(self.client.get("/dashboard/"), "/nexus-admin/", fetch_redirect_response=False)
 
     def test_torneo_creado_en_soporte_queda_a_nombre_del_dueno(self):
-        from .models import Torneo
+        from .models import Torneo, Categoria
+        cat = Categoria.objects.create(complejo=self.complejo_a, nombre="Libre")
         self.client.post(f"/nexus-admin/soporte/entrar/{self.complejo_a.id}/")
-        self.client.post("/torneos/", {"nombre": "Copa Soporte", "fecha_inicio": "2026-11-01",
+        self.client.post("/torneos/", {"nombre": "Copa Soporte", "categoria": cat.id, "fecha_inicio": "2026-11-01",
                                        "inscripcion_abierta": "on", "activo": "on", "costo_inscripcion": "0",
                                        "costo_inscripcion_jugador": "0", "costo_amarilla": "1", "costo_roja": "2"})
         t = Torneo.objects.get(nombre="Copa Soporte")
@@ -650,3 +651,47 @@ class EstadisticasRenderTest(DosCanchasTestCase):
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertNotContains(r, "Control de cuota de partidos")
+
+
+
+class TorneoCategoriaObligatoriaTest(DosCanchasTestCase):
+    def _datos(self, **extra):
+        d = {"nombre": "Copa Nueva", "fecha_inicio": "2026-11-01", "inscripcion_abierta": "on", "activo": "on",
+             "costo_inscripcion": "10", "costo_inscripcion_jugador": "0", "costo_amarilla": "1", "costo_roja": "2"}
+        d.update(extra)
+        return d
+
+    def test_sin_categorias_avisa_y_no_deja_crear(self):
+        from .models import Categoria, Torneo
+        Categoria.objects.filter(complejo=self.complejo_a).delete()
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.get("/torneos/")
+        self.assertContains(r, "Primero crea una categoría")
+        r = self.client.post("/torneos/", self._datos())
+        self.assertRedirects(r, "/categorias/", fetch_redirect_response=False)
+        self.assertFalse(Torneo.objects.filter(nombre="Copa Nueva").exists())
+
+    def test_la_categoria_es_obligatoria_y_debe_ser_de_mi_cancha(self):
+        from .models import Categoria, Torneo
+        mia = Categoria.objects.create(complejo=self.complejo_a, nombre="Máster")
+        ajena = Categoria.objects.create(complejo=self.complejo_b, nombre="Ajena")
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.post("/torneos/", self._datos())
+        self.assertContains(r, "Elige la categoría del torneo")
+        self.client.post("/torneos/", self._datos(categoria=ajena.id))
+        self.assertFalse(Torneo.objects.filter(nombre="Copa Nueva").exists())
+        self.client.post("/torneos/", self._datos(categoria=mia.id))
+        self.assertEqual(Torneo.objects.get(nombre="Copa Nueva").categoria, mia)
+
+    def test_al_editar_se_ven_los_datos_guardados_incluida_la_fecha(self):
+        from datetime import date
+        from .models import Categoria
+        cat = Categoria.objects.create(complejo=self.complejo_a, nombre="Libre")
+        self.torneo_a.categoria = cat
+        self.torneo_a.fecha_inicio = date(2026, 3, 15)
+        self.torneo_a.save()
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.get(f"/torneos/editar/{self.torneo_a.id}/")
+        self.assertContains(r, 'value="2026-03-15"')
+        self.assertContains(r, f'<option value="{cat.id}" selected>')
+        self.assertContains(r, f'value="{self.torneo_a.nombre}"')
