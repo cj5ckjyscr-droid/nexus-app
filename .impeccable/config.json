@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "core/templates/core/reporte_estadisticas.html"
+        ],
+        "createdAt": "2026-10-19T01:41:35.921Z",
+        "reason": "agent: el texto en mayúsculas es el h1 del marcador; el detector suma las etiquetas {% if %} de la plantilla (86 car. de fuente), en pantalla son ~40 car. de titular"
+      }
+    ]
+  }
+}

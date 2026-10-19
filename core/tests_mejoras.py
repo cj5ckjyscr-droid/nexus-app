@@ -631,3 +631,22 @@ class ModoSoporteSuperAdminTest(DosCanchasTestCase):
         self.assertNotIn("complejo_soporte_id", self.client.session)
         r = self.client.get("/programar/")
         self.assertNotIn(self.torneo_b, list(r.context["torneos"]))
+
+
+class EstadisticasRenderTest(DosCanchasTestCase):
+    def test_la_pagina_de_estadisticas_carga_para_cada_rol(self):
+        from .models import DetallePartido
+        DetallePartido.objects.create(partido=self.partido_a, jugador=self.jugador_a, tipo="GOL", equipo_incidencia=self.equipo_a)
+        DetallePartido.objects.create(partido=self.partido_a, jugador=self.jugador_a, tipo="STAR", equipo_incidencia=self.equipo_a)
+        url = f"/estadisticas/{self.torneo_a.id}/"
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.get(f"{url}?equipo={self.equipo_a.id}")
+        self.assertContains(r, "Tabla de posiciones")
+        self.assertContains(r, "Máximo goleador")
+        self.assertContains(r, "Plantel y fair play")
+        self.assertContains(r, "Control de cuota de partidos")
+        User.objects.create_user("hincha", password="pass12345")
+        self.client.login(username="hincha", password="pass12345")
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, "Control de cuota de partidos")

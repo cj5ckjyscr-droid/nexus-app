@@ -13,3 +13,7 @@ media/
 .env
 .superpowers/
 .worktrees/
+
+# Impeccable (cache local del detector)
+.impeccable/hook.cache.json
+.impeccable/config.local.json

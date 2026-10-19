@@ -1,0 +1,49 @@
+{% load nexus_extras %}
+<div class="est-tabla-scroll">
+<table class="est-tabla">
+    <thead>
+        <tr>
+            <th class="c-pos" scope="col"><abbr title="Posición">#</abbr></th>
+            <th class="c-eq" scope="col">Equipo</th>
+            <th scope="col"><abbr title="Partidos jugados">PJ</abbr></th>
+            <th scope="col" class="c-sec"><abbr title="Ganados">G</abbr></th>
+            <th scope="col" class="c-sec"><abbr title="Empatados">E</abbr></th>
+            <th scope="col" class="c-sec"><abbr title="Perdidos">P</abbr></th>
+            <th scope="col" class="c-sec c-oc"><abbr title="Goles a favor">GF</abbr></th>
+            <th scope="col" class="c-sec c-oc"><abbr title="Goles en contra">GC</abbr></th>
+            <th scope="col"><abbr title="Diferencia de gol">DG</abbr></th>
+            <th class="c-pts" scope="col"><abbr title="Puntos">PTS</abbr></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for f in tabla %}
+        {% with pos=f.pos|default:forloop.counter %}
+        <tr class="est-fila{% if f.zona %} zona-{{ f.zona }}{% elif clasifican and forloop.counter <= clasifican %} zona-clasifica{% endif %}" style="--i: {{ forloop.counter0 }};">
+            <td class="c-pos"><span class="pos{% if pos == 1 %} oro{% elif pos == 2 %} plata{% elif pos == 3 %} bronce{% endif %}">{{ pos }}</span></td>
+            <td class="c-eq">
+                <span class="eq">
+                    {% if f.equipo.escudo %}<img src="{{ f.equipo.escudo.url }}" alt="" class="escudo" loading="lazy">
+                    {% else %}<span class="escudo escudo-ini" aria-hidden="true">{{ f.equipo.nombre|iniciales }}</span>{% endif %}
+                    <span class="eq-nombre" title="{{ f.equipo.nombre }}">{{ f.equipo.nombre }}</span>
+                </span>
+            </td>
+            <td class="num">{{ f.pj }}</td>
+            <td class="num c-sec">{{ f.pg }}</td>
+            <td class="num c-sec">{{ f.pe }}</td>
+            <td class="num c-sec">{{ f.pp }}</td>
+            <td class="num c-sec c-oc">{{ f.gf }}</td>
+            <td class="num c-sec c-oc">{{ f.gc }}</td>
+            <td class="num dg {% if f.gd > 0 %}pos-dg{% elif f.gd < 0 %}neg-dg{% endif %}">{% if f.gd > 0 %}+{% endif %}{{ f.gd }}</td>
+            <td class="c-pts"><span>{{ f.pts }}</span></td>
+        </tr>
+        {% endwith %}
+    {% empty %}
+        <tr><td colspan="10" class="est-vacio-celda">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+            <strong>La tabla aparece con el primer partido</strong>
+            <span>Cuando el vocal cierre el acta de un partido, las posiciones se calculan solas.</span>
+        </td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
