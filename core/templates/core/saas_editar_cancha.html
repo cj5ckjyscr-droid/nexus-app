@@ -4,11 +4,11 @@
 {% block saas_titulo %}{{ cancha.nombre }}{% endblock %}
 {% block saas_subtitulo %}Edita los datos del complejo, cámbiale el plan o suspende el servicio.{% endblock %}
 {% block saas_acciones %}
-    <a href="{% url 'registrar_pago_saas' %}?cancha={{ cancha.id }}" class="btn-hero solido"><i class="bi bi-cash-coin"></i>Registrar pago</a>
-    <a href="{% url 'portal_complejo' cancha.slug %}" target="_blank" rel="noopener" class="btn-hero"><i class="bi bi-box-arrow-up-right"></i>Ver portal</a>
+    <a href="{% url 'registrar_pago_saas' %}?cancha={{ cancha.id }}" class="btn-mar verde"><i class="bi bi-cash-coin"></i>Registrar pago</a>
+    <a href="{% url 'portal_complejo' cancha.slug %}" target="_blank" rel="noopener" class="btn-mar"><i class="bi bi-box-arrow-up-right"></i>Ver portal</a>
     <form method="post" action="{% url 'soporte_entrar' cancha.id %}" class="m-0">
         {% csrf_token %}
-        <button type="submit" class="btn-hero"><i class="bi bi-box-arrow-in-right"></i>Entrar como administrador</button>
+        <button type="submit" class="btn-mar"><i class="bi bi-box-arrow-in-right"></i>Entrar como administrador</button>
     </form>
 {% endblock %}
 

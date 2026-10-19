@@ -681,7 +681,8 @@ class Llave(models.Model):
 # =====================================================
 class MovimientoFinanciero(models.Model):
     """Cada cobro, abono, reverso, multa creada o borrada queda registrado
-    aquí con quién lo hizo y desde dónde. Nunca se edita ni se borra."""
+    aquí con quién lo hizo y desde dónde. No se edita; se borra sola a los
+    DIAS_RETENCION_TRAZABILIDAD días."""
     TIPOS = [
         ('CARGO', 'Deuda / multa creada'),
         ('ABONO', 'Cobro / abono'),
@@ -729,11 +730,14 @@ class PagoSuscripcionSaaS(models.Model):
 class RegistroCambio(models.Model):
     """Bitácora de cambios administrativos (no de dinero) en una cancha:
     quién editó un jugador, un equipo o un torneo, qué campos cambió y si lo
-    hizo el soporte técnico de NEXUS en modo soporte. No se edita ni se borra."""
+    hizo el soporte técnico de NEXUS en modo soporte. No se edita; se borra
+    sola a los DIAS_RETENCION días (ver limpiar_trazabilidad_vieja)."""
     ENTIDADES = [
         ('JUGADOR', 'Jugador'),
         ('EQUIPO', 'Equipo'),
         ('TORNEO', 'Torneo'),
+        ('PARTIDO', 'Partido'),
+        ('USUARIO', 'Cuenta de usuario'),
     ]
     ACCIONES = [
         ('CREAR', 'Fichaje / creación'),
@@ -742,6 +746,8 @@ class RegistroCambio(models.Model):
         ('TRASPASO', 'Traspaso'),
         ('SANCION', 'Sanción'),
         ('CUPOS', 'Cupos'),
+        ('ESTADO', 'Cambio de estado'),
+        ('ACCESO', 'Acceso / contraseña'),
     ]
     complejo = models.ForeignKey(ComplejoDeportivo, on_delete=models.CASCADE, related_name='cambios', null=True, blank=True)
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='cambios_registrados')
@@ -757,6 +763,25 @@ class RegistroCambio(models.Model):
 
     class Meta:
         ordering = ['-fecha', '-id']
+        indexes = [models.Index(fields=['complejo', '-fecha'])]
 
     def __str__(self):
         return f"{self.get_accion_display()} · {self.objeto}"
+
+
+DIAS_RETENCION_TRAZABILIDAD = 20
+
+
+def limpiar_trazabilidad_vieja(forzar=False):
+    """Borra la trazabilidad (cambios y movimientos de dinero) con más de
+    DIAS_RETENCION_TRAZABILIDAD días. Corre como mucho una vez por hora por
+    proceso salvo que se fuerce; devuelve (cambios, movimientos) borrados."""
+    from django.core.cache import cache
+    from django.utils import timezone
+    from datetime import timedelta
+    if not forzar and not cache.add('nexus:limpieza_trazabilidad', 1, 3600):
+        return 0, 0
+    corte = timezone.now() - timedelta(days=DIAS_RETENCION_TRAZABILIDAD)
+    cambios, _ = RegistroCambio.objects.filter(fecha__lt=corte).delete()
+    movimientos, _ = MovimientoFinanciero.objects.filter(fecha__lt=corte).delete()
+    return cambios, movimientos

@@ -1,0 +1,38 @@
+{% comment %}
+Paginación reutilizable. Parámetros: pagina (de paginar_lista), nombre (p. ej. "cambios").
+Conserva filtros y tamaño de página; en celular se reduce a anterior / página X de Y / siguiente.
+{% endcomment %}
+{% if pagina.paginator.count %}
+<nav class="pag" aria-label="Paginación de {{ nombre }}">
+    <p class="pag-info">
+        Mostrando <b>{{ pagina.start_index }}–{{ pagina.end_index }}</b> de <b>{{ pagina.paginator.count }}</b> {{ nombre }}
+    </p>
+
+    {% if pagina.has_other_pages %}
+    <ul class="pag-lista">
+        <li>{% if pagina.has_previous %}<a class="pag-btn" href="?{% if pagina.query %}{{ pagina.query }}&{% endif %}page={{ pagina.previous_page_number }}" rel="prev" aria-label="Página anterior"><i class="bi bi-chevron-left"></i><span class="pag-txt">Anterior</span></a>{% else %}<span class="pag-btn deshab" aria-hidden="true"><i class="bi bi-chevron-left"></i><span class="pag-txt">Anterior</span></span>{% endif %}</li>
+        {% for n in pagina.rango %}
+            {% if n == pagina.paginator.ELLIPSIS %}
+            <li class="pag-num"><span class="pag-elipsis" aria-hidden="true">…</span></li>
+            {% elif n == pagina.number %}
+            <li class="pag-num"><span class="pag-btn actual" aria-current="page">{{ n }}</span></li>
+            {% else %}
+            <li class="pag-num"><a class="pag-btn" href="?{% if pagina.query %}{{ pagina.query }}&{% endif %}page={{ n }}" aria-label="Página {{ n }}">{{ n }}</a></li>
+            {% endif %}
+        {% endfor %}
+        <li class="pag-movil" aria-hidden="true">Página <b>{{ pagina.number }}</b> de {{ pagina.paginator.num_pages }}</li>
+        <li>{% if pagina.has_next %}<a class="pag-btn" href="?{% if pagina.query %}{{ pagina.query }}&{% endif %}page={{ pagina.next_page_number }}" rel="next" aria-label="Página siguiente"><span class="pag-txt">Siguiente</span><i class="bi bi-chevron-right"></i></a>{% else %}<span class="pag-btn deshab" aria-hidden="true"><span class="pag-txt">Siguiente</span><i class="bi bi-chevron-right"></i></span>{% endif %}</li>
+    </ul>
+    {% endif %}
+
+    <form method="get" class="pag-tam">
+        {% for clave, valores in request.GET.lists %}{% if clave != 'por' and clave != 'page' %}{% for v in valores %}<input type="hidden" name="{{ clave }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+        <label for="pag-por-{{ nombre|slugify }}">Ver</label>
+        <select id="pag-por-{{ nombre|slugify }}" name="por" onchange="this.form.submit()">
+            {% for t in pagina.tamanos %}<option value="{{ t }}" {% if t == pagina.por %}selected{% endif %}>{{ t }}</option>{% endfor %}
+        </select>
+        <span>por página</span>
+        <noscript><button type="submit" class="pag-btn">Aplicar</button></noscript>
+    </form>
+</nav>
+{% endif %}

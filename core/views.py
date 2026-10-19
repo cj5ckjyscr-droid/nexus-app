@@ -39,6 +39,7 @@ from .models import (
     Configuracion, Torneo, Equipo, Jugador, Partido, 
     DetallePartido, Pago, Perfil, Sancion, FotoGaleria, 
     AbonoSancion, ComplejoDeportivo, PlanSuscripcion, Categoria, RegistroCambio,
+    DIAS_RETENCION_TRAZABILIDAD, limpiar_trazabilidad_vieja,
     PagoSuscripcionSaaS, RolComplejo, Llave, MovimientoFinanciero, EdicionPartido
 )
 
@@ -150,6 +151,31 @@ def limite_jugadores_alcanzado(complejo):
     actuales = Jugador.objects.filter(equipo__torneo__complejo=complejo).count()
     return actuales >= limite
 
+TAMANOS_PAGINA = (20, 50, 100)
+
+
+def paginar_lista(request, queryset, por_defecto=20):
+    """Paginación para listas largas: tamaño elegible (?por=), página fuera de
+    rango corregida y rango de páginas abreviado (1 … 4 5 6 … 20)."""
+    try:
+        por = int(request.GET.get('por', por_defecto))
+    except ValueError:
+        por = por_defecto
+    if por not in TAMANOS_PAGINA:
+        por = por_defecto
+    paginador = Paginator(queryset, por)
+    pagina = paginador.get_page(request.GET.get('page'))
+    pagina.rango = list(paginador.get_elided_page_range(pagina.number, on_each_side=1, on_ends=1))
+    pagina.por = por
+    params = request.GET.copy()
+    params.pop('page', None)
+    pagina.query = params.urlencode()           # conserva filtros y tamaño al cambiar de página
+    params.pop('por', None)
+    pagina.query_sin_por = params.urlencode()   # para el selector de tamaño
+    pagina.tamanos = TAMANOS_PAGINA
+    return pagina
+
+
 def _valor_legible(valor):
     """Texto corto para mostrar un valor en la bitácora."""
     from datetime import date as _date
@@ -185,7 +211,7 @@ def cambios_de_form(form, excluir=()):
             if despues:
                 lista.append({'campo': str(field.label or campo), 'antes': 'anterior', 'despues': 'nueva'})
             continue
-        a, d = _valor_legible(antes), _valor_legible(despues)
+        a, d = _valor_legible(antes).strip(), _valor_legible(despues).strip()
         if a != d:
             lista.append({'campo': str(field.label or campo), 'antes': a, 'despues': d})
     return lista
@@ -208,7 +234,7 @@ def _cambios_ficha(jugador, form):
     lista = []
     for campo, etiqueta in (('nombres', 'Nombres'), ('dorsal', 'Dorsal')):
         antes, despues = getattr(jugador, campo), form.cleaned_data.get(campo)
-        if str(antes) != str(despues):
+        if str(antes).strip() != str(despues).strip():
             lista.append({'campo': etiqueta, 'antes': _valor_legible(antes), 'despues': _valor_legible(despues)})
     if form.cleaned_data.get('foto'):
         lista.append({'campo': 'Foto', 'antes': 'anterior', 'despues': 'nueva'})
@@ -405,6 +431,8 @@ def crear_usuario(request):
                 # 🔥 MULTI-TENANCY: la cuenta SOLO existe en esta cancha
                 RolComplejo.objects.create(usuario=u, complejo=mi_complejo, rol=datos['rol'], creado_por_cancha=True)
                 Perfil.objects.get_or_create(usuario=u)
+            registrar_cambio(request, mi_complejo, 'USUARIO', 'CREAR', u.get_full_name() or u.username, u.id,
+                             detalle=f"Cuenta de {dict(RolComplejo.ROLES).get(datos['rol'])} · usuario {u.username}")
             _guardar_credenciales(request, u, clave, datos['rol'], datos['telefono'])
             return redirect('credenciales_cuenta')
     else:
@@ -451,6 +479,8 @@ def gestionar_usuarios(request):
             else:
                 usuario = rc.usuario
                 desactivar = _puede_restablecer(rc, mi_complejo)
+                registrar_cambio(request, mi_complejo, 'USUARIO', 'ELIMINAR', usuario.get_full_name() or usuario.username, usuario.id,
+                                 detalle=f"Retirado de la cancha ({rc.get_rol_display()})" + (" · cuenta desactivada" if desactivar else ''))
                 rc.delete()
                 if desactivar:
                     # La cuenta la creó esta cancha: sin la cancha ya no sirve para nada
@@ -469,12 +499,18 @@ def gestionar_usuarios(request):
             rc.usuario.set_password(clave)
             rc.usuario.is_active = True
             rc.usuario.save()
+            registrar_cambio(request, mi_complejo, 'USUARIO', 'ACCESO', rc.usuario.get_full_name() or rc.usuario.username,
+                             rc.usuario.id, detalle="Contraseña restablecida")
             _guardar_credenciales(request, rc.usuario, clave, rc.rol, nueva=False)
             return redirect('credenciales_cuenta')
         if rol_cancha_id and nuevo_rol in dict(RolComplejo.ROLES):
             rc = get_object_or_404(RolComplejo, id=rol_cancha_id, complejo=mi_complejo)
+            rol_previo = rc.get_rol_display()
             rc.rol = nuevo_rol
             rc.save()
+            if rol_previo != rc.get_rol_display():
+                registrar_cambio(request, mi_complejo, 'USUARIO', 'EDITAR', rc.usuario.get_full_name() or rc.usuario.username,
+                                 rc.usuario.id, [{'campo': 'Rol', 'antes': rol_previo, 'despues': rc.get_rol_display()}])
             messages.success(request, f'Rol de {rc.usuario.username} actualizado a {rc.get_rol_display()} en esta cancha.')
             return redirect('gestionar_usuarios')
 
@@ -556,6 +592,8 @@ def gestionar_torneos(request):
             t.organizador = mi_complejo.organizador if request.user.is_superuser else request.user
             t.complejo = mi_complejo
             t.save()
+            registrar_cambio(request, mi_complejo, 'TORNEO', 'CREAR', t.nombre, t.id,
+                             detalle=f"Categoría {t.categoria.nombre}" if t.categoria_id else '')
             messages.success(request, f'✅ Torneo "{t.nombre}" creado.')
             return redirect('gestionar_torneos')
         messages.error(request, "❌ Revisa los campos marcados en el formulario.")
@@ -593,6 +631,8 @@ def eliminar_torneo(request, torneo_id):
     nombre_torneo = torneo.nombre
     with transaction.atomic():
         registrar_anulaciones(Sancion.objects.filter(torneo=torneo).select_related('torneo__complejo', 'equipo'), request.user, f"Torneo eliminado ({nombre_torneo})")
+        registrar_cambio(request, mi_complejo, 'TORNEO', 'ELIMINAR', nombre_torneo, torneo.id,
+                         detalle=f"Con {torneo.equipos.count()} equipo(s)")
         torneo.delete()
     messages.success(request, f'🗑️ El torneo "{nombre_torneo}" ha sido eliminado completamente.')
     return redirect('gestionar_torneos')
@@ -608,6 +648,8 @@ def cambiar_estado_torneo(request, torneo_id):
         torneo.activo = False
         torneo.inscripcion_abierta = False
         torneo.save()
+        registrar_cambio(request, mi_complejo, 'TORNEO', 'ESTADO', torneo.nombre, torneo.id,
+                         [{'campo': 'Estado', 'antes': 'Activo', 'despues': 'Finalizado'}])
         messages.success(request, f"El torneo '{torneo.nombre}' ha sido FINALIZADO y movido al historial.")
     else:
         limite_torneos = mi_complejo.plan.max_torneos if mi_complejo.plan else 1
@@ -617,6 +659,8 @@ def cambiar_estado_torneo(request, torneo_id):
         else:
             torneo.activo = True
             torneo.save()
+            registrar_cambio(request, mi_complejo, 'TORNEO', 'ESTADO', torneo.nombre, torneo.id,
+                             [{'campo': 'Estado', 'antes': 'Finalizado', 'despues': 'Activo'}])
             messages.success(request, f"El torneo '{torneo.nombre}' ha sido REABIERTO.")
 
     return redirect('gestionar_torneos')
@@ -749,6 +793,8 @@ def eliminar_equipo(request, equipo_id):
         return redirect('gestionar_equipos')
     with transaction.atomic():
         registrar_anulaciones(equipo.sanciones.select_related('torneo__complejo', 'equipo'), request.user, f"Equipo eliminado ({equipo.nombre})")
+        registrar_cambio(request, mi_complejo, 'EQUIPO', 'ELIMINAR', equipo.nombre, equipo.id,
+                         detalle=f"{equipo.torneo.nombre} · {equipo.jugadores.count()} jugador(es) quedaron libres")
         equipo.delete()
     messages.success(request, 'Equipo eliminado. Los jugadores quedaron libres.')
     return redirect('gestionar_equipos')
@@ -1494,6 +1540,8 @@ def eliminar_partido(request, partido_id):
     if partido.estado != 'PROG' or partido.detalles.exists():
         messages.error(request, "⛔ Este partido ya tiene datos registrados. Reinícialo primero si necesitas borrarlo.")
         return redirect(f"/programar/?torneo={torneo_id}")
+    registrar_cambio(request, mi_complejo or partido.torneo.complejo, 'PARTIDO', 'ELIMINAR', str(partido), partido.id,
+                     detalle=f"{partido.torneo.nombre}" + (f" · {partido.fecha_hora:%d/%m/%Y %H:%M}" if partido.fecha_hora else ''))
     partido.delete()
     messages.warning(request, 'Partido eliminado del calendario.')
     return redirect(f"/programar/?torneo={torneo_id}")
@@ -1597,6 +1645,8 @@ def cerrar_edicion(request, partido, detalle):
             motor.revertir_llave(llave)   # falla si la ronda siguiente ya se jugó
             motor.avanzar_llave(llave)
     EdicionPartido.objects.create(partido=partido, usuario=request.user, detalle=detalle[:300])
+    registrar_cambio(request, partido.torneo.complejo, 'PARTIDO', 'EDITAR', str(partido), partido.id,
+                     detalle=f"Corrección de partido jugado: {detalle}")
 
 
 def _monto_abono(request, sancion):
@@ -2816,6 +2866,8 @@ def gestionar_solicitudes(request):
         if accion == 'APROBAR':
             equipo.estado_inscripcion = 'APROBADO'
             equipo.save()
+            registrar_cambio(request, mi_complejo, 'EQUIPO', 'ESTADO', equipo.nombre, equipo.id,
+                             [{'campo': 'Inscripción', 'antes': 'Pendiente', 'despues': 'Aprobada'}], equipo.torneo.nombre)
             asegurar_rol_dirigente(equipo.dirigente, mi_complejo)
             
             # Notificación de aprobación
@@ -2837,6 +2889,8 @@ def gestionar_solicitudes(request):
         elif accion == 'RECHAZAR':
             equipo.estado_inscripcion = 'RECHAZADO'
             equipo.save()
+            registrar_cambio(request, mi_complejo, 'EQUIPO', 'ESTADO', equipo.nombre, equipo.id,
+                             [{'campo': 'Inscripción', 'antes': 'Pendiente', 'despues': 'Rechazada'}], equipo.torneo.nombre)
             
             # Notificación de rechazo
             try:
@@ -3009,91 +3063,146 @@ def gestionar_finanzas(request):
     }
     return render(request, 'core/gestionar_finanzas.html', ctx)
 
-@login_required
-@user_passes_test(es_organizador)
-def trazabilidad_financiera(request):
-    """Historial completo de movimientos de dinero de ESTA cancha: quién
-    cobró, quién reversó, qué multa se borró y desde dónde (mesa o finanzas)."""
-    mi_complejo = obtener_mi_complejo(request.user)
-    movimientos = MovimientoFinanciero.objects.filter(complejo=mi_complejo).select_related('usuario', 'torneo', 'partido')
 
-    f = {k: request.GET.get(k, '') for k in ('tipo', 'origen', 'usuario', 'torneo', 'desde', 'hasta', 'q')}
-    if f['tipo'] in dict(MovimientoFinanciero.TIPOS):
-        movimientos = movimientos.filter(tipo=f['tipo'])
-    if f['origen'] in dict(MovimientoFinanciero.ORIGENES):
-        movimientos = movimientos.filter(origen=f['origen'])
-    if f['usuario'].isdigit():
-        movimientos = movimientos.filter(usuario_id=f['usuario'])
-    if f['torneo'].isdigit():
-        movimientos = movimientos.filter(torneo_id=f['torneo'])
+def _filtro_periodo(qs, f):
+    """Atajo de periodo: hoy, últimos 7 días o todo lo guardado."""
+    hoy = timezone.localdate()
+    if f.get('periodo') == 'hoy':
+        return qs.filter(fecha__date=hoy)
+    if f.get('periodo') == '7':
+        return qs.filter(fecha__date__gte=hoy - timedelta(days=6))
+    f['periodo'] = ''
+    return qs
+
+
+def _filtro_fechas(qs, f):
     for clave, lookup in (('desde', 'fecha__date__gte'), ('hasta', 'fecha__date__lte')):
         try:
             if f[clave]:
-                movimientos = movimientos.filter(**{lookup: datetime.strptime(f[clave], '%Y-%m-%d').date()})
+                qs = qs.filter(**{lookup: datetime.strptime(f[clave], '%Y-%m-%d').date()})
         except ValueError:
             f[clave] = ''
+    return qs
+
+
+def _enlaces_periodo(request, f):
+    """Enlaces del selector de periodo que conservan el resto de filtros."""
+    enlaces = []
+    for valor, texto in (('hoy', 'Hoy'), ('7', '7 días'), ('', f'{DIAS_RETENCION_TRAZABILIDAD} días')):
+        params = request.GET.copy()
+        params.pop('page', None)
+        params.pop('periodo', None)
+        if valor:
+            params['periodo'] = valor
+        enlaces.append({'texto': texto, 'url': '?' + params.urlencode(), 'activo': f['periodo'] == valor})
+    return enlaces
+
+
+def _chips_filtros(request, etiquetas):
+    """Filtros activos como etiquetas, cada una con el enlace que la quita."""
+    chips = []
+    for clave, texto in etiquetas:
+        if not texto:
+            continue
+        params = request.GET.copy()
+        params.pop(clave, None)
+        params.pop('page', None)
+        chips.append({'texto': texto, 'quitar': '?' + params.urlencode()})
+    return chips
+
+
+@login_required
+@user_passes_test(es_organizador)
+def trazabilidad_financiera(request):
+    """Movimientos de dinero de ESTA cancha en los últimos días: quién cobró,
+    quién reversó, qué multa se borró y desde dónde (mesa o finanzas)."""
+    limpiar_trazabilidad_vieja()
+    mi_complejo = obtener_mi_complejo(request.user)
+    base = MovimientoFinanciero.objects.filter(complejo=mi_complejo)
+    movimientos = base.select_related('usuario', 'torneo', 'partido')
+
+    f = {k: request.GET.get(k, '') for k in ('tipo', 'origen', 'usuario', 'torneo', 'desde', 'hasta', 'q', 'periodo', 'auto')}
+    tipos, origenes = dict(MovimientoFinanciero.TIPOS), dict(MovimientoFinanciero.ORIGENES)
+    if f['tipo'] in tipos:
+        movimientos = movimientos.filter(tipo=f['tipo'])
+    if f['origen'] in origenes:
+        movimientos = movimientos.filter(origen=f['origen'])
+    elif f['auto'] != '1':
+        # Los asientos automáticos del sistema (recalculos, deudas generadas
+        # solas) son ruido para el día a día: se ven solo si se piden.
+        movimientos = movimientos.exclude(origen='SISTEMA')
+    usuarios = User.objects.filter(id__in=base.exclude(usuario=None).values('usuario_id')).order_by('username')
+    usuario_sel = usuarios.filter(id=f['usuario']).first() if f['usuario'].isdigit() else None
+    if usuario_sel:
+        movimientos = movimientos.filter(usuario=usuario_sel)
+    torneos = Torneo.objects.filter(complejo=mi_complejo).order_by('-id')
+    torneo_sel = torneos.filter(id=f['torneo']).first() if f['torneo'].isdigit() else None
+    if torneo_sel:
+        movimientos = movimientos.filter(torneo=torneo_sel)
+    movimientos = _filtro_fechas(_filtro_periodo(movimientos, f), f)
     if f['q']:
         movimientos = movimientos.filter(Q(equipo_nombre__icontains=f['q']) | Q(descripcion__icontains=f['q']))
 
-    totales = {r['tipo']: r['total'] for r in movimientos.values('tipo').annotate(total=Sum('monto'))}
+    totales = {r['tipo']: r['total'] for r in movimientos.order_by().values('tipo').annotate(total=Sum('monto'))}
     cobrado = (totales.get('ABONO') or 0) + (totales.get('PAGO') or 0)
     reversado = totales.get('REVERSO') or 0
-
-    pagina = Paginator(movimientos, 30).get_page(request.GET.get('page'))
-    usuarios = User.objects.filter(id__in=MovimientoFinanciero.objects.filter(complejo=mi_complejo).exclude(
-        usuario=None).values('usuario_id').distinct()).order_by('username')
-    query_sin_pagina = request.GET.copy()
-    query_sin_pagina.pop('page', None)
+    chips = _chips_filtros(request, [
+        ('q', f['q'] and f'“{f["q"]}”'), ('tipo', tipos.get(f['tipo'])), ('origen', origenes.get(f['origen'])),
+        ('usuario', usuario_sel and (usuario_sel.get_full_name() or usuario_sel.username)),
+        ('torneo', torneo_sel and torneo_sel.nombre),
+        ('desde', f['desde'] and f'Desde {f["desde"]}'), ('hasta', f['hasta'] and f'Hasta {f["hasta"]}'),
+        ('auto', f['auto'] == '1' and 'Con automáticos'),
+    ])
     return render(request, 'core/trazabilidad_financiera.html', {
-        'movimientos': pagina, 'f': f, 'totales': totales,
+        'movimientos': paginar_lista(request, movimientos), 'f': f, 'chips': chips,
         'cobrado': cobrado, 'reversado': reversado, 'neto': cobrado - reversado,
         'cargos': totales.get('CARGO') or 0, 'anulado': totales.get('ANULACION') or 0,
         'tipos': MovimientoFinanciero.TIPOS, 'origenes': MovimientoFinanciero.ORIGENES,
-        'usuarios': usuarios, 'torneos': Torneo.objects.filter(complejo=mi_complejo).order_by('-id'),
-        'query_string': query_sin_pagina.urlencode(),
+        'usuarios': usuarios, 'torneos': torneos, 'dias_retencion': DIAS_RETENCION_TRAZABILIDAD, 'periodos': _enlaces_periodo(request, f),
     })
 
 
 @login_required
 @user_passes_test(es_organizador)
 def trazabilidad_cambios(request):
-    """Bitácora de cambios administrativos de ESTA cancha: ediciones de
-    jugadores, equipos y torneos, quién las hizo y si fue el soporte de NEXUS."""
+    """Bitácora de cambios administrativos significativos de ESTA cancha:
+    jugadores, equipos, torneos, partidos y cuentas; quién los hizo y si fue
+    el soporte técnico de NEXUS."""
+    limpiar_trazabilidad_vieja()
     mi_complejo = obtener_mi_complejo(request.user)
-    registros = RegistroCambio.objects.filter(complejo=mi_complejo).select_related('usuario')
+    base = RegistroCambio.objects.filter(complejo=mi_complejo)
+    registros = base.select_related('usuario')
 
-    f = {k: request.GET.get(k, '') for k in ('entidad', 'accion', 'usuario', 'soporte', 'desde', 'hasta', 'q')}
-    if f['entidad'] in dict(RegistroCambio.ENTIDADES):
+    f = {k: request.GET.get(k, '') for k in ('entidad', 'accion', 'usuario', 'soporte', 'desde', 'hasta', 'q', 'periodo')}
+    entidades, acciones = dict(RegistroCambio.ENTIDADES), dict(RegistroCambio.ACCIONES)
+    if f['entidad'] in entidades:
         registros = registros.filter(entidad=f['entidad'])
-    if f['accion'] in dict(RegistroCambio.ACCIONES):
+    if f['accion'] in acciones:
         registros = registros.filter(accion=f['accion'])
-    if f['usuario'].isdigit():
-        registros = registros.filter(usuario_id=f['usuario'])
+    usuarios = User.objects.filter(id__in=base.exclude(usuario=None).values('usuario_id')).order_by('username')
+    usuario_sel = usuarios.filter(id=f['usuario']).first() if f['usuario'].isdigit() else None
+    if usuario_sel:
+        registros = registros.filter(usuario=usuario_sel)
     if f['soporte'] == '1':
         registros = registros.filter(en_soporte=True)
-    for clave, lookup in (('desde', 'fecha__date__gte'), ('hasta', 'fecha__date__lte')):
-        try:
-            if f[clave]:
-                registros = registros.filter(**{lookup: datetime.strptime(f[clave], '%Y-%m-%d').date()})
-        except ValueError:
-            f[clave] = ''
+    registros = _filtro_fechas(_filtro_periodo(registros, f), f)
     if f['q']:
         registros = registros.filter(Q(objeto__icontains=f['q']) | Q(detalle__icontains=f['q']) | Q(usuario_nombre__icontains=f['q']))
 
-    base = RegistroCambio.objects.filter(complejo=mi_complejo)
-    resumen = {
-        'total': base.count(),
-        'jugadores': base.filter(entidad='JUGADOR').count(),
-        'hoy': base.filter(fecha__date=timezone.localdate()).count(),
-        'soporte': base.filter(en_soporte=True).count(),
-    }
-    query_sin_pagina = request.GET.copy()
-    query_sin_pagina.pop('page', None)
+    hoy = timezone.localdate()
+    resumen = base.aggregate(
+        total=Count('id'), jugadores=Count('id', filter=Q(entidad='JUGADOR')),
+        hoy=Count('id', filter=Q(fecha__date=hoy)), soporte=Count('id', filter=Q(en_soporte=True)))
+    chips = _chips_filtros(request, [
+        ('q', f['q'] and f'“{f["q"]}”'), ('entidad', entidades.get(f['entidad'])), ('accion', acciones.get(f['accion'])),
+        ('usuario', usuario_sel and (usuario_sel.get_full_name() or usuario_sel.username)),
+        ('soporte', f['soporte'] == '1' and 'Solo soporte técnico'),
+        ('desde', f['desde'] and f'Desde {f["desde"]}'), ('hasta', f['hasta'] and f'Hasta {f["hasta"]}'),
+    ])
     return render(request, 'core/trazabilidad_cambios.html', {
-        'registros': Paginator(registros, 30).get_page(request.GET.get('page')), 'f': f, 'resumen': resumen,
+        'registros': paginar_lista(request, registros), 'f': f, 'resumen': resumen, 'chips': chips,
         'entidades': RegistroCambio.ENTIDADES, 'acciones': RegistroCambio.ACCIONES,
-        'usuarios': User.objects.filter(id__in=base.exclude(usuario=None).values('usuario_id')).order_by('username'),
-        'query_string': query_sin_pagina.urlencode(),
+        'usuarios': usuarios, 'dias_retencion': DIAS_RETENCION_TRAZABILIDAD, 'periodos': _enlaces_periodo(request, f),
     })
 
 
@@ -4563,14 +4672,51 @@ def _marcar_estados(canchas, hoy):
     return canchas
 
 
-def _paginar(request, queryset, por_pagina, parametro='page'):
-    paginador = Paginator(queryset, por_pagina)
-    try:
-        return paginador.page(request.GET.get(parametro))
-    except PageNotAnInteger:
-        return paginador.page(1)
-    except EmptyPage:
-        return paginador.page(paginador.num_pages)
+def _filtro_estado_cancha(estado, hoy):
+    """El mismo criterio de _estado_suscripcion, pero como filtro de base de datos."""
+    limite = hoy + timedelta(days=DIAS_AVISO_VENCIMIENTO)
+    return {
+        'suspendida': Q(activo=False),
+        'sin-fecha': Q(activo=True, fecha_vencimiento__isnull=True),
+        'vencida': Q(activo=True, fecha_vencimiento__lt=hoy),
+        'por-vencer': Q(activo=True, fecha_vencimiento__gte=hoy, fecha_vencimiento__lte=limite),
+        'al-dia': Q(activo=True, fecha_vencimiento__gt=limite),
+    }.get(estado)
+
+
+def _conteo_estados(qs, hoy):
+    """Cuántas canchas hay en cada estado, en una sola consulta."""
+    estados = ('al-dia', 'por-vencer', 'vencida', 'suspendida', 'sin-fecha')
+    datos = qs.aggregate(total=Count('id'), **{e.replace('-', '_'): Count('id', filter=_filtro_estado_cancha(e, hoy)) for e in estados})
+    datos['activas'] = datos['total'] - datos['suspendida']
+    return datos
+
+
+def _con_uso(qs):
+    """Anota jugadores inscritos y torneos activos de cada cancha con subconsultas
+    (sin multiplicar filas como haría un JOIN)."""
+    from django.db.models import OuterRef, Subquery, IntegerField
+    from django.db.models.functions import Coalesce
+    jugadores = (Jugador.objects.filter(equipo__torneo__complejo=OuterRef('pk')).order_by()
+                 .values('equipo__torneo__complejo').annotate(n=Count('id')).values('n'))
+    torneos = (Torneo.objects.filter(complejo=OuterRef('pk'), activo=True).order_by()
+               .values('complejo').annotate(n=Count('id')).values('n'))
+    return qs.annotate(
+        num_jugadores=Coalesce(Subquery(jugadores, output_field=IntegerField()), 0),
+        num_torneos=Coalesce(Subquery(torneos, output_field=IntegerField()), 0),
+    )
+
+
+def _marcar_uso(canchas):
+    """Porcentaje de uso del plan de cada cancha (requiere _con_uso)."""
+    for c in canchas:
+        lim_j = c.plan.max_jugadores if c.plan else 0
+        lim_t = c.plan.max_torneos if c.plan else 0
+        c.pct_jugadores = min(100, round(100 * c.num_jugadores / lim_j)) if lim_j else 0
+        c.pct_torneos = min(100, round(100 * c.num_torneos / lim_t)) if lim_t else 0
+        c.lim_jugadores, c.lim_torneos = lim_j, lim_t
+        c.pct_max = max(c.pct_jugadores, c.pct_torneos)
+    return canchas
 
 
 @superadmin_requerido
@@ -4607,14 +4753,40 @@ def dashboard_saas(request):
             messages.warning(request, f"🚫 Se suspendieron {contador} cancha(s) vencidas.")
             return redirect('dashboard_saas')
 
+    from django.db.models.functions import TruncMonth
     pagos = PagoSuscripcionSaaS.objects.filter(complejo__es_demo=False)
-    ingresos_total = pagos.aggregate(t=Sum('monto'))['t'] or 0
-    ingresos_mes = pagos.filter(fecha_pago__year=hoy.year, fecha_pago__month=hoy.month).aggregate(t=Sum('monto'))['t'] or 0
-    # Lo que se debería cobrar cada mes con las canchas activas y su plan actual
+    inicio_mes = hoy.replace(day=1)
+    inicio_mes_anterior = (inicio_mes - timedelta(days=1)).replace(day=1)
+    ingresos = pagos.aggregate(
+        total=Sum('monto'),
+        mes=Sum('monto', filter=Q(fecha_pago__gte=inicio_mes)),
+        anterior=Sum('monto', filter=Q(fecha_pago__gte=inicio_mes_anterior, fecha_pago__lt=inicio_mes)),
+    )
+    ingresos_mes, ingresos_anterior = ingresos['mes'] or 0, ingresos['anterior'] or 0
+    variacion = round(100 * (ingresos_mes - ingresos_anterior) / ingresos_anterior) if ingresos_anterior else None
+
+    # Ingresos de los últimos 6 meses (una sola consulta; los meses sin pagos van en 0)
+    meses = []
+    m = inicio_mes
+    for _ in range(6):
+        meses.insert(0, m)
+        m = (m - timedelta(days=1)).replace(day=1)
+    por_mes = {r['mes'].date() if hasattr(r['mes'], 'date') else r['mes']: r['t']
+               for r in pagos.filter(fecha_pago__gte=meses[0]).annotate(mes=TruncMonth('fecha_pago'))
+               .values('mes').annotate(t=Sum('monto')).order_by()}
+    tope = max([por_mes.get(x) or 0 for x in meses] + [1])
+    serie = [{'mes': x, 'total': por_mes.get(x) or 0, 'pct': round(100 * (por_mes.get(x) or 0) / tope), 'actual': x == inicio_mes}
+             for x in meses]
+
+    conteo = _conteo_estados(canchas_list, hoy)
     ingreso_mensual_esperado = canchas_list.filter(activo=True, plan__isnull=False).aggregate(t=Sum('plan__precio_mensual'))['t'] or 0
 
-    canchas = _paginar(request, canchas_list, 8)
+    # Clientes con su uso del plan; las oportunidades son las que ya rozan su límite
+    canchas = paginar_lista(request, _con_uso(canchas_list), por_defecto=20)
     _marcar_estados(canchas, hoy)
+    _marcar_uso(canchas)
+    activas = _marcar_uso(list(_con_uso(canchas_list.filter(activo=True))))
+    oportunidades = sorted([c for c in activas if c.pct_max >= 85], key=lambda c: -c.pct_max)[:5]
     alertas = _marcar_estados(list(canchas_por_vencer), hoy)
 
     planes = (PlanSuscripcion.objects.exclude(nombre=NOMBRE_PLAN_DEMO)
@@ -4624,14 +4796,16 @@ def dashboard_saas(request):
     return render(request, 'core/dashboard_saas.html', {
         'seccion_saas': 'resumen',
         'canchas': canchas,
-        'total_canchas': canchas_list.count(),
-        'total_ingresos': ingresos_total,
+        'conteo': conteo,
+        'total_ingresos': ingresos['total'] or 0,
         'ingresos_mes': ingresos_mes,
+        'ingresos_anterior': ingresos_anterior,
+        'variacion': variacion,
+        'serie': serie,
         'ingreso_mensual_esperado': ingreso_mensual_esperado,
-        'canchas_activas': canchas_list.filter(activo=True).count(),
-        'canchas_suspendidas': canchas_list.filter(activo=False).count(),
         'canchas_por_vencer': alertas,
-        'num_vencidas': canchas_vencidas.count(),
+        'num_vencidas': conteo['vencida'],
+        'oportunidades': oportunidades,
         'planes': planes,
         'ultimos_pagos': pagos.select_related('complejo').order_by('-fecha_pago', '-id')[:6],
         'dias_aviso': DIAS_AVISO_VENCIMIENTO,
@@ -4677,15 +4851,18 @@ def gestionar_canchas_saas(request):
     canchas = ComplejoDeportivo.objects.filter(es_demo=False).select_related('organizador', 'plan').order_by('nombre')
     q = request.GET.get('q', '').strip()
     if q:
-        canchas = canchas.filter(Q(nombre__icontains=q) | Q(slug__icontains=q) | Q(organizador__username__icontains=q))
+        canchas = canchas.filter(Q(nombre__icontains=q) | Q(slug__icontains=q) | Q(organizador__username__icontains=q)
+                                 | Q(organizador__first_name__icontains=q) | Q(organizador__last_name__icontains=q))
+    conteo = _conteo_estados(canchas, hoy)
     filtro = request.GET.get('estado', '')
-    canchas = _marcar_estados(list(canchas), hoy)
-    conteo = {'total': len(canchas)}
-    for c in canchas:
-        clave = c.estado_codigo.replace('-', '_')
-        conteo[clave] = conteo.get(clave, 0) + 1
-    if filtro:
-        canchas = [c for c in canchas if c.estado_codigo == filtro]
+    condicion = _filtro_estado_cancha(filtro, hoy)
+    if condicion is None:
+        filtro = ''
+    else:
+        canchas = canchas.filter(condicion)
+    canchas = paginar_lista(request, _con_uso(canchas))
+    _marcar_estados(canchas, hoy)
+    _marcar_uso(canchas)
 
     return render(request, 'core/saas_gestionar_canchas.html', {
         'seccion_saas': 'canchas', 'form': form, 'canchas': canchas,
@@ -4748,10 +4925,10 @@ def registrar_pago_saas(request):
     precios = {
         str(c.id): {'precio': str(c.plan.precio_mensual if c.plan else ''), 'plan': c.plan.nombre if c.plan else '',
                     'vence': c.fecha_vencimiento.strftime('%d/%m/%Y') if c.fecha_vencimiento else ''}
-        for c in form.fields['complejo'].queryset
+        for c in form.fields['complejo'].queryset.select_related('plan')
     }
     return render(request, 'core/saas_registrar_pago.html', {
-        'seccion_saas': 'pagos', 'form': form, 'pagos': _paginar(request, pagos, 15),
+        'seccion_saas': 'pagos', 'form': form, 'pagos': paginar_lista(request, pagos),
         'total_filtrado': total_filtrado, 'cancha_filtro': cancha_filtro,
         'canchas_filtro': ComplejoDeportivo.objects.filter(es_demo=False).order_by('nombre'),
         'precios': precios,
@@ -4896,6 +5073,11 @@ def automatizacion_diaria_saas(request):
         send_mail(asunto_susp, text_susp, settings.EMAIL_HOST_USER, [c.organizador.email], fail_silently=True)
         log_acciones.append(f"Cancha SUSPENDIDA: {c.nombre}")
 
+    # 3. LIMPIAR TRAZABILIDAD VIEJA (más de DIAS_RETENCION_TRAZABILIDAD días)
+    borrados_c, borrados_m = limpiar_trazabilidad_vieja(forzar=True)
+    if borrados_c or borrados_m:
+        log_acciones.append(f"Trazabilidad depurada: {borrados_c} cambio(s) y {borrados_m} movimiento(s) de más de {DIAS_RETENCION_TRAZABILIDAD} días.")
+
     if not log_acciones:
         log_acciones.append("Todo al día. Ninguna cancha suspendida ni por vencer en 3 días.")
 
@@ -4926,21 +5108,26 @@ def gestionar_roles_prueba(request):
     )
     demos_por_usuario = {
         c.organizador_id: c
-        for c in ComplejoDeportivo.objects.filter(es_demo=True)
+        for c in ComplejoDeportivo.objects.filter(es_demo=True).only('id', 'organizador_id', 'fecha_asignacion_prueba')
     }
 
-    filas = []
-    for usuario in User.objects.exclude(is_superuser=True).order_by('username'):
-        filas.append({
-            'usuario': usuario,
-            'tiene_prueba': usuario.id in demos_por_usuario,
-            'complejo_demo': demos_por_usuario.get(usuario.id),
-            'es_organizador_real': usuario.id in usuarios_reales_ids,
-        })
+    usuarios = User.objects.exclude(is_superuser=True).order_by('username')
+    q = request.GET.get('q', '').strip()
+    if q:
+        usuarios = usuarios.filter(Q(username__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q))
+    if request.GET.get('ver') == 'prueba':
+        usuarios = usuarios.filter(id__in=list(demos_por_usuario))
+    pagina = paginar_lista(request, usuarios)
+    pagina.filas = [{
+        'usuario': usuario,
+        'tiene_prueba': usuario.id in demos_por_usuario,
+        'complejo_demo': demos_por_usuario.get(usuario.id),
+        'es_organizador_real': usuario.id in usuarios_reales_ids,
+    } for usuario in pagina]
 
     return render(request, 'core/gestionar_roles_prueba.html', {
-        'seccion_saas': 'pruebas', 'filas': filas,
-        'num_en_prueba': sum(1 for f in filas if f['tiene_prueba']),
+        'seccion_saas': 'pruebas', 'usuarios': pagina, 'filas': pagina.filas, 'q': q, 'ver': request.GET.get('ver', ''),
+        'num_en_prueba': len(demos_por_usuario),
     })
 
 

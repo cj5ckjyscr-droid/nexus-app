@@ -4,7 +4,7 @@
 {% block saas_titulo %}Canchas clientes{% endblock %}
 {% block saas_subtitulo %}Da de alta complejos, revisa su plan y su fecha de corte, y entra a editar cada uno.{% endblock %}
 {% block saas_acciones %}
-    <button type="button" class="btn-hero solido" data-bs-toggle="collapse" data-bs-target="#nueva-cancha" aria-expanded="{% if abrir_formulario %}true{% else %}false{% endif %}"><i class="bi bi-building-add"></i>Registrar cancha</button>
+    <button type="button" class="btn-mar verde" data-bs-toggle="collapse" data-bs-target="#nueva-cancha" aria-expanded="{% if abrir_formulario %}true{% else %}false{% endif %}"><i class="bi bi-building-add"></i>Registrar cancha</button>
 {% endblock %}
 
 {% block saas_contenido %}
@@ -27,51 +27,58 @@
 
 <section class="s-card">
     <div class="s-card-h">
-        <div class="d-flex flex-wrap gap-1">
-            <a href="?{% if q %}q={{ q|urlencode }}{% endif %}" class="chip text-decoration-none {% if not filtro %}border-primary text-primary{% endif %}">Todas · {{ conteo.total }}</a>
-            <a href="?estado=al-dia{% if q %}&q={{ q|urlencode }}{% endif %}" class="chip text-decoration-none {% if filtro == 'al-dia' %}border-primary text-primary{% endif %}">Al día · {{ conteo.al_dia|default:0 }}</a>
-            <a href="?estado=por-vencer{% if q %}&q={{ q|urlencode }}{% endif %}" class="chip text-decoration-none {% if filtro == 'por-vencer' %}border-primary text-primary{% endif %}">Por vencer · {{ conteo.por_vencer|default:0 }}</a>
-            <a href="?estado=vencida{% if q %}&q={{ q|urlencode }}{% endif %}" class="chip text-decoration-none {% if filtro == 'vencida' %}border-primary text-primary{% endif %}">Vencidas · {{ conteo.vencida|default:0 }}</a>
-            <a href="?estado=suspendida{% if q %}&q={{ q|urlencode }}{% endif %}" class="chip text-decoration-none {% if filtro == 'suspendida' %}border-primary text-primary{% endif %}">Suspendidas · {{ conteo.suspendida|default:0 }}</a>
-        </div>
-        <form method="get" class="m-0 d-flex gap-2" role="search" style="min-width: 220px;">
+        <nav class="d-flex flex-wrap gap-1" aria-label="Filtrar por estado">
+            {% with qq=q|urlencode %}
+            <a href="?{% if q %}q={{ qq }}{% endif %}" class="chip {% if not filtro %}activo{% endif %}">Todas <span class="n">{{ conteo.total }}</span></a>
+            <a href="?estado=al-dia{% if q %}&q={{ qq }}{% endif %}" class="chip {% if filtro == 'al-dia' %}activo{% endif %}">Al día <span class="n">{{ conteo.al_dia }}</span></a>
+            <a href="?estado=por-vencer{% if q %}&q={{ qq }}{% endif %}" class="chip {% if filtro == 'por-vencer' %}activo{% endif %}">Por vencer <span class="n">{{ conteo.por_vencer }}</span></a>
+            <a href="?estado=vencida{% if q %}&q={{ qq }}{% endif %}" class="chip {% if filtro == 'vencida' %}activo{% endif %}">Vencidas <span class="n">{{ conteo.vencida }}</span></a>
+            <a href="?estado=suspendida{% if q %}&q={{ qq }}{% endif %}" class="chip {% if filtro == 'suspendida' %}activo{% endif %}">Suspendidas <span class="n">{{ conteo.suspendida }}</span></a>
+            {% if conteo.sin_fecha %}<a href="?estado=sin-fecha{% if q %}&q={{ qq }}{% endif %}" class="chip {% if filtro == 'sin-fecha' %}activo{% endif %}">Sin fecha <span class="n">{{ conteo.sin_fecha }}</span></a>{% endif %}
+            {% endwith %}
+        </nav>
+        <form method="get" class="m-0 d-flex gap-2 flex-fill" role="search" style="max-width: 300px; min-width: 200px;">
             {% if filtro %}<input type="hidden" name="estado" value="{{ filtro }}">{% endif %}
-            <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm rounded-pill" placeholder="Buscar cancha o dueño…">
+            <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm rounded-pill" placeholder="Buscar cancha o dueño…" aria-label="Buscar cancha o dueño">
         </form>
     </div>
 
-    <div class="table-responsive">
-        <table class="s-tabla">
-            <thead><tr><th>Cancha</th><th>Plan</th><th>Estado</th><th>Fecha de corte</th><th></th></tr></thead>
-            <tbody>
-            {% for c in canchas %}
-                <tr>
-                    <td class="celda-principal">
-                        <div class="d-flex align-items-center gap-2">
-                            {% if c.logo %}<img src="{{ c.logo.url }}" class="s-logo" alt="">{% else %}<div class="s-logo">{{ c.nombre|first|upper }}</div>{% endif %}
-                            <div style="min-width: 0;">
-                                <div class="s-nombre">{{ c.nombre }}</div>
-                                <div class="s-muted"><i class="bi bi-person me-1"></i>{{ c.organizador.username }} · <a href="{% url 'portal_complejo' c.slug %}" target="_blank" rel="noopener" class="text-decoration-none">/{{ c.slug }}</a></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>{% if c.plan %}<span class="chip">{{ c.plan.nombre }}</span><div class="s-muted mt-1">${{ c.plan.precio_mensual }}/mes</div>{% else %}<span class="s-muted">Sin plan</span>{% endif %}</td>
-                    <td><span class="estado {{ c.estado_codigo }}">{{ c.estado_texto }}</span></td>
-                    <td class="text-nowrap">{% if c.fecha_vencimiento %}{{ c.fecha_vencimiento|date:"d/m/Y" }}<div class="s-muted">{% if c.dias_restantes < 0 %}hace {{ c.dias_vencida }} día{{ c.dias_vencida|pluralize }}{% elif c.dias_restantes == 0 %}hoy{% else %}en {{ c.dias_restantes }} día{{ c.dias_restantes|pluralize }}{% endif %}</div>{% else %}<span class="s-muted">—</span>{% endif %}</td>
-                    <td class="text-end text-nowrap">
-                        <a href="{% url 'registrar_pago_saas' %}?cancha={{ c.id }}" class="s-btn-ico" title="Registrar pago"><i class="bi bi-cash"></i></a>
-                        <a href="{% url 'editar_cancha_saas' c.id %}" class="s-btn-ico" title="Editar cancha"><i class="bi bi-pencil"></i></a>
-                        <form method="post" action="{% url 'soporte_entrar' c.id %}" class="d-inline m-0">
-                            {% csrf_token %}
-                            <button type="submit" class="s-btn-ico" title="Entrar como administrador de esta cancha"><i class="bi bi-box-arrow-in-right"></i></button>
-                        </form>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="5" class="s-vacio"><i class="bi bi-buildings"></i>{% if q or filtro %}Ninguna cancha coincide con el filtro.{% else %}Aún no hay canchas registradas.{% endif %}</td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
+    <div>
+        {% for c in canchas %}
+        <div class="s-fila">
+            {% if c.logo %}<img src="{{ c.logo.url }}" class="s-logo" alt="">{% else %}<div class="s-logo">{{ c.nombre|first|upper }}</div>{% endif %}
+            <div class="flex-fill" style="min-width: 0;">
+                <div class="s-nombre text-truncate">{{ c.nombre }}</div>
+                <div class="s-muted text-truncate"><i class="bi bi-person me-1"></i>{{ c.organizador.get_full_name|default:c.organizador.username }} · <a href="{% url 'portal_complejo' c.slug %}" target="_blank" rel="noopener" class="s-link">/{{ c.slug }}</a></div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                    <span class="estado {{ c.estado_codigo }}">{{ c.estado_texto }}</span>
+                    <span class="s-muted">{% if c.plan %}{{ c.plan.nombre }} · ${{ c.plan.precio_mensual }}/mes{% else %}Sin plan{% endif %}</span>
+                    {% if c.fecha_vencimiento %}<span class="s-muted">· {% if c.dias_restantes < 0 %}venció hace {{ c.dias_vencida }} día{{ c.dias_vencida|pluralize }}{% elif c.dias_restantes == 0 %}vence hoy{% else %}vence {{ c.fecha_vencimiento|date:"d/m/Y" }}{% endif %}</span>{% endif %}
+                </div>
+            </div>
+            <div class="d-grid gap-2" style="width: 240px; flex-shrink: 0;">
+                <div class="uso">
+                    <div class="uso-l"><span>Jugadores</span><b>{{ c.num_jugadores }}/{{ c.lim_jugadores|default:"—" }}</b></div>
+                    <div class="barra {% if c.pct_jugadores >= 100 %}lleno{% elif c.pct_jugadores >= 85 %}cerca{% endif %}"><span style="width: {{ c.pct_jugadores }}%;"></span></div>
+                </div>
+                <div class="uso">
+                    <div class="uso-l"><span>Torneos activos</span><b>{{ c.num_torneos }}/{{ c.lim_torneos|default:"—" }}</b></div>
+                    <div class="barra {% if c.pct_torneos >= 100 %}lleno{% elif c.pct_torneos >= 85 %}cerca{% endif %}"><span style="width: {{ c.pct_torneos }}%;"></span></div>
+                </div>
+            </div>
+            <div class="s-acciones">
+                <a href="{% url 'registrar_pago_saas' %}?cancha={{ c.id }}" class="s-btn-ico" title="Registrar pago" aria-label="Registrar pago de {{ c.nombre }}"><i class="bi bi-cash"></i></a>
+                <a href="{% url 'editar_cancha_saas' c.id %}" class="s-btn-ico" title="Editar cancha" aria-label="Editar {{ c.nombre }}"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="{% url 'soporte_entrar' c.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="s-btn-ico" title="Entrar como administrador de esta cancha" aria-label="Entrar a {{ c.nombre }} en modo soporte"><i class="bi bi-box-arrow-in-right"></i></button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="s-vacio"><i class="bi bi-buildings"></i>{% if q or filtro %}Ninguna cancha coincide con el filtro.{% else %}Aún no hay canchas registradas.{% endif %}</div>
+        {% endfor %}
     </div>
+    {% include 'core/_paginacion.html' with pagina=canchas nombre='canchas' %}
 </section>
 {% endblock %}

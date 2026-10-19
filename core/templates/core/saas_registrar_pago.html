@@ -32,7 +32,7 @@
             <div class="s-card-h">
                 <h2 class="s-card-t"><i class="bi bi-clock-history"></i>Historial</h2>
                 <form method="get" class="m-0 d-flex align-items-center gap-2">
-                    <select name="ver" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()" style="min-width: 200px;">
+                    <select name="ver" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()" style="min-width: 200px;" aria-label="Filtrar por cancha">
                         <option value="">Todas las canchas</option>
                         {% for c in canchas_filtro %}<option value="{{ c.id }}" {% if cancha_filtro == c.id|stringformat:"d" %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}
                     </select>
@@ -47,7 +47,7 @@
                             <td class="text-nowrap">{{ pago.fecha_pago|date:"d/m/Y" }}</td>
                             <td class="fw-bold">{{ pago.complejo.nombre }}</td>
                             <td><span class="chip">+{{ pago.meses_pagados }} mes{{ pago.meses_pagados|pluralize:"es" }}</span>{% if pago.observacion %}<div class="s-muted mt-1">{{ pago.observacion }}</div>{% endif %}</td>
-                            <td class="num fw-bold text-success">${{ pago.monto }}</td>
+                            <td class="num"><span class="monto">${{ pago.monto }}</span></td>
                             <td class="text-end">
                                 <form action="{% url 'revertir_pago_saas' pago.id %}" method="post" class="m-0" onsubmit="return confirm('¿Anular este pago?\n\nSe descontarán {{ pago.meses_pagados }} mes(es) de la fecha de corte de {{ pago.complejo.nombre|escapejs }} y, si queda vencida, se suspenderá.');">
                                     {% csrf_token %}
@@ -61,17 +61,11 @@
                     {% endfor %}
                     </tbody>
                     {% if pagos %}
-                    <tfoot><tr><td colspan="3" class="fw-bold">Total{% if cancha_filtro %} de esta cancha{% endif %}</td><td class="num fw-black">${{ total_filtrado }}</td><td></td></tr></tfoot>
+                    <tfoot><tr><td colspan="3">Total{% if cancha_filtro %} de esta cancha{% else %} cobrado{% endif %}</td><td class="num"><span class="monto">${{ total_filtrado }}</span></td><td></td></tr></tfoot>
                     {% endif %}
                 </table>
             </div>
-            {% if pagos.has_other_pages %}
-            <nav class="s-paginacion">
-                {% if pagos.has_previous %}<a href="?page={{ pagos.previous_page_number }}{% if cancha_filtro %}&ver={{ cancha_filtro }}{% endif %}"><i class="bi bi-chevron-left"></i></a>{% endif %}
-                <span class="actual">{{ pagos.number }} / {{ pagos.paginator.num_pages }}</span>
-                {% if pagos.has_next %}<a href="?page={{ pagos.next_page_number }}{% if cancha_filtro %}&ver={{ cancha_filtro }}{% endif %}"><i class="bi bi-chevron-right"></i></a>{% endif %}
-            </nav>
-            {% endif %}
+            {% include 'core/_paginacion.html' with pagina=pagos nombre='pagos' %}
         </section>
     </div>
 </div>

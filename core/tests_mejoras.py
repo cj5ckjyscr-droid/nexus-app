@@ -1,9 +1,10 @@
 from decimal import Decimal
 
 from django.contrib.auth.models import User
+from django.test import TestCase
 
 from .models import (AbonoSancion, ComplejoDeportivo, DetallePartido, Equipo, Jugador, MovimientoFinanciero,
-                     Partido, RolComplejo, Sancion, Torneo)
+                     Partido, PlanSuscripcion, RolComplejo, Sancion, Torneo)
 from .tests import DosCanchasTestCase
 
 
@@ -795,3 +796,109 @@ class BotonHorariosTest(DosCanchasTestCase):
         Partido.objects.create(torneo=self.torneo_a, equipo_local=self.equipo_a, equipo_visita=self.equipo_a2,
                                estado="PROG", fecha_hora=timezone.now() + timedelta(days=1))
         self.assertContains(self.client.get("/dashboard/"), "Imagen de horarios")
+
+
+class TrazabilidadRetencionYPaginacionTest(DosCanchasTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.login(username="org_a", password="pass12345")
+
+    def _cambio(self, objeto, dias=0):
+        from datetime import timedelta
+        from django.utils import timezone
+        from .models import RegistroCambio
+        r = RegistroCambio.objects.create(complejo=self.complejo_a, entidad="JUGADOR", accion="EDITAR", objeto=objeto)
+        if dias:
+            RegistroCambio.objects.filter(id=r.id).update(fecha=timezone.now() - timedelta(days=dias))
+        return r
+
+    def test_lo_de_mas_de_20_dias_se_borra_solo(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from .models import MovimientoFinanciero, RegistroCambio, limpiar_trazabilidad_vieja
+        self._cambio("Viejo", dias=21)
+        self._cambio("Reciente", dias=19)
+        m = MovimientoFinanciero.objects.create(complejo=self.complejo_a, tipo="ABONO", monto=5)
+        MovimientoFinanciero.objects.filter(id=m.id).update(fecha=timezone.now() - timedelta(days=25))
+        self.assertEqual(limpiar_trazabilidad_vieja(forzar=True), (1, 1))
+        self.assertEqual(list(RegistroCambio.objects.values_list("objeto", flat=True)), ["Reciente"])
+
+    def test_paginacion_con_tamano_y_pagina_fuera_de_rango(self):
+        for n in range(45):
+            self._cambio(f"Jugador {n:02d}")
+        r = self.client.get("/trazabilidad/cambios/")
+        self.assertContains(r, "Mostrando <b>1–20</b> de <b>45</b> cambios", html=False)
+        r = self.client.get("/trazabilidad/cambios/?por=50")
+        self.assertContains(r, "Mostrando <b>1–45</b> de <b>45</b>", html=False)
+        r = self.client.get("/trazabilidad/cambios/?page=99&entidad=JUGADOR")
+        self.assertContains(r, "Mostrando <b>41–45</b>", html=False)
+        self.assertContains(r, 'href="?entidad=JUGADOR&page=2"', html=False)  # los filtros viajan al paginar
+        self.assertEqual(self.client.get("/trazabilidad/cambios/?por=9999").status_code, 200)
+
+    def test_aprobar_equipo_y_crear_torneo_quedan_registrados(self):
+        from .models import Categoria, RegistroCambio
+        self.equipo_a2.estado_inscripcion = "PENDIENTE"
+        self.equipo_a2.save()
+        self.client.post("/solicitudes/", {"equipo_id": self.equipo_a2.id, "accion": "APROBAR"})
+        r = RegistroCambio.objects.get(entidad="EQUIPO", accion="ESTADO")
+        self.assertEqual(r.cambios[0]["despues"], "Aprobada")
+
+    def test_editar_sin_cambiar_nada_no_ensucia_la_bitacora(self):
+        from .models import RegistroCambio
+        j = self.jugador_a
+        self.client.post(f"/jugadores/editar/{j.id}/", {"equipo": j.equipo_id, "nombres": j.nombres + "  ", "dorsal": j.dorsal,
+                                                         "tipo_documento": j.tipo_documento or "EC", "cedula": j.cedula})
+        self.assertFalse(RegistroCambio.objects.exists())
+
+    def test_movimientos_automaticos_ocultos_por_defecto(self):
+        from .models import MovimientoFinanciero
+        MovimientoFinanciero.objects.create(complejo=self.complejo_a, tipo="CARGO", origen="SISTEMA", monto=3, equipo_nombre="Auto FC")
+        MovimientoFinanciero.objects.create(complejo=self.complejo_a, tipo="ABONO", origen="FINANZAS", monto=3, equipo_nombre="Manual FC")
+        r = self.client.get("/finanzas/trazabilidad/")
+        self.assertContains(r, "Manual FC")
+        self.assertNotContains(r, "Auto FC")
+        self.assertContains(self.client.get("/finanzas/trazabilidad/?auto=1"), "Auto FC")
+
+
+class PanelSaasEficienteTest(TestCase):
+    def setUp(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        self.hoy = timezone.localdate()
+        self.td = timedelta
+        User.objects.create_superuser("jefe_saas", password="pass12345")
+        self.plan = PlanSuscripcion.objects.create(nombre="Plan Liga", precio_mensual=Decimal("12.00"), max_torneos=2, max_jugadores=10)
+        self.client.login(username="jefe_saas", password="pass12345")
+
+    def _cancha(self, n, dias=30, activo=True):
+        dueno = User.objects.create_user(f"dueno_{n}", password="x")
+        return ComplejoDeportivo.objects.create(nombre=f"Cancha {n}", slug=f"cancha-{n}", organizador=dueno, plan=self.plan,
+                                                activo=activo, fecha_vencimiento=self.hoy + self.td(days=dias))
+
+    def _consultas(self, url):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        with CaptureQueriesContext(connection) as ctx:
+            self.assertEqual(self.client.get(url).status_code, 200)
+        return len(ctx.captured_queries)
+
+    def test_las_consultas_no_crecen_con_el_numero_de_canchas(self):
+        for n in range(3):
+            self._cancha(n)
+        antes = {u: self._consultas(u) for u in ("/nexus-admin/", "/nexus-admin/canchas/", "/nexus-admin/pagos/")}
+        for n in range(3, 12):
+            self._cancha(n)
+        despues = {u: self._consultas(u) for u in antes}
+        self.assertEqual(antes, despues)
+
+    def test_filtro_por_estado_y_uso_del_plan(self):
+        self._cancha("aldia", dias=40)
+        self._cancha("vencida", dias=-3)
+        self._cancha("pronto", dias=2)
+        r = self.client.get("/nexus-admin/canchas/?estado=vencida")
+        self.assertEqual([c.nombre for c in r.context["canchas"]], ["Cancha vencida"])
+        self.assertEqual(r.context["conteo"]["total"], 3)
+        self.assertEqual(r.context["conteo"]["por_vencer"], 1)
+        r = self.client.get("/nexus-admin/")
+        self.assertContains(r, "Ingresos · últimos 6 meses")
+        self.assertEqual(len(r.context["serie"]), 6)

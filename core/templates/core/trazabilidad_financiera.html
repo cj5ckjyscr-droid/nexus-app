@@ -34,27 +34,35 @@
         <div class="tz-kpi"><div class="l"><i class="bi bi-x-circle"></i>Deudas eliminadas</div><div class="v" style="color:#B42318;">${{ anulado|floatformat:2|intcomma }}</div></div>
     </div>
 
-    <details class="tz-filtros" {% if f.q or f.tipo or f.origen or f.usuario or f.torneo or f.desde or f.hasta %}open{% endif %}>
-        <summary><i class="bi bi-funnel"></i>Filtrar{% if f.q or f.tipo or f.origen or f.usuario or f.torneo or f.desde or f.hasta %} <span class="tz-activos">activos</span>{% endif %}<i class="bi bi-chevron-down flecha"></i></summary>
-    <form method="get" class="cuerpo">
-        <div class="row g-2 align-items-end">
-            <div class="col-12 col-md-3"><label>Buscar</label><input type="text" name="q" value="{{ f.q }}" class="form-control" placeholder="Equipo o detalle"></div>
-            <div class="col-6 col-md-2"><label>Tipo</label>
-                <select name="tipo" class="form-select"><option value="">Todos</option>{% for v, n in tipos %}<option value="{{ v }}" {% if f.tipo == v %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
-            <div class="col-6 col-md-2"><label>Desde</label>
-                <select name="origen" class="form-select"><option value="">Mesa y finanzas</option>{% for v, n in origenes %}<option value="{{ v }}" {% if f.origen == v %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
-            <div class="col-6 col-md-2"><label>Usuario</label>
-                <select name="usuario" class="form-select"><option value="">Todos</option>{% for u in usuarios %}<option value="{{ u.id }}" {% if f.usuario == u.id|stringformat:"d" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></div>
-            <div class="col-6 col-md-3"><label>Torneo</label>
-                <select name="torneo" class="form-select"><option value="">Todos</option>{% for t in torneos %}<option value="{{ t.id }}" {% if f.torneo == t.id|stringformat:"d" %}selected{% endif %}>{{ t.nombre }}</option>{% endfor %}</select></div>
-            <div class="col-6 col-md-2"><label>Fecha desde</label><input type="date" name="desde" value="{{ f.desde }}" class="form-control"></div>
-            <div class="col-6 col-md-2"><label>Fecha hasta</label><input type="date" name="hasta" value="{{ f.hasta }}" class="form-control"></div>
-            <div class="col-12 col-md-8 d-flex gap-2 justify-content-md-end">
-                <a href="{% url 'trazabilidad_financiera' %}" class="btn btn-outline-secondary">Limpiar</a>
-                <button class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+    {% url 'trazabilidad_financiera' as url_limpiar %}
+    {% include 'core/_trazabilidad_barra.html' with limpiar=url_limpiar %}
+
+    <details class="tz-filtros">
+        <summary><i class="bi bi-funnel"></i>Filtrar{% if chips %} <span class="tz-activos">{{ chips|length }}</span>{% endif %}<i class="bi bi-chevron-down flecha"></i></summary>
+        <form method="get" class="cuerpo">
+            {% if f.periodo %}<input type="hidden" name="periodo" value="{{ f.periodo }}">{% endif %}
+            {% if request.GET.por %}<input type="hidden" name="por" value="{{ request.GET.por }}">{% endif %}
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-4"><label for="m-q">Buscar</label><input id="m-q" type="search" name="q" value="{{ f.q }}" class="form-control" placeholder="Equipo o detalle"></div>
+                <div class="col-6 col-md-2"><label for="m-tipo">Tipo</label>
+                    <select id="m-tipo" name="tipo" class="form-select"><option value="">Todos</option>{% for v, n in tipos %}<option value="{{ v }}" {% if f.tipo == v %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+                <div class="col-6 col-md-2"><label for="m-origen">Origen</label>
+                    <select id="m-origen" name="origen" class="form-select"><option value="">Mesa y finanzas</option>{% for v, n in origenes %}<option value="{{ v }}" {% if f.origen == v %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+                <div class="col-6 col-md-2"><label for="m-usu">Usuario</label>
+                    <select id="m-usu" name="usuario" class="form-select"><option value="">Todos</option>{% for u in usuarios %}<option value="{{ u.id }}" {% if f.usuario == u.id|stringformat:"d" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></div>
+                <div class="col-6 col-md-2"><label for="m-tor">Torneo</label>
+                    <select id="m-tor" name="torneo" class="form-select"><option value="">Todos</option>{% for t in torneos %}<option value="{{ t.id }}" {% if f.torneo == t.id|stringformat:"d" %}selected{% endif %}>{{ t.nombre }}</option>{% endfor %}</select></div>
+                <div class="col-6 col-md-3"><label for="m-des">Desde</label><input id="m-des" type="date" name="desde" value="{{ f.desde }}" class="form-control"></div>
+                <div class="col-6 col-md-3"><label for="m-has">Hasta</label><input id="m-has" type="date" name="hasta" value="{{ f.hasta }}" class="form-control"></div>
+                <div class="col-12 col-md-3">
+                    <label class="d-flex align-items-center gap-2 mb-2" style="cursor:pointer;"><input type="checkbox" class="form-check-input m-0" name="auto" value="1" {% if f.auto == '1' %}checked{% endif %}> Incluir automáticos del sistema</label>
+                </div>
+                <div class="col-12 col-md-3 d-flex gap-2 justify-content-md-end">
+                    <a href="{% url 'trazabilidad_financiera' %}" class="btn btn-light border rounded-3 flex-fill">Limpiar</a>
+                    <button class="btn btn-primary rounded-3 flex-fill"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+                </div>
             </div>
-        </div>
-    </form>
+        </form>
     </details>
 
     <!-- Escritorio: tabla -->
@@ -73,7 +81,7 @@
                     <td class="text-end text-nowrap {% if m.tipo == 'ABONO' or m.tipo == 'PAGO' %}monto-pos{% elif m.tipo == 'REVERSO' or m.tipo == 'ANULACION' %}monto-neg{% else %}monto-neu{% endif %}">{% if m.tipo == 'REVERSO' or m.tipo == 'ANULACION' %}−{% endif %}${{ m.monto|floatformat:2|intcomma }}</td>
                 </tr>
             {% empty %}
-                <tr><td colspan="7"><div class="empty-state"><i class="bi bi-journal"></i><p>No hay movimientos con estos filtros.</p></div></td></tr>
+                <tr><td colspan="7"><div class="empty-state"><i class="bi bi-journal"></i><p>{% if chips or f.periodo %}No hay movimientos con estos filtros.{% else %}Todavía no hay movimientos de dinero en los últimos {{ dias_retencion }} días.{% endif %}</p></div></td></tr>
             {% endfor %}
             </tbody>
         </table>
@@ -94,17 +102,11 @@
             <div class="small mt-1" style="color: var(--text-soft);">{{ m.fecha|date:"d/m/Y H:i" }} · {% if m.usuario %}{{ m.usuario.get_full_name|default:m.usuario.username }}{% else %}Sistema{% endif %} · {{ m.get_origen_display }}</div>
         </div>
         {% empty %}
-        <div class="empty-state"><i class="bi bi-journal"></i><p>No hay movimientos con estos filtros.</p></div>
+        <div class="empty-state"><i class="bi bi-journal"></i><p>{% if chips or f.periodo %}No hay movimientos con estos filtros.{% else %}Todavía no hay movimientos de dinero en los últimos {{ dias_retencion }} días.{% endif %}</p></div>
         {% endfor %}
     </div>
 
-    {% if movimientos.has_other_pages %}
-    <nav class="mt-3"><ul class="pagination justify-content-center flex-wrap">
-        {% if movimientos.has_previous %}<li class="page-item"><a class="page-link" href="?{{ query_string }}&page={{ movimientos.previous_page_number }}">‹</a></li>{% endif %}
-        <li class="page-item active"><span class="page-link">{{ movimientos.number }} / {{ movimientos.paginator.num_pages }}</span></li>
-        {% if movimientos.has_next %}<li class="page-item"><a class="page-link" href="?{{ query_string }}&page={{ movimientos.next_page_number }}">›</a></li>{% endif %}
-    </ul></nav>
-    {% endif %}
+    {% include 'core/_paginacion.html' with pagina=movimientos nombre='movimientos' %}
 </div>
 </div>
 {% endblock %}

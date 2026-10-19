@@ -8,17 +8,21 @@
 <section class="s-card">
     <div class="s-card-h">
         <h2 class="s-card-t"><i class="bi bi-person-badge"></i>Usuarios</h2>
-        <div class="d-flex align-items-center gap-2">
-            <span class="chip"><i class="bi bi-person-badge"></i>{{ num_en_prueba }} en prueba</span>
-            <input type="search" id="buscar-usuario" class="form-control form-control-sm rounded-pill" placeholder="Buscar usuario…" style="max-width: 200px;">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="?{% if q %}q={{ q|urlencode }}{% endif %}" class="chip {% if ver != 'prueba' %}activo{% endif %}">Todos</a>
+            <a href="?ver=prueba{% if q %}&q={{ q|urlencode }}{% endif %}" class="chip {% if ver == 'prueba' %}activo{% endif %}"><i class="bi bi-person-badge"></i>En prueba <span class="n">{{ num_en_prueba }}</span></a>
+            <form method="get" class="m-0" role="search">
+                {% if ver %}<input type="hidden" name="ver" value="{{ ver }}">{% endif %}
+                <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm rounded-pill" placeholder="Buscar usuario, nombre o correo…" aria-label="Buscar usuario" style="min-width: 220px;">
+            </form>
         </div>
     </div>
     <div class="table-responsive">
         <table class="s-tabla">
-            <thead><tr><th>Usuario</th><th>Estado</th><th>Asignado</th><th class="text-end">Acción</th></tr></thead>
+            <thead><tr><th>Usuario</th><th>Estado</th><th class="d-none d-md-table-cell">Asignado</th><th class="text-end">Acción</th></tr></thead>
             <tbody>
             {% for fila in filas %}
-                <tr data-usuario="{{ fila.usuario.username|lower }} {{ fila.usuario.get_full_name|lower }}">
+                <tr>
                     <td>
                         <div class="s-nombre">{{ fila.usuario.username }}</div>
                         {% if fila.usuario.get_full_name %}<div class="s-muted">{{ fila.usuario.get_full_name }}</div>{% endif %}
@@ -28,13 +32,13 @@
                         {% elif fila.es_organizador_real %}<span class="estado al-dia">Cliente real</span>
                         {% else %}<span class="estado sin-fecha">Sin rol</span>{% endif %}
                     </td>
-                    <td class="s-muted text-nowrap">{% if fila.complejo_demo.fecha_asignacion_prueba %}{{ fila.complejo_demo.fecha_asignacion_prueba|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+                    <td class="s-muted text-nowrap d-none d-md-table-cell">{% if fila.complejo_demo.fecha_asignacion_prueba %}{{ fila.complejo_demo.fecha_asignacion_prueba|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
                     <td class="text-end">
                         {% if fila.tiene_prueba %}
                             <form method="post" class="d-inline" onsubmit="return confirm('¿Quitar el Rol de Prueba a {{ fila.usuario.username|escapejs }}? Se borrarán todos sus datos de prueba.');">
                                 {% csrf_token %}
                                 <input type="hidden" name="usuario_id" value="{{ fila.usuario.id }}">
-                                <button type="submit" name="quitar" value="1" class="btn btn-sm btn-outline-danger rounded-pill fw-bold">Quitar</button>
+                                <button type="submit" name="quitar" value="1" class="btn-s peligro py-1 px-3">Quitar</button>
                             </form>
                         {% elif fila.es_organizador_real %}
                             <span class="s-muted">Ya tiene cancha</span>
@@ -42,24 +46,18 @@
                             <form method="post" class="d-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="usuario_id" value="{{ fila.usuario.id }}">
-                                <button type="submit" name="asignar" value="1" class="btn btn-sm btn-primary rounded-pill fw-bold">Asignar</button>
+                                <button type="submit" name="asignar" value="1" class="btn-s py-1 px-3">Asignar</button>
                             </form>
                         {% endif %}
                     </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="4" class="s-vacio"><i class="bi bi-people"></i>No hay usuarios registrados todavía.</td></tr>
+                <tr><td colspan="4" class="s-vacio"><i class="bi bi-people"></i>{% if q or ver %}Ningún usuario coincide con la búsqueda.{% else %}No hay usuarios registrados todavía.{% endif %}</td></tr>
             {% endfor %}
             </tbody>
         </table>
     </div>
+    {% include 'core/_paginacion.html' with pagina=usuarios nombre='usuarios' %}
 </section>
-<script>
-    document.getElementById('buscar-usuario').addEventListener('input', function () {
-        const t = this.value.trim().toLowerCase();
-        document.querySelectorAll('tr[data-usuario]').forEach(tr => {
-            tr.style.display = !t || tr.dataset.usuario.includes(t) ? '' : 'none';
-        });
-    });
-</script>
+
 {% endblock %}

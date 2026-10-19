@@ -235,26 +235,75 @@
     .dash .logo-ini { display: grid; place-items: center; background: #EEF5F0; color: #166534; font-family: var(--cond); font-weight: 800; font-size: 2.2rem; }
     .dash .inicio-cancha h1 { font-size: clamp(1.9rem, 4.4vw, 3.1rem); overflow-wrap: anywhere; }
     .dash .inicio-acciones { align-items: stretch; }
+    /* Botón de estadísticas: una mini cancha de césped claro con su balón */
     .dash .btn-estadisticas {
-        position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: .8rem; text-decoration: none;
-        padding: .75rem 1rem .75rem .8rem; border-radius: 16px; color: #3A2E0B;
-        background: linear-gradient(135deg, #FFFCF3 0%, #FBF1D6 100%); border: 1px solid #EEDCA6;
-        box-shadow: 0 14px 26px -20px rgba(165, 122, 15, .55), inset 0 1px 0 rgba(255,255,255,.8);
-        transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out);
+        --cesped-a: #E4F1E8; --cesped-b: #D6EADD; --linea: rgba(255,255,255,.95);
+        position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: center; gap: 1rem;
+        min-width: min(100%, 400px); padding: 1rem 1.1rem 1rem 1rem; border-radius: 20px; text-decoration: none; color: #12261B;
+        background: repeating-linear-gradient(90deg, var(--cesped-a) 0 34px, var(--cesped-b) 34px 68px);
+        background-size: 136px 100%;
+        border: 1px solid #C7DFCF;
+        box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 18px 30px -22px rgba(22,101,52,.55);
+        transition: transform .25s cubic-bezier(.2,.9,.3,1), box-shadow .25s cubic-bezier(.2,.9,.3,1), background-position .9s cubic-bezier(.2,.9,.3,1);
     }
-    .dash .btn-estadisticas::after { /* brillo que cruza al pasar el mouse */
-        content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
-        transform: translateX(-120%); transition: transform .6s var(--ease-out); pointer-events: none;
+    .dash .btn-estadisticas .lineas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+    .dash .btn-estadisticas .lineas * { fill: none; stroke: var(--linea); stroke-width: 2; vector-effect: non-scaling-stroke; }
+    .dash .btn-estadisticas::before { /* franja dorada de "trofeo" a la izquierda */
+        content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: #D4A72C;
     }
-    .dash .btn-estadisticas:hover { transform: translateY(-2px); box-shadow: 0 20px 30px -20px rgba(165, 122, 15, .6), inset 0 1px 0 rgba(255,255,255,.8); color: #3A2E0B; }
-    .dash .btn-estadisticas:hover::after { transform: translateX(120%); }
-    .dash .btn-estadisticas:active { transform: scale(.98); }
-    .dash .btn-estadisticas .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #D4A72C; color: #fff; font-size: 1.2rem; flex-shrink: 0; }
-    .dash .btn-estadisticas .txt { display: flex; flex-direction: column; line-height: 1.1; }
-    .dash .btn-estadisticas b { font-family: var(--cond); font-weight: 800; text-transform: uppercase; font-size: 1.35rem; letter-spacing: .03em; }
-    .dash .btn-estadisticas small { font-size: .76rem; font-weight: 700; opacity: .8; }
-    .dash .btn-estadisticas .flecha { margin-left: .3rem; font-size: 1.1rem; transition: transform .2s var(--ease-out); }
-    .dash .btn-estadisticas:hover .flecha { transform: translateX(3px); }
+    .dash .btn-estadisticas:hover {
+        color: #12261B; transform: translateY(-3px); background-position: 34px 0;
+        box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 26px 36px -24px rgba(22,101,52,.6);
+    }
+    .dash .btn-estadisticas:active { transform: translateY(-1px) scale(.98); transition-duration: .1s; }
+    .dash .btn-estadisticas:focus-visible { outline: 3px solid rgba(22,101,52,.4); outline-offset: 3px; }
+
+    .dash .btn-estadisticas .escudo-est {
+        position: relative; flex-shrink: 0; width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center;
+        background: #166534; color: #fff; font-size: 1.55rem;
+        box-shadow: 0 10px 18px -10px rgba(22,101,52,.8), inset 0 1px 0 rgba(255,255,255,.25);
+    }
+    .dash .btn-estadisticas .escudo-est .corona { /* medalla dorada */
+        position: absolute; top: -7px; right: -7px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+        background: #D4A72C; color: #fff; font-size: .72rem; border: 2px solid #fff; box-shadow: 0 4px 8px -4px rgba(120,90,10,.7);
+    }
+    .dash .btn-estadisticas .txt { display: flex; flex-direction: column; gap: .3rem; min-width: 0; line-height: 1; }
+    .dash .btn-estadisticas .kicker { font-size: .7rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #166534; }
+    .dash .btn-estadisticas b { font-family: var(--cond); font-weight: 800; text-transform: uppercase; font-size: clamp(1.55rem, 3.4vw, 1.95rem); letter-spacing: .02em; color: #12261B; }
+    .dash .btn-estadisticas .chips { display: flex; flex-wrap: nowrap; gap: .3rem; margin-top: .1rem; overflow: hidden; }
+    .dash .btn-estadisticas .chips span {
+        display: inline-flex; align-items: center; gap: .25rem; padding: .2rem .5rem; border-radius: 999px;
+        background: rgba(255,255,255,.85); border: 1px solid rgba(22,101,52,.14); font-size: .7rem; font-weight: 700; color: #2A3B31; white-space: nowrap;
+    }
+    .dash .btn-estadisticas .chips i { color: #166534; font-size: .72rem; }
+
+    .dash .btn-estadisticas .balon-carril { margin-left: auto; position: relative; flex-shrink: 0; width: 88px; height: 44px; display: grid; place-items: center end; }
+    .dash .btn-estadisticas .ir {
+        width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #166534;
+        border: 1px solid #C7DFCF; font-size: 1.15rem; box-shadow: 0 6px 12px -8px rgba(18,38,27,.45);
+        transition: background-color .25s, color .25s, transform .25s cubic-bezier(.2,.9,.3,1);
+    }
+    .dash .btn-estadisticas .balon {
+        position: absolute; left: 0; top: 50%; width: 26px; height: 26px; margin-top: -13px;
+        filter: drop-shadow(0 3px 2px rgba(18,38,27,.25));
+        transition: transform .7s cubic-bezier(.2,.9,.3,1), opacity .3s;
+    }
+    .dash .btn-estadisticas:hover .balon { transform: translateX(40px) rotate(360deg); opacity: 0; }
+    .dash .btn-estadisticas:hover .ir { background: #166534; color: #fff; transform: scale(1.06); }
+    @media (prefers-reduced-motion: no-preference) {
+        .dash .btn-estadisticas .balon { animation: balon-entra .9s cubic-bezier(.2,.9,.3,1) .35s both; }
+        @keyframes balon-entra {
+            0% { transform: translate(-60px, -18px) rotate(-200deg); opacity: 0; }
+            55% { transform: translate(0, 0) rotate(0); opacity: 1; }
+            72% { transform: translateY(-6px); }
+            100% { transform: translateY(0); }
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .dash .btn-estadisticas, .dash .btn-estadisticas .balon, .dash .btn-estadisticas .ir { transition: none; }
+        .dash .btn-estadisticas:hover { transform: none; background-position: 0 0; }
+        .dash .btn-estadisticas:hover .balon { transform: none; opacity: 1; }
+    }
     @media (max-width: 480px) {
         .dash table .text-truncate[style*="width: 80px"] { width: 64px !important; }
         .dash table td.ps-4 { padding-left: .75rem !important; }
@@ -263,7 +312,12 @@
     @media (max-width: 576px) {
         .dash .logo-inicio { width: 72px; height: 72px; }
         .dash .inicio-acciones > * { flex: 1 1 100%; justify-content: center; }
-        .dash .btn-estadisticas { justify-content: flex-start; }
+        .dash .btn-estadisticas { min-width: 0; padding: .9rem; gap: .8rem; }
+        .dash .btn-estadisticas .escudo-est { width: 50px; height: 50px; font-size: 1.35rem; }
+        .dash .btn-estadisticas .balon-carril { width: 48px; }
+        .dash .btn-estadisticas .balon { display: none; }
+        .dash .btn-estadisticas .chips span { padding: .18rem .42rem; font-size: .66rem; }
+        .dash .btn-estadisticas .chips span:nth-child(3) { display: none; }
     }
     @media (prefers-reduced-motion: no-preference) {
         .dash .match-card-premium, .dash .admin-btn { animation: subir .45s var(--ease-out) .25s both; }
@@ -341,10 +395,23 @@
                 </div>
             </div>
             <nav class="acciones inicio-acciones" aria-label="Accesos rápidos">
-                <a href="{% url 'seleccionar_reporte' %}" class="btn-estadisticas">
-                    <span class="ico"><i class="bi bi-bar-chart-fill"></i></span>
-                    <span class="txt"><b>Estadísticas</b><small>Tablas, goleadores y figuras</small></span>
-                    <i class="bi bi-arrow-right flecha"></i>
+                <a href="{% url 'seleccionar_reporte' %}" class="btn-estadisticas" aria-label="Estadísticas: tabla de posiciones, goleadores y figuras">
+                    <svg class="lineas" viewBox="0 0 400 100" preserveAspectRatio="none" aria-hidden="true">
+                        <rect x="6" y="6" width="388" height="88" rx="10"/>
+                        <line x1="300" y1="6" x2="300" y2="94"/>
+                        <circle cx="300" cy="50" r="24"/>
+                        <path d="M394 28 h-26 v44 h26"/>
+                    </svg>
+                    <span class="escudo-est" aria-hidden="true"><i class="bi bi-bar-chart-line-fill"></i><span class="corona"><i class="bi bi-trophy-fill"></i></span></span>
+                    <span class="txt">
+                        <span class="kicker">Centro de datos</span>
+                        <b>Estadísticas</b>
+                        <span class="chips" aria-hidden="true"><span><i class="bi bi-list-ol"></i>Tabla</span><span><i class="bi bi-bullseye"></i>Goleadores</span><span><i class="bi bi-star-fill"></i>Figuras</span></span>
+                    </span>
+                    <span class="balon-carril" aria-hidden="true">
+                        <svg class="balon" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#fff" stroke="#12261B" stroke-width="1.4"/><path d="M13 8.2l4.4 3.2-1.7 5.2h-5.4l-1.7-5.2z" fill="#12261B"/><path d="M13 8.2V1.5M17.4 11.4l6.3-2M15.7 16.6l3.9 5.3M10.3 16.6l-3.9 5.3M8.6 11.4l-6.3-2" stroke="#12261B" stroke-width="1.2" fill="none"/></svg>
+                        <span class="ir"><i class="bi bi-arrow-right"></i></span>
+                    </span>
                 </a>
                 {% if rol_nav_efectivo == 'DIR' and tengo_deudas %}
                 <button type="button" class="btn-mar" data-bs-toggle="modal" data-bs-target="#modalDeudasDir"><i class="bi bi-wallet2"></i>Debo ${{ monto_deuda }}</button>

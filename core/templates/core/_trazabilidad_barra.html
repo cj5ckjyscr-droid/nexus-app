@@ -1,0 +1,13 @@
+{% comment %}Periodo + filtros activos + aviso de retención. Parámetros: periodos, chips, dias_retencion, limpiar (url).{% endcomment %}
+<div class="tz-barra">
+    <nav class="segmento" aria-label="Periodo">
+        {% for p in periodos %}<a href="{{ p.url }}" class="{% if p.activo %}activo{% endif %}" {% if p.activo %}aria-current="true"{% endif %}>{{ p.texto }}</a>{% endfor %}
+    </nav>
+    <p class="tz-retencion"><i class="bi bi-clock-history"></i>Se guardan los últimos {{ dias_retencion }} días; lo anterior se borra solo.</p>
+</div>
+{% if chips %}
+<div class="tz-chips" aria-label="Filtros activos">
+    {% for c in chips %}<a href="{{ c.quitar }}" class="tz-chip" aria-label="Quitar filtro {{ c.texto }}">{{ c.texto }}<i class="bi bi-x-lg"></i></a>{% endfor %}
+    <a href="{{ limpiar }}" class="tz-limpiar">Quitar todos</a>
+</div>
+{% endif %}
