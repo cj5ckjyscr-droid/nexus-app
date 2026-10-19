@@ -266,7 +266,7 @@
     {% if es_admin_torneo and not torneo.formato %}
     <!-- EMPEZAR CAMPEONATO: elegir modalidad primero -->
     <div class="ios-admin-panel text-center py-4" style="border: 2px dashed var(--brand-primary);">
-        <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;background:#EEF2FF;color:var(--brand-primary);"><i class="bi bi-trophy-fill fs-2"></i></div>
+        <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;background:#EEF5F0;color:var(--brand-primary);"><i class="bi bi-trophy-fill fs-2"></i></div>
         <h5 class="fw-black mb-1">Este campeonato aún no empieza</h5>
         <p class="mb-3" style="color: var(--text-soft);">Hay <strong>{{ equipos_aprobados_count }}</strong> equipo{{ equipos_aprobados_count|pluralize }} aprobado{{ equipos_aprobados_count|pluralize }}. Elige la modalidad (liga, grupos, eliminatorias...) y el sistema arma el fixture y las llaves de forma transparente.</p>
         <a href="{% url 'iniciar_campeonato' torneo_actual %}" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold"><i class="bi bi-play-fill me-1"></i> Empezar campeonato</a>

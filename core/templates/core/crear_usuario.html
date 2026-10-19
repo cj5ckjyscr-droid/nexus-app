@@ -5,9 +5,9 @@
 {% block extra_css %}
 <style>
     .cuenta-wrap { max-width: 720px; margin: 1rem auto 3rem; }
-    .cuenta-hero { background: linear-gradient(135deg, #0F172A, #1E3A8A); color: #fff; border-radius: 20px; padding: 1.3rem 1.4rem; margin-bottom: 1.2rem; }
-    .cuenta-hero h1 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.6rem; margin: .2rem 0; color: #fff; }
-    .cuenta-hero p { color: #CBD5E1; margin: 0; font-size: .9rem; }
+    .cuenta-hero { background: linear-gradient(180deg, #FFFFFF 0%, #F8FBF9 100%); border: 1px solid #E6EAE8; color: #12261B; box-shadow: 0 14px 32px -26px rgba(18,38,27,.35); border-radius: 20px; padding: 1.3rem 1.4rem; margin-bottom: 1.2rem; }
+    .cuenta-hero h1 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.6rem; margin: .2rem 0; color: #12261B; }
+    .cuenta-hero p { color: #5B6670; margin: 0; font-size: .9rem; }
     .cuenta-card { background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 18px; box-shadow: var(--shadow-float); padding: 1.3rem; }
     .cuenta-card .lbl { display: block; font-size: .74rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-main); margin-bottom: .35rem; }
     .cuenta-card .form-control { border-radius: 12px; padding: .65rem .85rem; font-weight: 600; }
@@ -18,7 +18,7 @@
     .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
     .roles label { border: 2px solid var(--border-light); border-radius: 14px; padding: .7rem; cursor: pointer; display: block; height: 100%; transition: border-color .15s, background .15s; }
     .roles input { position: absolute; opacity: 0; pointer-events: none; }
-    .roles label:has(input:checked) { border-color: var(--brand-primary); background: #EEF2FF; }
+    .roles label:has(input:checked) { border-color: var(--brand-primary); background: #EEF5F0; }
     .roles .t { font-weight: 800; color: var(--text-main); font-size: .9rem; display: flex; align-items: center; gap: .4rem; }
     .roles .d { font-size: .74rem; color: var(--text-soft); margin-top: .2rem; }
     .clave-box { display: flex; gap: .4rem; }
@@ -30,9 +30,9 @@
 {% block contenido %}
 <div class="cuenta-wrap">
     <div class="cuenta-hero">
-        <div class="small fw-bold text-uppercase" style="color:#93C5FD; letter-spacing:.08em;"><i class="bi bi-geo-alt-fill me-1"></i>{{ mi_complejo.nombre }}</div>
+        <div class="small fw-bold text-uppercase" style="color:#166534; letter-spacing:.08em;"><i class="bi bi-geo-alt-fill me-1"></i>{{ mi_complejo.nombre }}</div>
         <h1>Crear cuenta para tu vocal</h1>
-        <p>La cuenta solo funciona en <strong class="text-white">{{ mi_complejo.nombre }}</strong>. Al guardar verás el usuario y la contraseña para compartirlos; con ellos puede entrar desde cualquier celular o computadora.</p>
+        <p>La cuenta solo funciona en <strong style="color:#12261B">{{ mi_complejo.nombre }}</strong>. Al guardar verás el usuario y la contraseña para compartirlos; con ellos puede entrar desde cualquier celular o computadora.</p>
     </div>
 
     <form method="post" class="cuenta-card" novalidate>

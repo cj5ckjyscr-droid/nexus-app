@@ -212,19 +212,19 @@
     </div>
 
     <!-- ACCIONES RÁPIDAS -->
-    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
-        <h5 class="fw-bold text-dark m-0">Saldos de Equipos</h5>
-        <div class="d-flex gap-2">
-            <a href="{% url 'cierre_diario_caja' %}" class="btn btn-sm rounded-pill text-white fw-bold shadow-sm" style="background: var(--apple-green);">
-                <i class="bi bi-calendar-check me-1"></i> Cierre Diario
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 px-2">
+        <h5 class="fw-bold text-dark m-0">Saldos de equipos</h5>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'cierre_diario_caja' %}" class="btn btn-sm rounded-pill fw-bold shadow-sm text-nowrap" style="background: #EEF5F0; color: #166534;">
+                <i class="bi bi-calendar-check me-1"></i> Cierre diario
             </a>
             <form method="POST" class="m-0">
                 {% csrf_token %}
                 <button type="submit" name="generar_inscripciones_viejas" class="btn btn-sm rounded-pill bg-white border fw-bold shadow-sm text-dark" onclick="return confirm('¿Generar deudas de inscripción faltantes?');">
-                    <i class="bi bi-arrow-clockwise text-primary"></i> Sync
+                    <i class="bi bi-arrow-clockwise" style="color:#166534;"></i> Sincronizar
                 </button>
             </form>
-            <a href="{% url 'registrar_pago' %}" class="btn btn-sm rounded-pill text-white fw-bold shadow-sm" style="background: var(--text-main);">Cobro Libre</a>
+            <a href="{% url 'registrar_pago' %}" class="btn btn-sm rounded-pill text-white fw-bold shadow-sm text-nowrap" style="background: #166534;"><i class="bi bi-plus-lg me-1"></i>Cobro libre</a>
         </div>
     </div>
 

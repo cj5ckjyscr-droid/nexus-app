@@ -12,7 +12,7 @@
     .ambient-glow {
         position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh;
         background: 
-            radial-gradient(circle at 15% 30%, rgba(79, 70, 229, 0.06) 0%, transparent 40%),
+            radial-gradient(circle at 15% 30%, rgba(22, 101, 52, 0.06) 0%, transparent 40%),
             radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.06) 0%, transparent 40%),
             radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
         z-index: -1; pointer-events: none;
@@ -26,7 +26,7 @@
     }
     
     .fey-gradient-text {
-        background: linear-gradient(135deg, var(--brand-primary) 0%, #0EA5E9 100%);
+        background: linear-gradient(135deg, var(--brand-primary) 0%, #2F7D4F 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
@@ -52,24 +52,24 @@
     /* Tarjeta Popular (Destacada) */
     .pricing-card.popular {
         background: #FFFFFF; border: 2px solid var(--brand-primary);
-        box-shadow: 0 20px 50px rgba(79, 70, 229, 0.15); transform: scale(1.03); z-index: 5;
+        box-shadow: 0 20px 50px rgba(22, 101, 52, 0.15); transform: scale(1.03); z-index: 5;
     }
-    .pricing-card.popular:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 30px 60px rgba(79, 70, 229, 0.25); }
+    .pricing-card.popular:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 30px 60px rgba(22, 101, 52, 0.25); }
     .pricing-card.popular::before {
         content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
-        background: linear-gradient(90deg, var(--brand-primary), #0EA5E9);
+        background: linear-gradient(90deg, var(--brand-primary), #2F7D4F);
     }
 
     /* Botones de Planes */
     .btn-plan {
-        background: #0F172A; color: #FFFFFF; font-weight: 800; font-size: 1.1rem;
+        background: #166534; color: #FFFFFF; font-weight: 800; font-size: 1.1rem;
         padding: 16px 24px; border-radius: 16px; display: inline-block; width: 100%;
         text-align: center; text-decoration: none; transition: all 0.3s ease; border: none;
     }
-    .btn-plan:hover { background: #1E293B; transform: translateY(-3px); box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2); color: #FFFFFF; }
+    .btn-plan:hover { background: #14532D; transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(22, 101, 52, 0.5); color: #FFFFFF; }
     
-    .btn-plan.popular-btn { background: linear-gradient(135deg, var(--brand-primary), #0EA5E9); }
-    .btn-plan.popular-btn:hover { box-shadow: 0 15px 30px rgba(79, 70, 229, 0.3); }
+    .btn-plan.popular-btn { background: linear-gradient(135deg, #166534, #2F7D4F); }
+    .btn-plan.popular-btn:hover { box-shadow: 0 15px 30px rgba(22, 101, 52, 0.3); }
 
     /* Lista de Características */
     .feature-list { list-style: none; padding: 0; margin: 0 0 2rem 0; }
@@ -95,9 +95,9 @@
     .bento-card.green { background: linear-gradient(145deg, #FFFFFF, #F0FDF4); }
     .bento-card.green .bento-icon { background: #D1FAE5; color: #10B981; }
     
-    .bento-card.dark { background: linear-gradient(145deg, #0F172A, #1E293B); color: white; border: none; box-shadow: 0 15px 35px rgba(15, 23, 42, 0.2); }
-    .bento-card.dark .bento-icon { background: rgba(255,255,255,0.1); color: #FFFFFF; }
-    .bento-card.dark p { color: #94A3B8 !important; }
+    .bento-card.dark { background: linear-gradient(180deg, #F2F8F4, #FFFFFF); color: #12261B; border: 1px solid #D5E6DB; box-shadow: 0 14px 32px -26px rgba(18, 38, 27, 0.35); }
+    .bento-card.dark .bento-icon { background: #166534; color: #FFFFFF; }
+    .bento-card.dark p { color: #5B6670 !important; }
 
     /* Animaciones de Entrada */
     .reveal-up { opacity: 0; animation: revealUpAnim 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -218,7 +218,7 @@
                 <div class="bento-card dark">
                     <div>
                         <div class="bento-icon shadow-sm"><i class="bi bi-phone"></i></div>
-                        <h3 class="fw-black text-white mb-3" style="font-family: 'Outfit', sans-serif;">Mesa de Control Móvil</h3>
+                        <h3 class="fw-black mb-3" style="font-family: 'Outfit', sans-serif;">Mesa de Control Móvil</h3>
                         <p class="fs-6 fw-medium m-0" style="line-height: 1.6;">Tus vocales registran goles, tarjetas y resultados en vivo desde su celular. Cero papel.</p>
                     </div>
                 </div>
