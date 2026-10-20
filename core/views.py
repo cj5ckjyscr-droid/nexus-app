@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, Http404
-from django.db.models import Count, Exists, OuterRef, Q, Sum, F
+from django.db.models import Case, Count, Exists, OuterRef, Q, Sum, F, When
 from django.template.loader import get_template
 from django.db import transaction, IntegrityError
 from xhtml2pdf import pisa 
@@ -43,7 +43,6 @@ from .models import (
     PagoSuscripcionSaaS, RolComplejo, Llave, MovimientoFinanciero, EdicionPartido
 )
 
-from .utils import validar_cedula_ecuador, consultar_sri
 from .services.pruebas import crear_entorno_prueba, eliminar_entorno_prueba, obtener_equipo_simulado, NOMBRE_PLAN_DEMO
 from .services.google_auth import verificar_token_google, obtener_o_crear_usuario_de_google, GoogleTokenInvalido
 from .services import campeonato as motor
@@ -882,15 +881,13 @@ def gestionar_jugadores(request):
                     equipo__torneo__complejo=mi_complejo 
                 )
                 
-                misma_categoria = None
-                if mi_equipo.torneo.categoria:
-                    misma_categoria = jugadores_activos_bd.filter(equipo__torneo__categoria=mi_equipo.torneo.categoria).first()
-                else:
-                    misma_categoria = jugadores_activos_bd.filter(equipo__torneo=mi_equipo.torneo).first()
+                # Un mismo campeonato: un solo equipo. En otro campeonato sí puede jugar.
+                misma_categoria = jugadores_activos_bd.filter(equipo__torneo=mi_equipo.torneo).order_by(
+                    Case(When(equipo=mi_equipo, then=0), default=1)).first()
 
                 if misma_categoria:
                     if misma_categoria.equipo != mi_equipo:
-                        messages.error(request, f"⛔ ¡ALERTA! Este jugador ya compite en el equipo '{misma_categoria.equipo.nombre}' en esta misma categoría.")
+                        messages.error(request, f"⛔ ¡ALERTA! Este jugador ya juega en el equipo '{misma_categoria.equipo.nombre}' en este mismo campeonato.")
                         return redirect(f"{request.path}?equipo={mi_equipo.id}")
                     else:
                         misma_categoria.nombres = form.cleaned_data.get('nombres')
@@ -905,7 +902,7 @@ def gestionar_jugadores(request):
                     return redirect(f"{request.path}?equipo={mi_equipo.id}")
                 else:
                     # 🔥 AISLAMIENTO: Solo copia la foto si ya jugó en ESTA cancha antes
-                    jugador_historial = Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__complejo=mi_complejo).last()
+                    jugador_historial = Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__complejo=mi_complejo).exclude(foto='').exclude(foto__isnull=True).last() or Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__complejo=mi_complejo).last()
                     nuevo_jugador = form.save(commit=False)
                     nuevo_jugador.equipo = mi_equipo
 
@@ -968,14 +965,12 @@ def gestionar_jugadores(request):
                     equipo__torneo__complejo=mi_complejo
                 )
                 
-                misma_categoria = None
-                if equipo_destino.torneo.categoria:
-                    misma_categoria = jugadores_activos_bd.filter(equipo__torneo__categoria=equipo_destino.torneo.categoria).first()
-                else:
-                    misma_categoria = jugadores_activos_bd.filter(equipo__torneo=equipo_destino.torneo).first()
+                # Un mismo campeonato: un solo equipo. En otro campeonato sí puede jugar.
+                misma_categoria = jugadores_activos_bd.filter(equipo__torneo=equipo_destino.torneo).order_by(
+                    Case(When(equipo=equipo_destino, then=0), default=1)).first()
 
                 if misma_categoria and misma_categoria.equipo != equipo_destino:
-                    messages.error(request, f"⛔ ¡ALERTA! El jugador ya compite en '{misma_categoria.equipo.nombre}' en esa categoría.")
+                    messages.error(request, f"⛔ ¡ALERTA! El jugador ya juega en '{misma_categoria.equipo.nombre}' en ese mismo campeonato.")
                 else:
                     if misma_categoria and misma_categoria.equipo == equipo_destino:
                         cambios = _cambios_ficha(misma_categoria, form)
@@ -993,7 +988,7 @@ def gestionar_jugadores(request):
                         return redirect(f"{request.path}?equipo={form.cleaned_data['equipo'].id}")
                     else:
                         # 🔥 AISLAMIENTO
-                        jugador_historial = Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__complejo=mi_complejo).last()
+                        jugador_historial = Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__complejo=mi_complejo).exclude(foto='').exclude(foto__isnull=True).last() or Jugador.objects.filter(cedula=cedula_ingresada, equipo__torneo__complejo=mi_complejo).last()
                         nuevo_jugador = form.save(commit=False)
                         if jugador_historial and not nuevo_jugador.foto and jugador_historial.foto:
                             nuevo_jugador.foto = jugador_historial.foto
@@ -1349,15 +1344,6 @@ def revertir_cuota(request, torneo_id):
     messages.info(request, f"Reverso exitoso. Se han desbloqueado {liberados} jugadores.")
     return redirect('reporte_estadisticas', torneo_id=torneo.id)
 
-
-def api_consultar_cedula(request):
-    cedula = request.GET.get('cedula', '')
-    if not validar_cedula_ecuador(cedula):
-        return JsonResponse({'error': 'Cédula inválida o incorrecta.'}, status=400)
-    
-    nombre = consultar_sri(cedula)
-    if nombre: return JsonResponse({'nombre': nombre, 'exito': True})
-    else: return JsonResponse({'exito': False, 'mensaje': 'Cédula válida, sin datos públicos.'})
 
 # =========================================================
 # 2. CALENDARIO Y PARTIDOS (ACCESO VOCAL Y ADMIN)
@@ -4414,23 +4400,52 @@ def cambiar_formato_fase1(request, torneo_id):
 
 @login_required
 def buscar_jugador_api(request, cedula):
-    # Buscamos los IDs de los complejos donde este usuario tiene algún rol (ya sea Dueño, Dirigente, etc.)
-    mis_complejos_ids = RolComplejo.objects.filter(usuario=request.user).values_list('complejo_id', flat=True)
-    
-    # 🔥 AISLAMIENTO: Solo autocompletará el nombre si el jugador ya jugó en alguna de las canchas del usuario
-    jugador = Jugador.objects.filter(
-        cedula=cedula, 
-        equipo__torneo__complejo_id__in=mis_complejos_ids
-    ).order_by('-id').first()
-    
-    if jugador:
-        return JsonResponse({
-            'encontrado': True,
-            'nombres': jugador.nombres,
-        })
+    """Autocompleta el fichaje con lo que ya hay en la base de datos: nombres,
+    documento y foto del jugador si ya estuvo inscrito en ESTA cancha. Con
+    ?equipo=<id> además avisa si ya juega en otro equipo de ese mismo
+    campeonato (bloqueado) o si solo está en otros campeonatos (permitido)."""
+    cedula = (cedula or '').strip().upper().replace(' ', '')
+    equipo = None
+    equipo_id = request.GET.get('equipo', '')
+    mi_complejo = obtener_mi_complejo(request.user)
+    if equipo_id.isdigit():
+        if mi_complejo:
+            equipo = Equipo.objects.select_related('torneo__complejo').filter(id=equipo_id, torneo__complejo=mi_complejo).first()
+        else:
+            equipo = equipos_del_dirigente(request).select_related('torneo__complejo').filter(id=equipo_id).first()
+    if equipo:
+        complejo = equipo.torneo.complejo
     else:
-        return JsonResponse({'encontrado': False}) 
-    
+        complejo = mi_complejo or getattr(getattr(equipos_del_dirigente(request).select_related('torneo__complejo').first(), 'torneo', None), 'complejo', None)
+    if complejo is None or not cedula:
+        return JsonResponse({'encontrado': False})
+
+    # 🔥 AISLAMIENTO: solo jugadores que ya estuvieron en esta cancha
+    fichas = list(Jugador.objects.filter(cedula=cedula, equipo__torneo__complejo=complejo)
+                  .select_related('equipo__torneo').order_by('-id'))
+    if not fichas:
+        return JsonResponse({'encontrado': False})
+
+    ultima = fichas[0]
+    con_foto = next((j for j in fichas if j.foto), None)
+    respuesta = {
+        'encontrado': True,
+        'nombres': ultima.nombres,
+        'tipo_documento': ultima.tipo_documento,
+        'foto': con_foto.foto.url if con_foto else '',
+        'mismo_equipo': False,
+        'conflicto': None,
+        'otros_campeonatos': [],
+    }
+    for j in fichas:
+        if equipo and j.equipo_id == equipo.id:
+            respuesta['mismo_equipo'] = True
+        elif equipo and j.equipo.torneo_id == equipo.torneo_id:
+            respuesta['conflicto'] = {'equipo': j.equipo.nombre, 'torneo': j.equipo.torneo.nombre}
+        elif j.equipo.torneo.activo:
+            respuesta['otros_campeonatos'].append(f"{j.equipo.nombre} · {j.equipo.torneo.nombre}")
+    return JsonResponse(respuesta)
+
 # =========================================================
 # GESTIÓN DE CATEGORÍAS
 # =========================================================

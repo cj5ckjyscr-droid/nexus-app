@@ -318,18 +318,22 @@
                                 {{ form.dorsal }}
                             </div>
                             <div class="col-8">
-                                <label class="form-label small fw-bold text-muted mb-1">Foto <span class="text-danger fw-bold">* Obligatorio</span></label>
+                                <label class="form-label small fw-bold text-muted mb-1 d-flex align-items-center gap-1 flex-wrap">Foto
+                                    <span id="foto-falta" class="text-danger fw-bold" {% if editando and form.instance.foto %}hidden{% endif %}>* Obligatorio</span>
+                                    <span id="foto-estado" class="foto-estado" {% if not editando or not form.instance.foto %}hidden{% endif %} title="Foto registrada"><i class="bi bi-camera-fill"></i><i class="bi bi-check-circle-fill ok"></i><span id="foto-estado-txt">Foto registrada</span></span>
+                                </label>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="flex-grow-1 overflow-hidden">
                                         {{ form.foto }}
                                     </div>
-                                    <img id="foto-preview" src="#" alt="Vista previa" class="rounded-circle shadow-sm border border-2 border-primary d-none" style="width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;">
+                                    <img id="foto-preview" src="{% if editando and form.instance.foto %}{{ form.instance.foto.url }}{% else %}#{% endif %}" alt="Foto del jugador" class="rounded-circle shadow-sm border border-2 border-success {% if not editando or not form.instance.foto %}d-none{% endif %}" style="width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;">
                                 </div>
+                                <div id="foto-nota" class="form-text" hidden>Se usará la foto que ya está en el sistema; sube otra solo si quieres cambiarla.</div>
                             </div>
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary shadow-sm fw-black rounded-pill py-2" {% if not puede_fichar %}disabled{% endif %}>
+                            <button type="submit" class="btn btn-primary shadow-sm fw-black rounded-pill py-2" {% if not puede_fichar %}disabled data-sin-cupo{% endif %}>
                                 {% if editando %}GUARDAR CAMBIOS{% else %}FICHAR JUGADOR{% endif %}
                             </button>
                             {% if editando %}
@@ -348,6 +352,11 @@
 {% endblock %}
 
 {% block extra_js %}
+<style>
+    .foto-estado{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;font-weight:700;color:#166534;background:#EEF5F0;border:1px solid #CFE3D6;border-radius:999px;padding:1px 8px 1px 6px;position:relative}
+    .foto-estado .bi-camera-fill{font-size:.8rem}
+    .foto-estado .ok{font-size:.55rem;margin-left:-6px;margin-top:-8px;background:#fff;border-radius:50%}
+</style>
 <script>
     // =========================================================
     // SISTEMA DE NOTIFICACIONES PROFESIONAL (TOASTS)
@@ -467,13 +476,77 @@
                     return;
                 }
 
-                if (!esEdicion && fotoInput && fotoInput.files.length === 0) {
+                if (!esEdicion && !fotoEnSistema && fotoInput && fotoInput.files.length === 0) {
                     e.preventDefault();
                     showNotification('error', 'Foto Faltante', 'Debe subir obligatoriamente la foto del jugador para completar el registro.');
                     return;
                 }
             });
         }
+
+        // --- BÚSQUEDA EN LA BASE DE DATOS DEL SISTEMA ---
+        const btnFichar = formRegistro ? formRegistro.querySelector('button[type="submit"]') : null;
+        let fotoEnSistema = {{ editando|yesno:'true,false' }} && {% if form.instance.foto %}true{% else %}false{% endif %};
+        let busquedaActual = 0;
+
+        function pintarFeedback(tipo, icono, html) {
+            if (!feedbackBox || !feedback) return;
+            feedbackBox.style.display = 'block';
+            feedbackBox.className = `mt-2 p-2 rounded border border-${tipo} border-opacity-25 bg-${tipo} bg-opacity-10`;
+            feedback.className = `text-${tipo === 'primary' ? 'primary' : tipo} w-100`;
+            feedback.innerHTML = `<i class="bi ${icono} fs-5 me-2"></i><span>${html}</span>`;
+        }
+        function escapar(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        function bloquearFichaje(si) { if (btnFichar && !btnFichar.hasAttribute('data-sin-cupo')) btnFichar.disabled = si; }
+
+        function mostrarFotoSistema(url) {
+            const prev = document.getElementById('foto-preview');
+            fotoEnSistema = !!url;
+            if (url && prev) { prev.src = url; prev.classList.remove('d-none'); }
+            marcarFoto(url ? 'Foto registrada' : null);
+            document.getElementById('foto-nota').hidden = !url;
+        }
+
+        function buscarEnSistema(cedula, tipoDoc) {
+            const yo = ++busquedaActual;
+            const equipoSel = document.getElementById('id_equipo');
+            const equipo = equipoSel ? equipoSel.value : '';
+            bloquearFichaje(false);
+            fetch(`/api/buscar_jugador/${encodeURIComponent(cedula)}/?equipo=${encodeURIComponent(equipo)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (yo !== busquedaActual) return;
+                if (data.encontrado) {
+                    setVisualInputsDisabled(false);
+                    distributeNames(data.nombres);
+                    mostrarFotoSistema(data.foto);
+                    if (data.conflicto) {
+                        inputCedula.style.borderColor = "#EF4444";
+                        bloquearFichaje(true);
+                        pintarFeedback('danger', 'bi-x-octagon-fill', `<b>${escapar(data.nombres)}</b> ya juega en <b>${escapar(data.conflicto.equipo)}</b> en este campeonato. No se puede fichar dos veces en el mismo campeonato.`);
+                    } else if (data.mismo_equipo) {
+                        inputCedula.style.borderColor = "#10B981";
+                        pintarFeedback('success', 'bi-person-check-fill', `<b>${escapar(data.nombres)}</b> ya está en este equipo: al guardar se actualizan sus datos.`);
+                    } else {
+                        inputCedula.style.borderColor = "#10B981";
+                        const otros = data.otros_campeonatos.length ? `<br><small class="fw-normal">También juega en: ${data.otros_campeonatos.map(escapar).join(', ')}.</small>` : '';
+                        pintarFeedback('success', 'bi-shield-check', `Jugador encontrado en el sistema: datos${data.foto ? ' y foto' : ''} cargados.${otros}`);
+                    }
+                    return;
+                }
+                mostrarFotoSistema('');
+                sinDatos('Jugador nuevo: no está en el sistema. Ingrese sus datos y su foto.');
+            })
+            .catch(() => { if (yo === busquedaActual) sinDatos('Ingrese los nombres manualmente.'); });
+        }
+        function sinDatos(msg) {
+            setVisualInputsDisabled(false);
+            vNom1.focus();
+            inputCedula.style.borderColor = "#3B82F6";
+            pintarFeedback('primary', 'bi-info-circle-fill', msg);
+        }
+        const selEquipo = document.getElementById('id_equipo');
+        if (selEquipo && inputCedula) selEquipo.addEventListener('change', () => inputCedula.dispatchEvent(new Event('input')));
 
         // --- ALGORITMO MÓDULO 10 ---
         function esCedulaValida(cedula) {
@@ -516,6 +589,13 @@
                 
                 inputCedula.style.borderColor = "#CBD5E1";
                 if (feedbackBox) feedbackBox.style.display = 'none';
+                busquedaActual++;
+                bloquearFichaje(false);
+                const fotoArchivo = document.getElementById('id_foto');
+                if (!{{ editando|yesno:'true,false' }} && fotoEnSistema && !(fotoArchivo && fotoArchivo.files.length)) {
+                    document.getElementById('foto-preview').classList.add('d-none');
+                    fotoEnSistema = false; marcarFoto(null); document.getElementById('foto-nota').hidden = true;
+                }
                 
                 // Validar según el tipo de documento
                 let esValida = false;
@@ -555,96 +635,22 @@
                         feedback.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div> Buscando identidad...';
                     }
 
-                    // Solo consultar SRI/API para cédulas ecuatorianas
-                    if (tipoDoc === 'EC') {
-                        fetch(`/api/buscar-jugador/${cedula}/`)
-                        .then(response => response.json())
-                        .then(dataLocal => {
-                            if(dataLocal.encontrado) {
-                                setVisualInputsDisabled(false);
-                                distributeNames(dataLocal.nombres);
-                                inputCedula.style.borderColor = "#10B981"; 
-                                
-                                if (feedbackBox && feedback) {
-                                    feedbackBox.className = "mt-2 p-2 rounded border border-success border-opacity-25 bg-success bg-opacity-10";
-                                    feedback.className = "text-success w-100";
-                                    feedback.innerHTML = '<i class="bi bi-shield-check fs-5 me-2"></i> Jugador encontrado en el sistema local.';
-                                }
-                            } else {
-                                fetch(`/api/consultar-cedula/?cedula=${cedula}`)
-                                .then(response => response.json())
-                                .then(dataSRI => {
-                                    setVisualInputsDisabled(false);
-                                    
-                                    if(dataSRI.exito && dataSRI.nombre) {
-                                        distributeNames(dataSRI.nombre);
-                                        inputCedula.style.borderColor = "#10B981"; 
-                                        
-                                        if (feedbackBox && feedback) {
-                                            feedbackBox.className = "mt-2 p-2 rounded border border-success border-opacity-25 bg-success bg-opacity-10";
-                                            feedback.className = "text-success w-100";
-                                            feedback.innerHTML = '<i class="bi bi-check-circle fs-5 me-2"></i> Identidad validada (Registro Civil/SRI)';
-                                        }
-                                    } else {
-                                        vNom1.focus();
-                                        inputCedula.style.borderColor = "#3B82F6"; 
-                                        
-                                        if (feedbackBox && feedback) {
-                                            feedbackBox.className = "mt-2 p-2 rounded border border-primary border-opacity-25 bg-primary bg-opacity-10";
-                                            feedback.className = "text-primary w-100";
-                                            feedback.innerHTML = '<i class="bi bi-info-circle-fill fs-5 me-2"></i> Cédula validada. Ingrese los datos manualmente.';
-                                        }
-                                    }
-                                })
-                                .catch(error => {
-                                    setVisualInputsDisabled(false);
-                                    inputCedula.style.borderColor = "#3B82F6"; 
-                                    if (feedbackBox && feedback) {
-                                        feedbackBox.className = "mt-2 p-2 rounded border border-primary border-opacity-25 bg-primary bg-opacity-10";
-                                        feedback.className = "text-primary w-100";
-                                        feedback.innerHTML = '<i class="bi bi-info-circle-fill fs-5 me-2"></i> Ingrese los nombres manualmente.';
-                                    }
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            setVisualInputsDisabled(false);
-                            if (feedbackBox) feedbackBox.style.display = 'none';
-                        });
-                    } else {
-                        // Para documentos venezolanos/colombianos, solo buscar en el sistema local
-                        fetch(`/api/buscar-jugador/${cedula}/`)
-                        .then(response => response.json())
-                        .then(dataLocal => {
-                            setVisualInputsDisabled(false);
-                            if(dataLocal.encontrado) {
-                                distributeNames(dataLocal.nombres);
-                                inputCedula.style.borderColor = "#10B981"; 
-                                if (feedbackBox && feedback) {
-                                    feedbackBox.className = "mt-2 p-2 rounded border border-success border-opacity-25 bg-success bg-opacity-10";
-                                    feedback.className = "text-success w-100";
-                                    feedback.innerHTML = '<i class="bi bi-shield-check fs-5 me-2"></i> Jugador encontrado en el sistema local.';
-                                }
-                            } else {
-                                vNom1.focus();
-                                inputCedula.style.borderColor = "#3B82F6"; 
-                                if (feedbackBox && feedback) {
-                                    feedbackBox.className = "mt-2 p-2 rounded border border-primary border-opacity-25 bg-primary bg-opacity-10";
-                                    feedback.className = "text-primary w-100";
-                                    feedback.innerHTML = '<i class="bi bi-info-circle-fill fs-5 me-2"></i> Documento validado. Ingrese los datos manualmente.';
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            setVisualInputsDisabled(false);
-                            if (feedbackBox) feedbackBox.style.display = 'none';
-                        });
-                    }
+                    buscarEnSistema(cedula, tipoDoc);
                 }
             });
         }
     });
     
+    // Indicador pequeño: la foto ya está (en el sistema) o ya se subió
+    function marcarFoto(texto) {
+        const est = document.getElementById('foto-estado');
+        const falta = document.getElementById('foto-falta');
+        if (!est) return;
+        est.hidden = !texto;
+        if (falta) falta.hidden = !!texto;
+        if (texto) { document.getElementById('foto-estado-txt').textContent = texto; est.title = texto; }
+    }
+
     // Preview de la foto
     const fotoInput = document.getElementById('id_foto');
     const fotoPreview = document.getElementById('foto-preview');
@@ -656,11 +662,13 @@
                 reader.onload = function(e) {
                     fotoPreview.src = e.target.result;
                     fotoPreview.classList.remove('d-none');
+                    marcarFoto('Foto subida');
                 }
                 reader.readAsDataURL(file);
             } else {
                 fotoPreview.src = "#";
                 fotoPreview.classList.add('d-none');
+                marcarFoto(null);
             }
         });
     }

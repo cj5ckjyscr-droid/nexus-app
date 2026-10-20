@@ -47,7 +47,6 @@ urlpatterns = [
     path('jugadores/editar/<int:jugador_id>/', views.editar_jugador, name='editar_jugador'),
     path('jugadores/eliminar/<int:jugador_id>/', views.eliminar_jugador, name='eliminar_jugador'),
     path('imprimir-carnets/<int:equipo_id>/', views.imprimir_carnets, name='imprimir_carnets'),
-    path('api/buscar_cedula/', views.api_consultar_cedula, name='api_consultar_cedula'),
     path('api/buscar_jugador/<str:cedula>/', views.buscar_jugador_api, name='buscar_jugador_api'),
     path('traspasar_jugador/<int:jugador_id>/', views.traspasar_jugador, name='traspasar_jugador'),
     path('jugadores/suspender/<int:jugador_id>/', views.suspender_jugador, name='suspender_jugador'),

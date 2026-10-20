@@ -998,3 +998,52 @@ class ListasCompletasYLivianasTest(DosCanchasTestCase):
         antes = consultas()
         Jugador.objects.bulk_create([Jugador(equipo=self.equipo_a2, nombres=f"Carga {k}", dorsal=k, cedula=f"09{k:08d}") for k in range(1, 40)])
         self.assertEqual(consultas(), antes)
+
+
+class FichajeDesdeLaBaseDeDatosTest(DosCanchasTestCase):
+    """Al escribir la cédula se traen los datos y la foto que ya están en la
+    base; un jugador no puede estar en dos equipos del mismo campeonato, pero
+    sí en otro campeonato (reutilizando su foto, sin volver a subirla)."""
+
+    def setUp(self):
+        super().setUp()
+        from .tests import imagen_falsa
+        self.jugador_a.foto = imagen_falsa("cara.jpg")
+        self.jugador_a.save()
+        self.torneo_otro = Torneo.objects.create(complejo=self.complejo_a, nombre="Copa Verano",
+                                                 organizador=self.org_a, costo_inscripcion=Decimal("0"))
+        self.equipo_otro = Equipo.objects.create(torneo=self.torneo_otro, dirigente=self.org_a,
+                                                 nombre="Halcones", estado_inscripcion="APROBADO")
+        self.client.login(username="org_a", password="pass12345")
+
+    def test_la_cedula_trae_nombres_y_foto(self):
+        r = self.client.get(f"/api/buscar_jugador/{self.jugador_a.cedula}/?equipo={self.equipo_otro.id}").json()
+        self.assertTrue(r["encontrado"])
+        self.assertEqual(r["nombres"], "Jugador A")
+        self.assertTrue(r["foto"])
+        self.assertIsNone(r["conflicto"])
+        self.assertIn("Equipo A · Torneo A", r["otros_campeonatos"])
+
+    def test_avisa_si_ya_juega_en_el_mismo_campeonato(self):
+        r = self.client.get(f"/api/buscar_jugador/{self.jugador_a.cedula}/?equipo={self.equipo_a2.id}").json()
+        self.assertEqual(r["conflicto"]["equipo"], "Equipo A")
+
+    def test_otra_cancha_no_ve_al_jugador(self):
+        self.client.login(username="org_b", password="pass12345")
+        r = self.client.get(f"/api/buscar_jugador/{self.jugador_a.cedula}/").json()
+        self.assertFalse(r["encontrado"])
+
+    def _fichar(self, equipo):
+        return self.client.post("/jugadores/", {"equipo": equipo.id, "nombres": "Jugador A", "dorsal": 7,
+                                                "tipo_documento": "EC", "cedula": self.jugador_a.cedula})
+
+    def test_se_ficha_en_otro_campeonato_con_la_misma_foto(self):
+        self.torneo_otro.categoria = self.torneo_a.categoria
+        self.torneo_otro.save()
+        self._fichar(self.equipo_otro)
+        nuevo = Jugador.objects.get(equipo=self.equipo_otro, cedula=self.jugador_a.cedula)
+        self.assertEqual(nuevo.foto.name, self.jugador_a.foto.name)
+
+    def test_no_se_ficha_dos_veces_en_el_mismo_campeonato(self):
+        self._fichar(self.equipo_a2)
+        self.assertFalse(Jugador.objects.filter(equipo=self.equipo_a2, cedula=self.jugador_a.cedula).exists())
