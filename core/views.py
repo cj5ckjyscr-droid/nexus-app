@@ -152,6 +152,7 @@ def limite_jugadores_alcanzado(complejo):
     return actuales >= limite
 
 TAMANOS_PAGINA = (20, 50, 100)
+# (el tamaño por defecto debe estar en TAMANOS_PAGINA)
 
 
 def paginar_lista(request, queryset, por_defecto=20):
@@ -697,15 +698,10 @@ def gestionar_equipos(request):
     else:
         equipos_list = equipos_list.exclude(estado_inscripcion='RECHAZADO')
     
-    # --- PAGINACIÓN DE EQUIPOS ---
-    paginator = Paginator(equipos_list, 10) # 10 Equipos por página
-    page = request.GET.get('page')
-    try:
-        equipos = paginator.page(page)
-    except PageNotAnInteger:
-        equipos = paginator.page(1)
-    except EmptyPage:
-        equipos = paginator.page(paginator.num_pages)
+    # Todos los equipos de la cancha, agrupados por categoría y torneo en la
+    # plantilla (antes se cortaba en 10 sin forma de ver el resto). El número
+    # de jugadores viene anotado para no hacer una consulta por equipo.
+    equipos = equipos_list.annotate(num_jugadores=Count('jugadores'))
         
     # 🔥 AISLAMIENTO: estos querysets se fijan ANTES de validar el POST —
     # si se fijan después de is_valid() (como estaba antes para "torneo"),
@@ -792,7 +788,7 @@ def editar_equipo(request, equipo_id):
     equipos = Equipo.objects.filter(torneo__complejo=mi_complejo, torneo__activo=True).exclude(
         estado_inscripcion='RECHAZADO').select_related(
         'torneo', 'torneo__categoria', 'dirigente'
-    ).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
+    ).annotate(num_jugadores=Count('jugadores')).order_by('torneo__categoria__nombre', 'torneo__nombre', 'nombre')
 
     return render(request, 'core/gestionar_equipos.html', {'form': form, 'equipos': equipos, 'editando': True})
 
@@ -3384,9 +3380,13 @@ def cierre_diario_caja(request):
 def admin_gestion_jugadores(request):
     mi_complejo = obtener_mi_complejo(request.user)
     query = request.GET.get('q')
-    jugadores = (Jugador.objects.filter(equipo__torneo__complejo=mi_complejo).select_related('equipo')
+    # Todo en una consulta (equipo, torneo y categoría juntos) y paginado:
+    # antes eran 2 consultas por jugador y la página entera de golpe, lo que en
+    # Render agotaba el tiempo y cortaba la conexión con canchas grandes.
+    jugadores = (Jugador.objects.filter(equipo__torneo__complejo=mi_complejo)
+                 .select_related('equipo__torneo__categoria')
                  .annotate(ha_jugado=Exists(DetallePartido.objects.filter(jugador=OuterRef('pk'))))
-                 .order_by('equipo', 'dorsal'))
+                 .order_by('nombres', 'cedula', 'id'))
     
     if query:
         jugadores = jugadores.filter(
@@ -3395,7 +3395,8 @@ def admin_gestion_jugadores(request):
             Q(cedula__icontains=query)
         )
 
-    return render(request, 'core/admin_jugadores.html', {'jugadores': jugadores, 'uso_plan': uso_plan(mi_complejo)})
+    return render(request, 'core/admin_jugadores.html', {'jugadores': paginar_lista(request, jugadores, por_defecto=50),
+                                                          'uso_plan': uso_plan(mi_complejo)})
 
 @login_required
 @user_passes_test(es_organizador)

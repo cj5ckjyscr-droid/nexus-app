@@ -303,53 +303,7 @@
     </div>
 
     <!-- PAGINACIÓN -->
-    {% if jugadores.has_other_pages %}
-    <div class="d-flex justify-content-center mt-3 pb-3">
-        <nav aria-label="Navegación de páginas">
-            <ul class="pagination pagination-sm shadow-sm mb-0">
-                
-                {% if jugadores.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
-                            <i class="bi bi-chevron-double-left"></i>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ jugadores.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
-                            Ant
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-double-left"></i></span></li>
-                    <li class="page-item disabled"><span class="page-link">Ant</span></li>
-                {% endif %}
-
-                <li class="page-item active" aria-current="page">
-                    <span class="page-link border-0 shadow-sm px-3">
-                        {{ jugadores.number }} / {{ jugadores.paginator.num_pages }}
-                    </span>
-                </li>
-
-                {% if jugadores.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ jugadores.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
-                            Sig
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ jugadores.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
-                            <i class="bi bi-chevron-double-right"></i>
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled"><span class="page-link">Sig</span></li>
-                    <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-double-right"></i></span></li>
-                {% endif %}
-                
-            </ul>
-        </nav>
-    </div>
-    {% endif %}
+    {% include 'core/_paginacion.html' with pagina=jugadores nombre='jugadores' %}
 
 </div>
 </div>

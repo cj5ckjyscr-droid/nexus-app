@@ -976,3 +976,25 @@ class EliminarJugadorTest(DosCanchasTestCase):
         self.client.login(username="dir_elim", password="pass12345")
         self.client.post(f"/jugadores/eliminar/{self.jugador_a.id}/")
         self.assertTrue(Jugador.objects.filter(id=self.jugador_a.id).exists())
+
+
+class ListasCompletasYLivianasTest(DosCanchasTestCase):
+    def test_equipos_muestra_todos_los_aceptados(self):
+        for n in range(18):
+            Equipo.objects.create(torneo=self.torneo_a, dirigente=self.org_a, nombre=f"Club Aceptado {n:02d}", estado_inscripcion="APROBADO")
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.get("/equipos/")
+        for n in range(18):
+            self.assertContains(r, f"Club Aceptado {n:02d}")
+
+    def test_jugadores_del_organizador_sin_consultas_por_jugador(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        self.client.login(username="org_a", password="pass12345")
+        def consultas():
+            with CaptureQueriesContext(connection) as ctx:
+                self.client.get("/admin_jugadores/")
+            return len(ctx.captured_queries)
+        antes = consultas()
+        Jugador.objects.bulk_create([Jugador(equipo=self.equipo_a2, nombres=f"Carga {k}", dorsal=k, cedula=f"09{k:08d}") for k in range(1, 40)])
+        self.assertEqual(consultas(), antes)
