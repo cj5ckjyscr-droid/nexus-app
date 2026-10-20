@@ -15,6 +15,7 @@
 
     {% url 'trazabilidad_cambios' as url_limpiar %}
     {% include 'core/_trazabilidad_barra.html' with limpiar=url_limpiar %}
+    <p class="tz-quienes"><i class="bi bi-person-check"></i>Solo se registran los cambios de los <b>organizadores</b> de la cancha y del <b>soporte técnico</b>; lo que hacen dirigentes y vocales no se guarda.</p>
 
     <details class="tz-filtros">
         <summary><i class="bi bi-funnel"></i>Filtrar
@@ -72,7 +73,7 @@
         <li class="bloque vacio">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z"/><path d="M9 11h6M9 15h4"/></svg>
             <strong>{% if chips or f.periodo %}No hay cambios con estos filtros{% else %}Todavía no hay cambios registrados{% endif %}</strong>
-            <span>{% if chips or f.periodo %}Prueba con otro periodo o quita algún filtro.{% else %}Aquí quedan los cambios importantes: fichajes, ediciones, traspasos, sanciones y eliminaciones de jugadores; aprobación, cupos y edición de equipos; torneos, partidos corregidos y cuentas de usuario.{% endif %}</span>
+            <span>{% if chips or f.periodo %}Prueba con otro periodo o quita algún filtro.{% else %}Aquí quedan los cambios que hacen los organizadores de la cancha y el soporte técnico: ediciones, traspasos, sanciones y eliminaciones de jugadores; aprobación, cupos y edición de equipos; torneos, partidos corregidos y cuentas de usuario.{% endif %}</span>
         </li>
         {% endfor %}
     </ol>

@@ -185,7 +185,11 @@
                             <a href="{% url 'editar_jugador' jugador.id %}" class="action-btn bg-primary bg-opacity-10 text-primary"><i class="bi bi-pencil-fill"></i></a>
                             {% endif %}
                             {% if not es_dirigente %}
-                            <a href="{% url 'eliminar_jugador' jugador.id %}" data-post class="action-btn bg-danger bg-opacity-10 text-danger" onclick="return confirm('¿Eliminar ficha?');"><i class="bi bi-trash-fill"></i></a>
+                            {% if jugador.ha_jugado %}
+                            <span class="action-btn bg-secondary bg-opacity-10 text-secondary" title="Ya pisó cancha: no se puede eliminar" aria-label="No se puede eliminar: ya jugó" style="cursor: not-allowed;"><i class="bi bi-lock-fill"></i></span>
+                            {% else %}
+                            <a href="{% url 'eliminar_jugador' jugador.id %}" data-post class="action-btn bg-danger bg-opacity-10 text-danger" title="Eliminar (nunca ha jugado)" aria-label="Eliminar a {{ jugador.nombres }}" onclick="return confirm('¿Eliminar la ficha de {{ jugador.nombres|escapejs }}? Esta acción no se puede deshacer.');"><i class="bi bi-trash-fill"></i></a>
+                            {% endif %}
                             {% endif %}
                         {% endif %}
                     </div>

@@ -265,9 +265,15 @@
                                                     <a href="{% url 'editar_jugador' ficha.id %}" class="action-btn-pro text-primary" title="Editar">
                                                         <i class="bi bi-pencil-square"></i>
                                                     </a>
-                                                    <a href="{% url 'eliminar_jugador' ficha.id %}" data-post class="action-btn-pro text-danger" title="Eliminar" onclick="return confirm('⚠️ ¿Eliminar a {{ ficha.nombres }}?');">
+                                                    {% if ficha.ha_jugado %}
+                                                    <span class="action-btn-pro text-secondary opacity-50" title="Ya pisó cancha: no se puede eliminar (puedes traspasarlo o suspenderlo)" aria-label="No se puede eliminar: ya jugó" style="cursor: not-allowed;">
+                                                        <i class="bi bi-lock-fill"></i>
+                                                    </span>
+                                                    {% else %}
+                                                    <a href="{% url 'eliminar_jugador' ficha.id %}" data-post class="action-btn-pro text-danger" title="Eliminar (nunca ha jugado)" aria-label="Eliminar a {{ ficha.nombres }}" onclick="return confirm('⚠️ ¿Eliminar a {{ ficha.nombres|escapejs }}? Esta acción no se puede deshacer.');">
                                                         <i class="bi bi-trash3-fill"></i>
                                                     </a>
+                                                    {% endif %}
                                                 </div>
 
                                             </div>

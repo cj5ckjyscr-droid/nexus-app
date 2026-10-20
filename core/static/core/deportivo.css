@@ -411,3 +411,6 @@ a.pag-btn:focus-visible { outline: 3px solid rgba(22,101,52,.35); outline-offset
     .tz-barra .segmento { width: 100%; }
     .tz-barra .segmento a { flex: 1; justify-content: center; }
 }
+.tz-quienes { margin: -.35rem 0 .9rem; font-size: .8rem; color: var(--suave, #5B6670); display: flex; align-items: flex-start; gap: .4rem; }
+.tz-quienes i { color: #166534; margin-top: .1rem; }
+.tz-quienes b { color: #12261B; }

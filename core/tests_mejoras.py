@@ -902,3 +902,77 @@ class PanelSaasEficienteTest(TestCase):
         r = self.client.get("/nexus-admin/")
         self.assertContains(r, "Ingresos · últimos 6 meses")
         self.assertEqual(len(r.context["serie"]), 6)
+
+
+class BitacoraSoloOrganizadoresTest(DosCanchasTestCase):
+    def _editar_dorsal(self, dorsal):
+        j = self.jugador_a
+        return self.client.post(f"/jugadores/editar/{j.id}/", {"equipo": j.equipo_id, "nombres": j.nombres, "dorsal": str(dorsal),
+                                                                "tipo_documento": j.tipo_documento or "EC", "cedula": j.cedula})
+
+    def test_el_fichaje_del_dirigente_no_se_guarda(self):
+        from .models import RegistroCambio
+        dirigente = User.objects.create_user("dir_bit", password="pass12345")
+        RolComplejo.objects.create(usuario=dirigente, complejo=self.complejo_a, rol="DIR")
+        eq = Equipo.objects.create(torneo=self.torneo_a, dirigente=dirigente, nombre="Los del Barrio",
+                                   estado_inscripcion="APROBADO", cupos_pagados=5)
+        self.client.login(username="dir_bit", password="pass12345")
+        self.client.post(f"/jugadores/?equipo={eq.id}", {"equipo": str(eq.id), "nombres": "Nuevo Fichaje", "dorsal": "7", "cedula": "1713175071"})
+        self.assertEqual(eq.jugadores.count(), 1)
+        self.assertFalse(RegistroCambio.objects.exists())
+
+    def test_el_staff_organizador_si_queda_registrado(self):
+        from .models import RegistroCambio
+        staff = User.objects.create_user("staff_bit", password="pass12345")
+        RolComplejo.objects.create(usuario=staff, complejo=self.complejo_a, rol="ORG")
+        self.client.login(username="staff_bit", password="pass12345")
+        self._editar_dorsal(44)
+        self.assertEqual(RegistroCambio.objects.get().usuario, staff)
+
+    def test_la_limpieza_borra_lo_que_no_hizo_un_organizador(self):
+        import importlib
+        from django.apps import apps
+        from .models import RegistroCambio
+        vocal = User.objects.create_user("vocal_bit", password="x")
+        RegistroCambio.objects.create(complejo=self.complejo_a, usuario=vocal, entidad="JUGADOR", accion="CREAR", objeto="De vocal")
+        RegistroCambio.objects.create(complejo=self.complejo_a, usuario=self.org_a, entidad="JUGADOR", accion="CREAR",
+                                      objeto="Del dirigente", detalle="Fichado por el dirigente · cédula 1")
+        RegistroCambio.objects.create(complejo=self.complejo_a, usuario=self.org_a, entidad="JUGADOR", accion="EDITAR", objeto="Del dueño")
+        RegistroCambio.objects.create(complejo=self.complejo_a, usuario=None, en_soporte=True, entidad="EQUIPO", accion="EDITAR", objeto="Soporte")
+        importlib.import_module("core.migrations.0035_bitacora_solo_organizadores").limpiar(apps, None)
+        self.assertEqual(sorted(RegistroCambio.objects.values_list("objeto", flat=True)), ["Del dueño", "Soporte"])
+
+
+class EliminarJugadorTest(DosCanchasTestCase):
+    def test_eliminar_dos_veces_no_da_404(self):
+        User.objects.create_superuser("sop_elim", password="pass12345")
+        self.client.login(username="sop_elim", password="pass12345")
+        self.client.post(f"/nexus-admin/soporte/entrar/{self.complejo_a.id}/")
+        url = f"/jugadores/eliminar/{self.jugador_a.id}/"
+        r1 = self.client.post(url, HTTP_REFERER="http://testserver/admin_jugadores/")
+        r2 = self.client.post(url, HTTP_REFERER="http://testserver/admin_jugadores/")
+        self.assertFalse(Jugador.objects.filter(id=self.jugador_a.id).exists())
+        self.assertEqual((r1.status_code, r2.status_code), (302, 302))
+        self.assertEqual(r2["Location"], "http://testserver/admin_jugadores/")
+
+    def test_quien_ya_piso_cancha_no_se_elimina_y_se_ve_el_candado(self):
+        DetallePartido.objects.create(partido=self.partido_a, jugador=self.jugador_a, tipo="ASIS")
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.get("/admin_jugadores/")
+        self.assertContains(r, "Ya pisó cancha")
+        self.client.post(f"/jugadores/eliminar/{self.jugador_a.id}/")
+        self.assertTrue(Jugador.objects.filter(id=self.jugador_a.id).exists())
+
+    def test_referer_externo_no_se_usa_para_volver(self):
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.post(f"/jugadores/eliminar/{self.jugador_a.id}/", HTTP_REFERER="https://sitio-malo.com/")
+        self.assertEqual(r["Location"], "/admin_jugadores/")
+
+    def test_el_dirigente_no_puede_eliminar_ni_a_su_propio_jugador(self):
+        dirigente = User.objects.create_user("dir_elim", password="pass12345")
+        RolComplejo.objects.create(usuario=dirigente, complejo=self.complejo_a, rol="DIR")
+        self.equipo_a.dirigente = dirigente
+        self.equipo_a.save()
+        self.client.login(username="dir_elim", password="pass12345")
+        self.client.post(f"/jugadores/eliminar/{self.jugador_a.id}/")
+        self.assertTrue(Jugador.objects.filter(id=self.jugador_a.id).exists())

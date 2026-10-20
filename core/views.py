@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, Http404
-from django.db.models import Count, Q, Sum, F
+from django.db.models import Count, Exists, OuterRef, Q, Sum, F
 from django.template.loader import get_template
 from django.db import transaction, IntegrityError
 from xhtml2pdf import pisa 
@@ -218,12 +218,26 @@ def cambios_de_form(form, excluir=()):
 
 
 def registrar_cambio(request, complejo, entidad, accion, objeto, objeto_id=None, cambios=None, detalle=''):
-    """Guarda una entrada en la bitácora de cambios administrativos."""
+    """Guarda una entrada en la bitácora de cambios administrativos.
+
+    Solo se anota lo que hacen los ORGANIZADORES de la cancha (dueño o staff)
+    y el soporte técnico de NEXUS en modo soporte. Lo que hacen dirigentes,
+    vocales u otros usuarios no se guarda: no es un cambio administrativo."""
     u = request.user if request.user.is_authenticated else None
+    if u is None or complejo is None:
+        return
+    en_soporte = bool(u.is_superuser and complejo_en_soporte(u))
+    if u.is_superuser:
+        if not en_soporte:
+            return
+    elif rol_en_complejo(u, complejo) != 'ORG':
+        return
+    if obtener_equipo_simulado(request):
+        return  # el dueño de una cancha demo actuando como dirigente simulado
     RegistroCambio.objects.create(
         complejo=complejo, usuario=u,
-        usuario_nombre=(u.get_full_name() or u.username) if u else 'Sistema',
-        en_soporte=bool(u and u.is_superuser and complejo_en_soporte(u)),
+        usuario_nombre=u.get_full_name() or u.username,
+        en_soporte=en_soporte,
         entidad=entidad, accion=accion, objeto=str(objeto)[:200], objeto_id=objeto_id,
         cambios=cambios or [], detalle=str(detalle)[:255],
     )
@@ -883,14 +897,11 @@ def gestionar_jugadores(request):
                         messages.error(request, f"⛔ ¡ALERTA! Este jugador ya compite en el equipo '{misma_categoria.equipo.nombre}' en esta misma categoría.")
                         return redirect(f"{request.path}?equipo={mi_equipo.id}")
                     else:
-                        cambios = _cambios_ficha(misma_categoria, form)
                         misma_categoria.nombres = form.cleaned_data.get('nombres')
                         misma_categoria.dorsal = form.cleaned_data.get('dorsal')
                         if form.cleaned_data.get('foto'):
                             misma_categoria.foto = form.cleaned_data.get('foto')
                         misma_categoria.save()
-                        if cambios:
-                            registrar_cambio(request, mi_complejo, 'JUGADOR', 'EDITAR', _ficha_jugador(misma_categoria), misma_categoria.id, cambios, 'Desde la nómina del dirigente')
                         messages.success(request, f'¡Datos de {misma_categoria.nombres} actualizados!')
                 elif limite_jugadores_alcanzado(mi_complejo):
                     limite = mi_complejo.plan.max_jugadores if mi_complejo.plan else 1
@@ -912,8 +923,6 @@ def gestionar_jugadores(request):
                         nuevo_jugador.sancionado_hasta = None
 
                     nuevo_jugador.save()
-                    registrar_cambio(request, mi_complejo, 'JUGADOR', 'CREAR', _ficha_jugador(nuevo_jugador), nuevo_jugador.id,
-                                     detalle=f"Fichado por el dirigente · cédula {nuevo_jugador.cedula}")
                     
                     if jugador_historial:
                         messages.success(request, f'¡{nuevo_jugador.nombres} fichado! (Ahora compite en múltiples categorías)')
@@ -1011,6 +1020,7 @@ def gestionar_jugadores(request):
 
     if mi_equipo and 'jugadores' in locals() and jugadores.exists(): 
         # (Nota interna: en tu código original tenías 'jugadores = Jugador.objects.filter...' arriba. Ahora lo paginaremos)
+        jugadores = jugadores.annotate(ha_jugado=Exists(DetallePartido.objects.filter(jugador=OuterRef('pk'))))
         paginator = Paginator(jugadores, 12) # 12 jugadores por página para diseño en cuadrícula
         page = request.GET.get('page')
         try:
@@ -1094,28 +1104,37 @@ def editar_jugador(request, jugador_id):
 @login_required
 @require_POST
 def eliminar_jugador(request, jugador_id):
-    jugador = get_object_or_404(Jugador, id=jugador_id)
+    """Solo los organizadores borran fichas, y solo de jugadores que NUNCA pisaron cancha (sin
+    asistencia, goles, tarjetas ni figura). Quien ya jugó se conserva para no
+    alterar tablas, goleadores ni actas."""
+    from django.utils.http import url_has_allowed_host_and_scheme
     rol_principal = obtener_rol_principal(request.user)
-    
-    es_admin = rol_principal == 'ORG' and jugador.equipo.torneo.complejo == obtener_mi_complejo(request.user)
-    es_dueno = (rol_principal == 'DIR' and jugador.equipo.dirigente == request.user)
+    defecto = 'admin_gestion_jugadores' if rol_principal == 'ORG' else 'gestionar_jugadores'
+    previa = request.META.get('HTTP_REFERER', '')
+    volver = previa if previa and url_has_allowed_host_and_scheme(previa, {request.get_host()}, request.is_secure()) else reverse(defecto)
 
-    if not (es_admin or es_dueno):
-        messages.error(request, "No tienes permiso para eliminar a este jugador.")
+    jugador = Jugador.objects.select_related('equipo__torneo__complejo').filter(id=jugador_id).first()
+    if jugador is None:
+        # Típico de un doble envío (conexión lenta o "reenviar formulario"): ya se borró.
+        messages.info(request, "Ese jugador ya no existe: probablemente ya fue eliminado.")
+        return redirect(volver)
+
+    # Solo los organizadores de la cancha (o el soporte en modo soporte) eliminan fichas.
+    if not (rol_principal == 'ORG' and jugador.equipo.torneo.complejo == obtener_mi_complejo(request.user)):
+        messages.error(request, "Solo los organizadores de la cancha pueden eliminar jugadores.")
         return redirect('dashboard')
 
     if jugador.detallepartido_set.exists():
-        messages.error(request, f"No se puede eliminar a {jugador.nombres} porque ya tiene registros en partidos jugados.")
-        if es_admin: return redirect('admin_gestion_jugadores')
-        else: return redirect('gestionar_jugadores')
+        messages.error(request, f"⛔ No se puede eliminar a {jugador.nombres}: ya pisó cancha (tiene asistencia, goles o tarjetas en partidos). "
+                                "Si ya no jugará, puedes traspasarlo o suspenderlo.")
+        return redirect(volver)
 
     nombre = jugador.nombres
     registrar_cambio(request, jugador.equipo.torneo.complejo, 'JUGADOR', 'ELIMINAR', _ficha_jugador(jugador), jugador.id,
                      detalle=f"Cédula {jugador.cedula}")
     jugador.delete()
     messages.success(request, f'Jugador "{nombre}" eliminado correctamente.')
-    if es_admin: return redirect('admin_gestion_jugadores')
-    else: return redirect('gestionar_jugadores')
+    return redirect(volver)
 
 
 # =========================================================
@@ -3365,7 +3384,9 @@ def cierre_diario_caja(request):
 def admin_gestion_jugadores(request):
     mi_complejo = obtener_mi_complejo(request.user)
     query = request.GET.get('q')
-    jugadores = Jugador.objects.filter(equipo__torneo__complejo=mi_complejo).select_related('equipo').order_by('equipo', 'dorsal')
+    jugadores = (Jugador.objects.filter(equipo__torneo__complejo=mi_complejo).select_related('equipo')
+                 .annotate(ha_jugado=Exists(DetallePartido.objects.filter(jugador=OuterRef('pk'))))
+                 .order_by('equipo', 'dorsal'))
     
     if query:
         jugadores = jugadores.filter(
