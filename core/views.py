@@ -3437,21 +3437,29 @@ def eliminar_foto(request, foto_id):
 @login_required
 @user_passes_test(es_organizador)
 def generar_horarios_imagen(request):
+    """Imagen de la programación para redes: solo el organizador de la cancha
+    y el soporte técnico (en modo soporte). Los dirigentes no la generan."""
     mi_complejo = obtener_mi_complejo(request.user)
+    if mi_complejo is None:
+        return redirect('dashboard_saas' if request.user.is_superuser else 'dashboard')
     ahora = timezone.localtime(timezone.now())
 
-    partidos = Partido.objects.filter(
+    partidos = list(Partido.objects.filter(
         torneo__complejo=mi_complejo,
         estado='PROG',
         fecha_hora__gte=ahora,
-    ).select_related('equipo_local', 'equipo_visita', 'torneo', 'torneo__categoria').order_by('fecha_hora')
+    ).select_related('equipo_local', 'equipo_visita', 'torneo', 'torneo__categoria').order_by('fecha_hora'))
 
     for p in partidos:
         p.fecha_local = timezone.localtime(p.fecha_hora).date()
 
+    config_global = Configuracion.objects.filter(complejo__isnull=True).exclude(logo_sistema='').first()
     return render(request, 'core/horarios_imagen.html', {
         'complejo': mi_complejo,
         'partidos': partidos,
+        'desde': partidos[0].fecha_local if partidos else None,
+        'hasta': partidos[-1].fecha_local if partidos else None,
+        'logo_nexus': config_global.logo_sistema if config_global and config_global.logo_sistema else None,
         'generado_en': ahora,
     })
 
@@ -3483,26 +3491,19 @@ def mis_finanzas_equipo(request):
 
 
 def proxima_jornada(request, torneo_id):
-    torneo = get_object_or_404(Torneo, id=torneo_id)
-    partidos_futuros = Partido.objects.filter(torneo=torneo, estado='PROG').exclude(fecha_hora__isnull=True).order_by('fecha_hora')
-    partidos_mostrar = []
-    jornada_num = None
-    etapa_nombre = None
-
-    if partidos_futuros.exists():
-        prox_partido = partidos_futuros.first()
-        jornada_num = prox_partido.numero_fecha
-        etapa_nombre = prox_partido.get_etapa_display()
-        partidos_mostrar = Partido.objects.filter(torneo=torneo, etapa=prox_partido.etapa, numero_fecha=jornada_num).order_by('fecha_hora')
-    else:
-        partidos_pendientes = Partido.objects.filter(torneo=torneo, estado='PROG').order_by('etapa', 'numero_fecha')
-        if partidos_pendientes.exists():
-            prox_partido = partidos_pendientes.first()
-            jornada_num = prox_partido.numero_fecha
-            etapa_nombre = prox_partido.get_etapa_display()
-            partidos_mostrar = Partido.objects.filter(torneo=torneo, etapa=prox_partido.etapa, numero_fecha=jornada_num).order_by('id')
-            
-    return render(request, 'core/proxima_jornada.html', {'torneo': torneo, 'partidos': partidos_mostrar, 'jornada': jornada_num, 'etapa': etapa_nombre})
+    """Fixture público: SOLO los partidos que el organizador ya programó con
+    día y hora (de hoy en adelante), agrupados por día. Las jornadas que aún
+    no tienen horario no se muestran."""
+    torneo = get_object_or_404(Torneo.objects.select_related('complejo', 'categoria'), id=torneo_id)
+    if torneo.complejo and torneo.complejo.es_demo and not request.user.is_superuser \
+            and rol_en_complejo(request.user, torneo.complejo) != 'ORG':
+        raise Http404()
+    inicio_hoy = timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
+    partidos = list(Partido.objects.filter(torneo=torneo, estado='PROG', fecha_hora__gte=inicio_hoy)
+                    .select_related('equipo_local', 'equipo_visita').order_by('fecha_hora', 'id'))
+    for p in partidos:
+        p.fecha_local = timezone.localtime(p.fecha_hora).date()
+    return render(request, 'core/proxima_jornada.html', {'torneo': torneo, 'partidos': partidos})
 
 
 # =========================================================
@@ -4084,7 +4085,11 @@ def ver_campeonato(request, torneo_id):
     etapa = motor.etapa_regular(torneo) if torneo.formato else None
     if etapa and torneo.formato != 'ELIMINACION':
         jornadas = {}
-        for p in Partido.objects.filter(torneo=torneo, etapa=etapa).select_related('equipo_local', 'equipo_visita').order_by('numero_fecha', 'equipo_local__grupo', 'id'):
+        partidos_fixture = Partido.objects.filter(torneo=torneo, etapa=etapa)
+        if rol != 'ORG' and not request.user.is_superuser:
+            # El público solo ve lo jugado y lo que ya tiene día y hora.
+            partidos_fixture = partidos_fixture.filter(Q(estado__in=['JUG', 'WO']) | Q(fecha_hora__isnull=False))
+        for p in partidos_fixture.select_related('equipo_local', 'equipo_visita').order_by('numero_fecha', 'equipo_local__grupo', 'id'):
             jornadas.setdefault(p.numero_fecha, []).append(p)
         ctx['jornadas'] = sorted(jornadas.items())
     if torneo.campeonato_iniciado:
@@ -4121,7 +4126,11 @@ def fixture_pdf_campeonato(request, torneo_id):
     if fase == 'regular':
         etapa = motor.etapa_regular(torneo)
         jornadas = {}
-        for p in Partido.objects.filter(torneo=torneo, etapa=etapa).select_related('equipo_local', 'equipo_visita').order_by('numero_fecha', 'equipo_local__grupo', 'id'):
+        partidos_fixture = Partido.objects.filter(torneo=torneo, etapa=etapa)
+        if rol != 'ORG' and not request.user.is_superuser:
+            # El público solo ve lo jugado y lo que ya tiene día y hora.
+            partidos_fixture = partidos_fixture.filter(Q(estado__in=['JUG', 'WO']) | Q(fecha_hora__isnull=False))
+        for p in partidos_fixture.select_related('equipo_local', 'equipo_visita').order_by('numero_fecha', 'equipo_local__grupo', 'id'):
             jornadas.setdefault(p.numero_fecha, []).append({
                 'local': p.equipo_local, 'visita': p.equipo_visita,
                 'detalle': ' · '.join(x for x in [f"Grupo {p.equipo_local.grupo}" if p.equipo_local.grupo else '',

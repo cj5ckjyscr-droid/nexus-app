@@ -1047,3 +1047,34 @@ class FichajeDesdeLaBaseDeDatosTest(DosCanchasTestCase):
     def test_no_se_ficha_dos_veces_en_el_mismo_campeonato(self):
         self._fichar(self.equipo_a2)
         self.assertFalse(Jugador.objects.filter(equipo=self.equipo_a2, cedula=self.jugador_a.cedula).exists())
+
+
+class FixturePublicoEImagenHorariosTest(DosCanchasTestCase):
+    def setUp(self):
+        super().setUp()
+        from datetime import timedelta
+        from django.utils import timezone
+        Partido.objects.filter(id=self.partido_a.id).update(fecha_hora=None)
+        self.programado = Partido.objects.create(torneo=self.torneo_a, equipo_local=self.equipo_a2, equipo_visita=self.equipo_a,
+                                                 estado="PROG", numero_fecha=2, fecha_hora=timezone.now() + timedelta(days=2))
+
+    def test_el_fixture_publico_solo_muestra_lo_programado(self):
+        r = self.client.get(f"/proxima-jornada/{self.torneo_a.id}/")
+        self.assertEqual([p.id for p in r.context["partidos"]], [self.programado.id])
+
+    def test_la_imagen_es_solo_del_organizador_y_lleva_la_publicidad(self):
+        self.client.login(username="org_a", password="pass12345")
+        r = self.client.get("/horarios/imagen/")
+        self.assertContains(r, "NEXUS SPORTOPS")
+        self.assertContains(r, "0987 408 528")
+        dirigente = User.objects.create_user("dir_img", password="pass12345")
+        RolComplejo.objects.create(usuario=dirigente, complejo=self.complejo_a, rol="DIR")
+        self.client.login(username="dir_img", password="pass12345")
+        self.assertNotEqual(self.client.get("/horarios/imagen/").status_code, 200)
+
+    def test_el_soporte_tecnico_genera_la_imagen_de_la_cancha(self):
+        User.objects.create_superuser("sop_img", password="pass12345")
+        self.client.login(username="sop_img", password="pass12345")
+        self.client.post(f"/nexus-admin/soporte/entrar/{self.complejo_a.id}/")
+        r = self.client.get("/horarios/imagen/")
+        self.assertEqual(r.context["complejo"], self.complejo_a)

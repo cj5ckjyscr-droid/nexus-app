@@ -7,8 +7,8 @@
     :root {
         --hi-bg: #F2F2F7;
         --hi-surface: #FFFFFF;
-        --hi-green: #16342A;
-        --hi-orange: #C2410C;
+        --hi-green: #166534;
+        --hi-orange: #B45309;
         --hi-text: #1C1C1E;
         --hi-muted: #8E8E93;
         --hi-separator: rgba(60,60,67,0.13);
@@ -26,7 +26,7 @@
         color: var(--hi-text); font-weight: 600; text-decoration: none; font-size: 0.9rem;
     }
     .btn-descargar-horarios {
-        background: var(--hi-orange);
+        background: var(--hi-green);
         color: #fff; border: none; padding: 12px 24px; border-radius: 12px;
         font-weight: 700; letter-spacing: 0.2px;
         display: inline-flex; align-items: center; gap: 8px; transition: transform 0.15s;
@@ -35,7 +35,8 @@
     .btn-descargar-horarios:disabled { opacity: 0.7; }
 
     /* ===== ENVOLTORIO CON SCROLL EN MÓVIL ===== */
-    .poster-wrapper { overflow-x: auto; padding: 4px 4px 40px 4px; }
+    .poster-wrapper { overflow: hidden; padding: 4px 4px 40px 4px; }
+    .poster-frame { transform-origin: top left; }
 
     /* Sombra tenue solo para la vista previa en pantalla (no se exporta:
        .poster no lleva box-shadow porque html2canvas la renderiza mal
@@ -50,28 +51,41 @@
         position: relative;
     }
 
-    /* --- CABECERA --- */
+    /* --- CABECERA: cancha vista desde arriba --- */
     .poster-header {
-        background: var(--hi-green); color: #fff;
-        padding: 30px 32px 26px 32px;
+        position: relative; overflow: hidden; color: #fff;
+        padding: 30px 32px 24px 32px;
+        background: linear-gradient(90deg, #14532D 0 12.5%, #166534 12.5% 25%, #14532D 25% 37.5%, #166534 37.5% 50%, #14532D 50% 62.5%, #166534 62.5% 75%, #14532D 75% 87.5%, #166534 87.5% 100%);
     }
-    .poster-header-top { display: flex; align-items: center; gap: 22px; }
+    .poster-cancha { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .22; }
+    .poster-header-top { position: relative; display: flex; align-items: center; gap: 24px; }
     .poster-logo {
-        width: 170px; height: 170px; object-fit: contain; border-radius: 28px;
-        background: rgba(255,255,255,0.08); padding: 10px; flex-shrink: 0;
+        width: 150px; height: 150px; object-fit: contain; border-radius: 26px;
+        background: #fff; padding: 10px; flex-shrink: 0;
+        border: 4px solid #D4A72C;
+    }
+    .poster-kicker {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #D4A72C; color: #12261B; border-radius: 999px; padding: 4px 12px;
+        font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: .7rem;
+        letter-spacing: 1.6px; text-transform: uppercase;
     }
     .poster-title {
-        font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.85rem;
-        letter-spacing: 0.2px; margin: 0; line-height: 1.15;
+        font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 2.3rem;
+        letter-spacing: -0.3px; margin: 10px 0 0; line-height: 1.05; text-transform: uppercase;
+        color: #fff !important;
     }
     .poster-subtitle {
-        font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.72rem;
-        letter-spacing: 2.2px; color: var(--hi-orange); margin-top: 4px; text-transform: uppercase;
+        font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: .95rem;
+        color: rgba(255,255,255,.85); margin-top: 8px;
     }
-    .poster-location {
-        margin-top: 16px; font-size: 0.78rem; font-weight: 500; color: rgba(255,255,255,0.6);
-        display: flex; align-items: center; gap: 6px;
+    .poster-datos { position: relative; display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    .poster-dato {
+        display: inline-flex; align-items: center; gap: 7px;
+        background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28);
+        border-radius: 12px; padding: 7px 12px; font-size: .8rem; font-weight: 700;
     }
+    .poster-dato b { font-family: 'Montserrat', sans-serif; font-size: 1rem; color: #FDE68A; }
 
     /* --- CUERPO --- */
     .poster-body { padding: 4px 20px 8px 20px; }
@@ -168,9 +182,32 @@
         background: var(--cat-color);
     }
 
+    /* --- PUBLICIDAD NEXUS SPORTOPS --- */
+    .poster-promo {
+        margin: 14px 20px 0; border-radius: 18px; overflow: hidden;
+        display: flex; align-items: center; gap: 18px; padding: 16px 20px;
+        background: #fff; border: 2px solid #D4A72C;
+    }
+    .promo-logo {
+        width: 64px; height: 64px; border-radius: 16px; flex-shrink: 0; object-fit: contain;
+        background: #EEF5F0; display: flex; align-items: center; justify-content: center;
+        color: #166534; font-size: 2rem;
+    }
+    .promo-txt { flex: 1; min-width: 0; }
+    .promo-txt small { display: block; font-size: .66rem; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; color: #B45309; }
+    .promo-txt strong { display: block; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.15rem; color: #12261B; line-height: 1.2; margin-top: 2px; }
+    .promo-txt span { display: block; font-size: .78rem; color: #5B6670; font-weight: 600; margin-top: 3px; }
+    .promo-cta {
+        flex-shrink: 0; text-align: center; background: #166534; color: #fff;
+        border-radius: 14px; padding: 10px 16px; font-family: 'Montserrat', sans-serif;
+    }
+    .promo-cta i { font-size: 1.1rem; color: #86EFAC; }
+    .promo-cta b { display: block; font-size: 1.05rem; letter-spacing: .3px; margin-top: 2px; }
+    .promo-cta small { display: block; font-size: .62rem; font-weight: 700; opacity: .8; text-transform: uppercase; letter-spacing: 1px; }
+
     /* --- FOOTER --- */
     .poster-footer {
-        text-align: center; padding: 22px 20px 26px 20px; font-size: 0.72rem;
+        text-align: center; padding: 14px 20px 22px 20px; font-size: 0.7rem;
         font-weight: 600; color: var(--hi-muted);
     }
 
@@ -201,16 +238,30 @@
         <div class="poster" id="posterHorarios">
 
             <div class="poster-header">
+                <svg class="poster-cancha" viewBox="0 0 900 260" preserveAspectRatio="none" aria-hidden="true">
+                    <g fill="none" stroke="#fff" stroke-width="3">
+                        <rect x="12" y="12" width="876" height="236"/>
+                        <line x1="450" y1="12" x2="450" y2="248"/>
+                        <circle cx="450" cy="130" r="62"/>
+                        <rect x="12" y="62" width="110" height="136"/>
+                        <rect x="778" y="62" width="110" height="136"/>
+                    </g>
+                    <circle cx="450" cy="130" r="5" fill="#fff"/>
+                </svg>
                 <div class="poster-header-top">
                     {% if complejo.logo %}
                         <img src="{{ complejo.logo.url }}" class="poster-logo" crossorigin="anonymous" alt="Logo">
                     {% endif %}
-                    <div>
+                    <div style="min-width: 0;">
+                        <span class="poster-kicker">⚽ Programación oficial</span>
                         <h1 class="poster-title">{{ complejo.nombre }}</h1>
-                        <div class="poster-subtitle">Horario de Juego</div>
+                        <div class="poster-subtitle">Horarios de juego{% if desde %} · {% if desde == hasta %}{{ desde|date:"l d \d\e F" }}{% else %}del {{ desde|date:"d M" }} al {{ hasta|date:"d M" }}{% endif %}{% endif %}</div>
                     </div>
                 </div>
-                {% if complejo.telefono_contacto %}<div class="poster-location"><i class="bi bi-whatsapp"></i> {{ complejo.telefono_contacto }}</div>{% endif %}
+                <div class="poster-datos">
+                    <span class="poster-dato"><i class="bi bi-calendar2-week"></i><b>{{ partidos|length }}</b> partido{{ partidos|length|pluralize }}</span>
+                    {% if complejo.telefono_contacto %}<span class="poster-dato"><i class="bi bi-whatsapp"></i>{{ complejo.telefono_contacto }}</span>{% endif %}
+                </div>
             </div>
 
             <div class="poster-body">
@@ -269,8 +320,23 @@
                 {% endif %}
             </div>
 
+            <div class="poster-promo">
+                {% if logo_nexus %}<img src="{{ logo_nexus.url }}" class="promo-logo" crossorigin="anonymous" alt="NEXUS SPORTOPS">
+                {% else %}<span class="promo-logo"><i class="bi bi-trophy-fill"></i></span>{% endif %}
+                <div class="promo-txt">
+                    <small>¿Organizas campeonatos?</small>
+                    <strong>NEXUS SPORTOPS</strong>
+                    <span>Fixture, tablas, carnets, vocalía y cobros de tu cancha en un solo sistema.</span>
+                </div>
+                <div class="promo-cta">
+                    <i class="bi bi-whatsapp"></i>
+                    <b>0987 408 528</b>
+                    <small>Deyvi Rivera</small>
+                </div>
+            </div>
+
             <div class="poster-footer">
-                Generado el {{ generado_en|date:"d/m/Y" }} a las {{ generado_en|time:"H:i" }} &bull; {{ complejo.nombre }} &bull; Dev: Deyvi Rivera
+                Generado el {{ generado_en|date:"d/m/Y" }} a las {{ generado_en|time:"H:i" }} &bull; {{ complejo.nombre }}
             </div>
 
         </div>
@@ -285,6 +351,20 @@
 document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById('btnDescargarImagen');
     var poster = document.getElementById('posterHorarios');
+    var marco = document.querySelector('.poster-frame');
+    var envoltorio = document.querySelector('.poster-wrapper');
+    // En celular la vista previa se escala para que entre en la pantalla;
+    // la imagen descargada siempre sale a tamaño completo (900 px).
+    function ajustarVista() {
+        var disponible = envoltorio.clientWidth - 8;
+        var escala = Math.min(1, disponible / 900);
+        marco.style.transform = escala < 1 ? 'scale(' + escala + ')' : '';
+        marco.style.margin = escala < 1 ? '0' : '';
+        envoltorio.style.height = escala < 1 ? (marco.offsetHeight * escala + 44) + 'px' : '';
+    }
+    ajustarVista();
+    window.addEventListener('resize', ajustarVista);
+    window.addEventListener('load', ajustarVista);
 
     btn.addEventListener('click', function () {
         var textoOriginal = btn.innerHTML;
@@ -292,11 +372,14 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando...';
 
         var render = function () {
+            var transformPrevio = marco.style.transform;
+            marco.style.transform = '';
             html2canvas(poster, {
                 useCORS: true,
                 backgroundColor: null,
                 scale: 2
             }).then(function (canvas) {
+                marco.style.transform = transformPrevio;
                 var hoy = new Date().toISOString().slice(0, 10);
                 var nombreArchivo = 'horarios-{{ complejo.slug }}-' + hoy + '.png';
 
@@ -341,6 +424,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }, 'image/png');
             }).catch(function (err) {
+                marco.style.transform = transformPrevio;
                 console.error('Error generando la imagen:', err);
                 alert('No se pudo generar la imagen. Intenta nuevamente.');
                 btn.disabled = false;
