@@ -5092,6 +5092,48 @@ def precios_publicos(request):
     return render(request, 'core/precios_publicos.html', {'planes': planes})
 
 
+# Funciones que se muestran en la vitrina pública, con capturas reales del
+# sistema en computadora y celular (core/static/core/vitrina/).
+FUNCIONES_VITRINA = [
+    {'clave': 'vocalia', 'icono': 'bi-stopwatch', 'nombre': 'Vocalía', 'kicker': 'Mesa de control en el celular',
+     'titulo': 'El partido se anota en vivo, desde la cancha',
+     'puntos': ['Goles, tarjetas y asistencia con un toque, jugador por jugador.',
+                'Marcador y faltas en tiempo real para todo el campeonato.',
+                'Acta con firmas de los capitanes y multas que se cobran solas.']},
+    {'clave': 'estadisticas', 'icono': 'bi-bar-chart-line', 'nombre': 'Estadísticas', 'kicker': 'Tabla, goleadores y figuras',
+     'titulo': 'La tabla se actualiza sola al terminar cada partido',
+     'puntos': ['Posiciones con puntos, diferencia de gol y zona de clasificación.',
+                'Goleadores, tarjetas y rendimiento de cada jugador.',
+                'Página pública para que la hinchada la revise desde su celular.']},
+    {'clave': 'carnets', 'icono': 'bi-person-vcard', 'nombre': 'Carnets', 'kicker': 'Listos para imprimir',
+     'titulo': 'Carnets oficiales con foto en un clic',
+     'puntos': ['Todo el equipo en una hoja, con foto, cédula, dorsal y categoría.',
+                'Color de la categoría y escudo del equipo en cada carnet.',
+                'Número de carnet único para controlar quién juega.']},
+    {'clave': 'jugadores', 'icono': 'bi-people', 'nombre': 'Jugadores', 'kicker': 'Fichaje sin papeles',
+     'titulo': 'Fichajes con cédula, foto y reglas claras',
+     'puntos': ['Al escribir la cédula se cargan los datos y la foto que ya están en el sistema.',
+                'Bloquea al jugador que ya está en otro equipo del mismo campeonato.',
+                'Sanciones, suspensiones y cupos por equipo bajo control.']},
+    {'clave': 'horarios', 'icono': 'bi-calendar-week', 'nombre': 'Horarios', 'kicker': 'Imagen para tus redes',
+     'titulo': 'La programación de la semana, lista para WhatsApp',
+     'puntos': ['Imagen con el logo de tu cancha, escudos, horas y canchas.',
+                'Se descarga o se comparte directo desde el celular.',
+                'Fixture público con solo los partidos ya programados.']},
+    {'clave': 'finanzas', 'icono': 'bi-cash-coin', 'nombre': 'Finanzas', 'kicker': 'Cobros sin cuentas perdidas',
+     'titulo': 'Inscripciones, multas y caja diaria en orden',
+     'puntos': ['Saldo de cada equipo con abonos, multas y tarjetas.',
+                'Cierre de caja diario y recordatorios por WhatsApp.',
+                'Trazabilidad: quién cobró qué, cuándo y desde dónde.']},
+]
+
+
+def vitrina_nexus(request):
+    """Página pública de promoción: cómo se ve NEXUS en la computadora y en
+    el celular, función por función."""
+    return render(request, 'core/vitrina.html', {'funciones': FUNCIONES_VITRINA})
+
+
 def _render_planes(request, form, plan_editando=None):
     planes = (PlanSuscripcion.objects.exclude(nombre=NOMBRE_PLAN_DEMO)
               .annotate(num_canchas=Count('complejodeportivo', filter=Q(complejodeportivo__es_demo=False)))

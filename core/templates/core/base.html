@@ -726,6 +726,7 @@
                     {% if not user.is_authenticated or rol_nav_efectivo == 'FAN' %}
                         <li><a class="nx-link {% if request.resolver_match.url_name == 'landing_principal' %}activo{% endif %}" href="{% url 'landing_principal' %}"><i class="bi bi-geo-alt"></i>Explorar canchas</a></li>
                         {% if complejo %}<li><a class="nx-link {% if request.resolver_match.url_name == 'portal_complejo' %}activo{% endif %}" href="{% url 'portal_complejo' complejo.slug %}"><i class="bi bi-trophy"></i>Torneos</a></li>{% endif %}
+                        <li><a class="nx-link {% if request.resolver_match.url_name == 'vitrina_nexus' %}activo{% endif %}" href="{% url 'vitrina_nexus' %}"><i class="bi bi-play-circle"></i>Conoce NEXUS</a></li>
                         <li><a class="nx-link {% if request.resolver_match.url_name == 'precios_publicos' %}activo{% endif %}" href="{% url 'precios_publicos' %}"><i class="bi bi-tags"></i>Planes y precios</a></li>
                     {% endif %}
 
@@ -740,6 +741,7 @@
                                     <a class="nx-item" href="{% url 'registrar_pago_saas' %}"><i class="bi bi-cash-coin"></i><span><b>Pagos</b><small>Mensualidades de las canchas</small></span></a>
                                     <a class="nx-item" href="{% url 'gestionar_roles_prueba' %}"><i class="bi bi-person-badge"></i><span><b>Rol de prueba</b><small>Canchas demo para probar</small></span></a>
                                     <a class="nx-item" href="{% url 'precios_publicos' %}"><i class="bi bi-globe"></i><span><b>Precios públicos</b><small>Lo que ve un cliente nuevo</small></span></a>
+                                    <a class="nx-item" href="{% url 'vitrina_nexus' %}"><i class="bi bi-play-circle"></i><span><b>Vitrina de NEXUS</b><small>Capturas para promocionar</small></span></a>
                                 </div>
                             </li>
 

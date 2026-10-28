@@ -1078,3 +1078,24 @@ class FixturePublicoEImagenHorariosTest(DosCanchasTestCase):
         self.client.post(f"/nexus-admin/soporte/entrar/{self.complejo_a.id}/")
         r = self.client.get("/horarios/imagen/")
         self.assertEqual(r.context["complejo"], self.complejo_a)
+
+
+class VitrinaNexusTest(TestCase):
+    def test_la_vitrina_es_publica_y_muestra_todas_las_funciones(self):
+        r = self.client.get("/conoce-nexus/")
+        self.assertEqual(r.status_code, 200)
+        for nombre in ("Vocalía", "Estadísticas", "Carnets", "Jugadores", "Horarios", "Finanzas"):
+            self.assertContains(r, nombre)
+        self.assertContains(r, "vitrina/vocalia-pc.webp")
+        self.assertContains(r, "wa.me/593987408528")
+
+    def test_inicio_y_precios_enlazan_a_la_vitrina(self):
+        for url in ("/", "/precios/"):
+            self.assertContains(self.client.get(url), "/conoce-nexus/")
+
+    def test_existen_todas_las_capturas(self):
+        from django.contrib.staticfiles import finders
+        from .views import FUNCIONES_VITRINA
+        for f in FUNCIONES_VITRINA:
+            for tipo in ("pc", "cel"):
+                self.assertTrue(finders.find(f"core/vitrina/{f['clave']}-{tipo}.webp"), f"{f['clave']}-{tipo}")

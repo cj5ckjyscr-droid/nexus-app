@@ -149,6 +149,7 @@ urlpatterns = [
     path('prueba/dirigente/salir/', views.prueba_salir_modo_dirigente, name='prueba_salir_modo_dirigente'),
 
     path('precios/', views.precios_publicos, name='precios_publicos'),
+    path('conoce-nexus/', views.vitrina_nexus, name='vitrina_nexus'),
     path('ayuda/', views.centro_ayuda, name='centro_ayuda'),
     path('ayuda/<slug:slug>/', views.guia_ayuda, name='guia_ayuda'),
 

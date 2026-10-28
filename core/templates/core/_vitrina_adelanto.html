@@ -1,0 +1,46 @@
+{% load static %}
+{% comment %}Adelanto de la vitrina para el inicio público y la página de precios.{% endcomment %}
+<section class="va my-5" aria-labelledby="va-titulo">
+    <div class="va-texto">
+        <span class="va-kicker"><i class="bi bi-camera-reels"></i>Capturas reales del sistema</span>
+        <h2 id="va-titulo">Mira NEXUS <span>en acción</span></h2>
+        <p>Así se ven la vocalía, las tablas, los carnets, los fichajes, los horarios y los cobros, en la computadora y en el celular.</p>
+        <div class="va-chips" aria-hidden="true">
+            <span><i class="bi bi-stopwatch"></i>Vocalía</span><span><i class="bi bi-bar-chart-line"></i>Estadísticas</span>
+            <span><i class="bi bi-person-vcard"></i>Carnets</span><span><i class="bi bi-people"></i>Jugadores</span>
+            <span><i class="bi bi-calendar-week"></i>Horarios</span><span><i class="bi bi-cash-coin"></i>Finanzas</span>
+        </div>
+        <a href="{% url 'vitrina_nexus' %}" class="va-btn">Ver cómo funciona <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <a href="{% url 'vitrina_nexus' %}" class="va-visual" aria-label="Ver NEXUS en acción">
+        <span class="va-laptop"><img src="{% static 'core/vitrina/estadisticas-pc.webp' %}" width="1200" height="750" loading="lazy" alt="Tabla de posiciones en la computadora"></span>
+        <span class="va-tel"><img src="{% static 'core/vitrina/vocalia-cel.webp' %}" width="480" height="1039" loading="lazy" alt="Vocalía en vivo en el celular"></span>
+    </a>
+</section>
+<style>
+    .va { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr); gap: 36px; align-items: center; background: #fff; border: 1px solid #E6EAE8; border-radius: 28px; padding: 38px; overflow: hidden; position: relative; text-align: left; }
+    .va::before { content: ""; position: absolute; right: -60px; top: -60px; width: 280px; height: 280px; border-radius: 50%; border: 3px solid #EEF5F0; pointer-events: none; }
+    .va-kicker { display: inline-flex; align-items: center; gap: 7px; font-size: .8rem; font-weight: 700; color: #166534; background: #EEF5F0; border-radius: 999px; padding: 5px 12px; }
+    .va h2 { font-family: 'Barlow Condensed', 'Outfit', sans-serif; font-weight: 800; text-transform: uppercase; font-size: clamp(2rem, 4.2vw, 3.1rem); line-height: .98; color: #12261B; margin: 14px 0 12px; }
+    .va h2 span { color: #166534; }
+    .va p { color: #5B6670; font-size: 1.02rem; line-height: 1.55; margin: 0 0 18px; }
+    .va-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 22px; }
+    .va-chips span { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 700; color: #33413A; border: 1px solid #E6EAE8; border-radius: 10px; padding: 6px 10px; background: #FAFBFA; }
+    .va-chips i { color: #166534; }
+    .va-btn { display: inline-flex; align-items: center; gap: 8px; background: #166534; color: #fff; font-weight: 700; padding: 13px 22px; border-radius: 14px; text-decoration: none; box-shadow: 0 12px 24px -12px rgba(22,101,52,.7); transition: transform .2s cubic-bezier(.32,.72,0,1); }
+    .va-btn:hover { color: #fff; background: #14532D; }
+    .va-btn:active { transform: scale(.97); }
+    .va-btn i { transition: transform .25s cubic-bezier(.32,.72,0,1); }
+    .va-btn:hover i { transform: translateX(3px); }
+    .va-visual { position: relative; display: block; padding: 0 0 30px; }
+    .va-laptop { display: block; background: #E9ECEB; border: 1px solid #D5DAD7; border-radius: 16px; padding: 8px; box-shadow: 0 30px 50px -28px rgba(18,38,27,.4); transition: transform .5s cubic-bezier(.32,.72,0,1); }
+    .va-laptop img { display: block; width: 100%; height: auto; border-radius: 9px; }
+    .va-tel { position: absolute; right: 0; bottom: 0; width: 26%; background: #fff; border: 1px solid #D5DAD7; outline: 4px solid #EEF1EF; border-radius: 22px; padding: 14px 4px 6px; box-shadow: 0 24px 40px -18px rgba(18,38,27,.5); transition: transform .5s cubic-bezier(.32,.72,0,1); }
+    .va-tel img { display: block; width: 100%; height: auto; border-radius: 3px 3px 16px 16px; }
+    .va-tel::before { content: ""; position: absolute; top: 4px; left: 50%; transform: translateX(-50%); width: 28px; height: 6px; border-radius: 4px; background: #1F2A24; }
+    .va-visual:hover .va-laptop { transform: translateY(-4px); }
+    .va-visual:hover .va-tel { transform: translateY(-10px) rotate(-2deg); }
+    @media (max-width: 991px) { .va { grid-template-columns: minmax(0, 1fr); padding: 26px 20px; gap: 24px; } .va::before { display: none; } }
+    @media (max-width: 576px) { .va-btn { width: 100%; justify-content: center; } .va-tel { width: 31%; } }
+    @media (prefers-reduced-motion: reduce) { .va-laptop, .va-tel, .va-btn i { transition: none; } }
+</style>

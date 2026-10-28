@@ -1,0 +1,270 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Conoce NEXUS SPORTOPS | Así se ve tu campeonato{% endblock %}
+
+{% block extra_css %}
+<style>
+    .vt { --tinta: #12261B; --suave: #5B6670; --borde: #E6EAE8; --cesped: #166534; --cesped-2: #15803D; --claro: #EEF5F0; --oro: #D4A72C;
+          --cond: 'Barlow Condensed', 'Outfit', sans-serif; --ease: cubic-bezier(.32,.72,0,1); color: var(--tinta); }
+
+    /* ---------- Dispositivos ---------- */
+    .laptop { position: relative; }
+    .laptop .pantalla { background: #E9ECEB; border: 1px solid #D5DAD7; border-radius: 18px 18px 6px 6px; padding: 10px 10px 12px; box-shadow: 0 30px 60px -28px rgba(18,38,27,.35); }
+    .laptop .pantalla::before { content: ""; display: block; width: 7px; height: 7px; border-radius: 50%; background: #C3CAC6; margin: -4px auto 6px; }
+    .laptop img { display: block; width: 100%; height: auto; border-radius: 8px; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; background: #F3F5F4; }
+    .laptop .base { height: 14px; margin: 0 -5%; background: linear-gradient(#E3E7E5, #CDD3D0); border-radius: 0 0 16px 16px; position: relative; }
+    .laptop .base::after { content: ""; position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 18%; height: 5px; background: #BFC6C2; border-radius: 0 0 8px 8px; }
+
+    .telefono { width: 100%; max-width: 240px; background: #fff; border: 1px solid #D5DAD7; outline: 5px solid #EEF1EF; border-radius: 36px; padding: 26px 8px 10px; box-shadow: 0 28px 50px -22px rgba(18,38,27,.45); position: relative; }
+    .telefono::before { content: ""; position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 56px; height: 11px; border-radius: 8px; background: #1F2A24; z-index: 2; }
+    .telefono img { display: block; width: 100%; height: auto; aspect-ratio: 390 / 844; object-fit: cover; object-position: top; border-radius: 6px 6px 26px 26px; background: #fff; }
+
+    .combo { position: relative; padding: 0 0 40px 0; }
+    .combo .telefono { position: absolute; right: 0; bottom: 0; width: 27%; max-width: 230px; border-radius: 26px; padding: 18px 5px 7px; outline-width: 4px; }
+    .combo .telefono::before { top: 6px; width: 36px; height: 8px; }
+    .combo .telefono img { border-radius: 4px 4px 19px 19px; }
+
+    /* ---------- Hero ---------- */
+    .vt-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 48px; align-items: center; padding: 40px 0 56px; }
+    .vt-kicker { display: inline-flex; align-items: center; gap: 8px; background: var(--claro); color: var(--cesped); border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: .82rem; letter-spacing: .3px; }
+    .vt-kicker .punto { width: 8px; height: 8px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 0 0 rgba(34,197,94,.5); animation: latido 2s infinite; }
+    @keyframes latido { 70% { box-shadow: 0 0 0 9px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+    .vt h1 { font-family: var(--cond); font-weight: 800; text-transform: uppercase; font-size: clamp(2.6rem, 6vw, 4.6rem); line-height: .95; letter-spacing: -.5px; margin: 0 0 16px; color: var(--tinta); }
+    .vt h1 em { font-style: normal; color: var(--cesped); }
+    .vt-lead { font-size: 1.12rem; color: var(--suave); line-height: 1.55; max-width: 34rem; }
+    .vt-ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+    .vt-btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 14px; font-weight: 700; text-decoration: none; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
+    .vt-btn:active { transform: scale(.97); }
+    .vt-btn.primario { background: var(--cesped); color: #fff; box-shadow: 0 12px 24px -12px rgba(22,101,52,.7); }
+    .vt-btn.primario:hover { color: #fff; background: #14532D; }
+    .vt-btn.claro { background: #fff; color: var(--tinta); border: 1px solid var(--borde); }
+    .vt-btn.claro:hover { color: var(--tinta); background: #F6F8F7; }
+    .vt-datos { display: flex; flex-wrap: wrap; gap: 18px 28px; margin-top: 30px; }
+    .vt-datos div { font-size: .85rem; color: var(--suave); }
+    .vt-datos b { display: block; font-family: var(--cond); font-size: 1.7rem; color: var(--tinta); line-height: 1; }
+
+    /* ---------- Recorrido por funciones ---------- */
+    .vt-seccion { padding: 56px 0; }
+    .vt-cab { text-align: center; max-width: 640px; margin: 0 auto 30px; }
+    .vt-cab h2 { font-family: var(--cond); font-weight: 800; text-transform: uppercase; font-size: clamp(2rem, 4.4vw, 3rem); line-height: 1; margin: 12px 0 10px; }
+    .vt-cab p { color: var(--suave); font-size: 1.05rem; margin: 0; }
+
+    .vt-tabs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; background: #fff; border: 1px solid var(--borde); border-radius: 18px; padding: 6px; width: fit-content; max-width: 100%; margin: 0 auto 34px; }
+    .vt-tab { border: 0; background: transparent; color: var(--suave); font-weight: 700; font-size: .92rem; padding: 10px 16px; border-radius: 13px; display: inline-flex; align-items: center; gap: 7px; transition: background .25s var(--ease), color .25s var(--ease); cursor: pointer; }
+    .vt-tab:hover { color: var(--tinta); background: #F3F6F4; }
+    .vt-tab[aria-selected="true"] { background: var(--cesped); color: #fff; box-shadow: 0 8px 18px -10px rgba(22,101,52,.8); }
+
+    .vt-panel { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.4fr); gap: 44px; align-items: center; }
+    .vt-panel[hidden] { display: none; }
+    .vt-panel.entra .vt-texto { animation: subeTexto .55s var(--ease) both; }
+    .vt-panel.entra .combo .laptop { animation: subeLaptop .6s var(--ease) both; }
+    .vt-panel.entra .combo .telefono { animation: subeTel .7s var(--ease) .08s both; }
+    @keyframes subeTexto { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes subeLaptop { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: none; } }
+    @keyframes subeTel { from { opacity: 0; transform: translate(14px, 24px); } to { opacity: 1; transform: none; } }
+    .vt-texto .num { font-family: var(--cond); font-weight: 800; color: #8A6510; font-size: 1rem; letter-spacing: .4px; }
+    .vt-texto h3 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); font-weight: 800; line-height: 1.15; margin: 8px 0 18px; letter-spacing: -.3px; }
+    .vt-puntos { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 12px; }
+    .vt-puntos li { display: flex; gap: 12px; align-items: flex-start; color: #33413A; line-height: 1.45; }
+    .vt-puntos i { flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px; background: var(--claro); color: var(--cesped); display: inline-flex; align-items: center; justify-content: center; font-size: .9rem; }
+    .vt-chip { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 700; color: var(--cesped); background: var(--claro); border-radius: 999px; padding: 5px 12px; }
+
+    /* ---------- Para cada rol ---------- */
+    .vt-roles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .vt-rol { background: #fff; border: 1px solid var(--borde); border-radius: 20px; padding: 22px; transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
+    .vt-rol:hover { transform: translateY(-4px); box-shadow: 0 18px 34px -24px rgba(18,38,27,.45); }
+    .vt-rol .ico { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: var(--claro); color: var(--cesped); margin-bottom: 14px; }
+    .vt-rol h4 { font-size: 1.05rem; font-weight: 800; margin: 0 0 6px; }
+    .vt-rol p { font-size: .9rem; color: var(--suave); margin: 0; line-height: 1.5; }
+
+    /* ---------- Galería de celulares ---------- */
+    .vt-galeria { display: flex; gap: 22px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 12px 4px 26px; scrollbar-width: thin; }
+    .vt-galeria figure { flex: 0 0 210px; margin: 0; scroll-snap-align: center; text-align: center; }
+    .vt-galeria .telefono { max-width: 210px; margin: 0 auto; transition: transform .35s var(--ease); }
+    .vt-galeria figure:hover .telefono { transform: translateY(-6px) rotate(-1deg); }
+    .vt-galeria figcaption { margin-top: 12px; font-weight: 700; font-size: .92rem; }
+    .vt-galeria figcaption small { display: block; font-weight: 500; color: var(--suave); font-size: .8rem; }
+
+    /* ---------- Cierre ---------- */
+    .vt-cierre { position: relative; overflow: hidden; border-radius: 28px; padding: 54px 40px; text-align: center; color: #fff; margin: 30px 0 20px;
+                 background: linear-gradient(90deg, #166534 0 12.5%, #15803D 12.5% 25%, #166534 25% 37.5%, #15803D 37.5% 50%, #166534 50% 62.5%, #15803D 62.5% 75%, #166534 75% 87.5%, #15803D 87.5% 100%); }
+    .vt-cierre svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .16; pointer-events: none; }
+    .vt-cierre > * { position: relative; }
+    .vt-cierre h2 { font-family: var(--cond); font-weight: 800; text-transform: uppercase; font-size: clamp(2rem, 4.6vw, 3.2rem); line-height: 1; color: #fff; margin: 0 0 12px; }
+    .vt-cierre p { color: rgba(255,255,255,.88); font-size: 1.05rem; max-width: 520px; margin: 0 auto 26px; }
+    .vt-cierre .vt-btn.primario { background: #fff; color: var(--cesped); box-shadow: none; }
+    .vt-cierre .vt-btn.claro { background: transparent; color: #fff; border-color: rgba(255,255,255,.55); }
+
+    /* Solo se oculta si el script está activo: sin JS todo se ve igual */
+    .vt-anima .revela { opacity: 0; transform: translateY(18px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+    .vt-anima .revela.visto { opacity: 1; transform: none; }
+
+    @media (max-width: 991px) {
+        .vt-hero, .vt-panel { grid-template-columns: minmax(0, 1fr); gap: 30px; }
+        .vt-hero { padding-top: 16px; text-align: left; }
+        .vt-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 576px) {
+        .vt-tabs { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; width: 100%; scrollbar-width: none; }
+        .vt-tab { flex: 0 0 auto; padding: 9px 13px; }
+        .vt-roles { grid-template-columns: minmax(0, 1fr); }
+        .combo { padding-bottom: 30px; }
+        .combo .telefono { width: 32%; right: -1%; }
+        .vt-cierre { padding: 40px 20px; border-radius: 22px; }
+        .vt-btn { flex: 1 1 100%; justify-content: center; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .revela { opacity: 1; transform: none; transition: none; }
+        .vt-panel.entra .vt-texto, .vt-panel.entra .combo .laptop, .vt-panel.entra .combo .telefono, .vt-kicker .punto { animation: none; }
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+{% with wsp="https://wa.me/593987408528?text=Hola,%20vi%20NEXUS%20SPORTOPS%20y%20quiero%20usarlo%20en%20mi%20cancha." %}
+<div class="vt">
+
+    <!-- HERO -->
+    <section class="vt-hero">
+        <div>
+            <h1>Tu campeonato,<br>de la cancha <em>al celular</em></h1>
+            <p class="vt-lead">El sistema para campeonatos barriales: fixture, vocalía, tablas, carnets, fichajes y cobros en un solo lugar. Así se ve NEXUS SPORTOPS funcionando de verdad, en la computadora y en el teléfono.</p>
+            <div class="vt-ctas">
+                <a href="{{ wsp }}" target="_blank" rel="noopener" class="vt-btn primario"><i class="bi bi-whatsapp"></i>Quiero NEXUS en mi cancha</a>
+                <a href="#recorrido" class="vt-btn claro"><i class="bi bi-play-circle"></i>Ver cómo funciona</a>
+            </div>
+            <div class="vt-datos">
+                <div><b>1 clic</b>fixture completo</div>
+                <div><b>En vivo</b>vocalía y tablas</div>
+                <div><b>100%</b>desde el celular</div>
+            </div>
+        </div>
+        <div class="combo">
+            <div class="laptop">
+                <div class="pantalla"><img src="{% static 'core/vitrina/inicio-pc.webp' %}" width="1200" height="750" alt="Panel del organizador en la computadora: plan, estadísticas y próximos partidos" fetchpriority="high"></div>
+                <div class="base"></div>
+            </div>
+            <div class="telefono"><img src="{% static 'core/vitrina/vocalia-cel.webp' %}" width="480" height="1039" alt="Vocalía de un partido en vivo en el celular"></div>
+        </div>
+    </section>
+
+    <!-- RECORRIDO POR FUNCIONES -->
+    <section class="vt-seccion" id="recorrido">
+        <div class="vt-cab revela">
+            <span class="vt-chip"><i class="bi bi-display"></i>Computadora y <i class="bi bi-phone"></i>celular</span>
+            <h2>Todo lo que hace NEXUS</h2>
+            <p>Capturas reales del sistema. Elige una función y mira cómo se ve.</p>
+        </div>
+
+        <div class="vt-tabs" role="tablist" aria-label="Funciones de NEXUS">
+            {% for f in funciones %}
+            <button type="button" class="vt-tab" role="tab" id="tab-{{ f.clave }}" aria-controls="panel-{{ f.clave }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" {% if not forloop.first %}tabindex="-1"{% endif %}><i class="bi {{ f.icono }}"></i>{{ f.nombre }}</button>
+            {% endfor %}
+        </div>
+
+        {% for f in funciones %}
+        <div class="vt-panel" role="tabpanel" id="panel-{{ f.clave }}" aria-labelledby="tab-{{ f.clave }}" {% if not forloop.first %}hidden{% endif %}>
+            <div class="vt-texto">
+                <span class="num">0{{ forloop.counter }} · {{ f.kicker|upper }}</span>
+                <h3>{{ f.titulo }}</h3>
+                <ul class="vt-puntos">
+                    {% for p in f.puntos %}<li><i class="bi bi-check-lg"></i><span>{{ p }}</span></li>{% endfor %}
+                </ul>
+                <a href="{{ wsp }}" target="_blank" rel="noopener" class="vt-btn claro"><i class="bi bi-whatsapp"></i>Pedir una demostración</a>
+            </div>
+            <div class="combo">
+                <div class="laptop">
+                    <div class="pantalla"><img src="{% static 'core/vitrina/'|add:f.clave|add:'-pc.webp' %}" width="1200" height="750" loading="lazy" alt="{{ f.nombre }} en la computadora"></div>
+                    <div class="base"></div>
+                </div>
+                <div class="telefono"><img src="{% static 'core/vitrina/'|add:f.clave|add:'-cel.webp' %}" width="480" height="1039" loading="lazy" alt="{{ f.nombre }} en el celular"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+
+    <!-- PARA CADA ROL -->
+    <section class="vt-seccion">
+        <div class="vt-cab revela">
+            <span class="vt-chip"><i class="bi bi-people-fill"></i>Cada uno con su acceso</span>
+            <h2>Una herramienta para toda la cancha</h2>
+            <p>Cada persona ve solo lo que le toca, desde su propio celular.</p>
+        </div>
+        <div class="vt-roles">
+            <article class="vt-rol revela"><span class="ico"><i class="bi bi-trophy"></i></span><h4>Organizador</h4><p>Arma el campeonato, aprueba equipos, programa horarios y controla el dinero.</p></article>
+            <article class="vt-rol revela"><span class="ico"><i class="bi bi-stopwatch"></i></span><h4>Vocal</h4><p>Anota goles, tarjetas y asistencia en vivo, y cierra el acta del partido.</p></article>
+            <article class="vt-rol revela"><span class="ico"><i class="bi bi-shield"></i></span><h4>Dirigente</h4><p>Ficha a sus jugadores, imprime carnets y revisa lo que debe su equipo.</p></article>
+            <article class="vt-rol revela"><span class="ico"><i class="bi bi-megaphone"></i></span><h4>Hinchada</h4><p>Ve la tabla, los goleadores y el fixture de su equipo sin pedir nada por WhatsApp.</p></article>
+        </div>
+    </section>
+
+    <!-- GALERÍA EN EL CELULAR -->
+    <section class="vt-seccion">
+        <div class="vt-cab revela">
+            <span class="vt-chip"><i class="bi bi-phone"></i>Hecho para el celular</span>
+            <h2>Así se ve en tu teléfono</h2>
+            <p>Desliza para ver más pantallas.</p>
+        </div>
+        <div class="vt-galeria" tabindex="0" aria-label="Pantallas de NEXUS en el celular">
+            <figure><div class="telefono"><img src="{% static 'core/vitrina/inicio-cel.webp' %}" width="480" height="1039" loading="lazy" alt="Panel del organizador en el celular"></div><figcaption>Panel de la cancha<small>Todo a mano al abrir</small></figcaption></figure>
+            <figure><div class="telefono"><img src="{% static 'core/vitrina/vocalia-cel.webp' %}" width="480" height="1039" loading="lazy" alt="Vocalía en el celular"></div><figcaption>Vocalía en vivo<small>Goles y tarjetas</small></figcaption></figure>
+            <figure><div class="telefono"><img src="{% static 'core/vitrina/campeonato-cel.webp' %}" width="480" height="1039" loading="lazy" alt="Tabla de posiciones en el celular"></div><figcaption>Tabla de posiciones<small>Se actualiza sola</small></figcaption></figure>
+            <figure><div class="telefono"><img src="{% static 'core/vitrina/carnets-cel.webp' %}" width="480" height="1039" loading="lazy" alt="Carnets en el celular"></div><figcaption>Carnets oficiales<small>Con foto y cédula</small></figcaption></figure>
+            <figure><div class="telefono"><img src="{% static 'core/vitrina/jugadores-cel.webp' %}" width="480" height="1039" loading="lazy" alt="Fichaje de jugadores en el celular"></div><figcaption>Fichajes<small>Con la cédula</small></figcaption></figure>
+            <figure><div class="telefono"><img src="{% static 'core/vitrina/fixture-cel.webp' %}" width="480" height="1039" loading="lazy" alt="Fixture público en el celular"></div><figcaption>Fixture público<small>Para la hinchada</small></figcaption></figure>
+            <figure><div class="telefono"><img src="{% static 'core/vitrina/finanzas-cel.webp' %}" width="480" height="1039" loading="lazy" alt="Finanzas en el celular"></div><figcaption>Finanzas<small>Cobros al día</small></figcaption></figure>
+        </div>
+    </section>
+
+    <!-- CIERRE -->
+    <section class="vt-cierre revela">
+        <svg viewBox="0 0 900 300" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#fff" stroke-width="3"><rect x="14" y="14" width="872" height="272"/><line x1="450" y1="14" x2="450" y2="286"/><circle cx="450" cy="150" r="70"/><rect x="14" y="80" width="120" height="140"/><rect x="766" y="80" width="120" height="140"/></g></svg>
+        <h2>¿Listo para el siguiente partido?</h2>
+        <p>Escríbenos y dejamos tu cancha funcionando con tu logo, tus torneos y tus equipos.</p>
+        <div class="vt-ctas justify-content-center">
+            <a href="{{ wsp }}" target="_blank" rel="noopener" class="vt-btn primario"><i class="bi bi-whatsapp"></i>WhatsApp 0987 408 528</a>
+            <a href="{% url 'precios_publicos' %}" class="vt-btn claro"><i class="bi bi-tags"></i>Ver planes y precios</a>
+        </div>
+    </section>
+</div>
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.documentElement.classList.add('vt-anima');
+(function () {
+    // Pestañas accesibles (flechas, Inicio, Fin) con transición al cambiar
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.vt-tab'));
+    function activar(tab, enfocar) {
+        tabs.forEach(function (t) {
+            var sel = t === tab;
+            t.setAttribute('aria-selected', sel);
+            t.tabIndex = sel ? 0 : -1;
+            var panel = document.getElementById(t.getAttribute('aria-controls'));
+            panel.hidden = !sel;
+            if (sel) { panel.classList.remove('entra'); void panel.offsetWidth; panel.classList.add('entra'); }
+        });
+        if (enfocar) tab.focus();
+    }
+    tabs.forEach(function (t, i) {
+        t.addEventListener('click', function () { activar(t); });
+        t.addEventListener('keydown', function (e) {
+            var n = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+            if (n === undefined) return;
+            e.preventDefault();
+            activar(tabs[(n + tabs.length) % tabs.length], true);
+        });
+    });
+
+    // Aparición suave al hacer scroll
+    var els = document.querySelectorAll('.revela');
+    if (!('IntersectionObserver' in window)) { els.forEach(function (el) { el.classList.add('visto'); }); return; }
+    var io = new IntersectionObserver(function (entradas) {
+        entradas.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('visto'); io.unobserve(en.target); } });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    els.forEach(function (el) { io.observe(el); });
+})();
+</script>
+{% endblock %}
