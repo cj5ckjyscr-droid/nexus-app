@@ -4709,13 +4709,16 @@ def revertir_cobro_sancion(request, sancion_id):
 # ---------------------------------------------------------
 
 def landing_principal(request):
-    """ El inicio global de NEXUS SPORTOPS donde salen todas las canchas """
-    canchas = ComplejoDeportivo.objects.filter(activo=True, es_demo=False)
+    """Inicio público de NEXUS SPORTOPS: la promoción va primero y abajo
+    el apartado para encontrar cada cancha. No requiere iniciar sesión."""
+    canchas = ComplejoDeportivo.objects.filter(activo=True, es_demo=False).order_by('nombre')
     config = Configuracion.objects.first() # Para sacar tu logo de NEXUS si lo subiste
-    
+
+    # Primero la promoción de NEXUS (capturas reales) y luego el apartado de canchas
     return render(request, 'core/landing_principal.html', {
-        'canchas': canchas, 
-        'config': config
+        'canchas': canchas,
+        'config': config,
+        'funciones': FUNCIONES_VITRINA,
     })
 
 def portal_complejo(request, slug_complejo):

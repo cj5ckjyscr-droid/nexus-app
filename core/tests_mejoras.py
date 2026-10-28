@@ -1099,3 +1099,17 @@ class VitrinaNexusTest(TestCase):
         for f in FUNCIONES_VITRINA:
             for tipo in ("pc", "cel"):
                 self.assertTrue(finders.find(f"core/vitrina/{f['clave']}-{tipo}.webp"), f"{f['clave']}-{tipo}")
+
+
+class InicioPublicoPromocionalTest(TestCase):
+    def test_el_inicio_muestra_primero_la_promocion_y_luego_las_canchas(self):
+        from .models import ComplejoDeportivo
+        dueno = User.objects.create_user("dueno_vitrina", password="pass12345")
+        ComplejoDeportivo.objects.create(nombre="Cancha El Ejido", slug="cancha-el-ejido", organizador=dueno, activo=True)
+        r = self.client.get("/")
+        self.assertEqual(r.status_code, 200)
+        html = r.content.decode()
+        self.assertLess(html.index("Todo lo que hace"), html.index("Encuentra tu cancha"))
+        self.assertIn("Cancha El Ejido", html)
+        self.assertIn("cancha-el-ejido", html)  # enlace al portal de la cancha
+        self.assertIn("vitrina.js", html)
