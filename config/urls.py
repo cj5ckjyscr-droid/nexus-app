@@ -74,6 +74,7 @@ urlpatterns = [
     path('campeonato/<int:torneo_id>/empezar/', views.iniciar_campeonato, name='iniciar_campeonato'),
     path('campeonato/<int:torneo_id>/cerrar-fase/', views.cerrar_fase_regular, name='cerrar_fase_regular'),
     path('campeonato/<int:torneo_id>/reiniciar/', views.reiniciar_campeonato, name='reiniciar_campeonato'),
+    path('campeonato/<int:torneo_id>/incorporar/', views.incorporar_equipo_campeonato, name='incorporar_equipo_campeonato'),
     path('campeonato/<int:torneo_id>/fixture.pdf', views.fixture_pdf_campeonato, name='fixture_pdf_campeonato'),
     path('campeonato/llave/<int:llave_id>/retirar/<int:equipo_id>/', views.retirar_equipo_llave, name='retirar_equipo_llave'),
 

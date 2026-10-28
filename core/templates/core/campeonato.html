@@ -41,6 +41,8 @@
         </div>
     {% else %}
 
+    {% if es_admin %}{% url 'ver_campeonato' torneo.id as volver_campeonato %}{% include 'core/_incorporar_equipo.html' with volver=volver_campeonato %}{% endif %}
+
     {% if cuadro.campeon or campeon_liga %}
     <div class="campeon-banner mb-4 d-flex align-items-center gap-3">
         <i class="bi bi-trophy-fill" style="font-size: 2.6rem; color: #FCD34D;" aria-hidden="true"></i>

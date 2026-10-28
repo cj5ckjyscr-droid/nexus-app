@@ -287,6 +287,8 @@
     </div>
     {% endif %}
 
+    {% if es_admin_torneo and torneo.formato %}{% include 'core/_incorporar_equipo.html' with volver=request.get_full_path %}{% endif %}
+
     {% if es_admin_torneo and torneo.formato == 'CLASICO' %}
     
     <!-- 1. Formato de Torneo -->

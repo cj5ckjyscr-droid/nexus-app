@@ -281,3 +281,134 @@ class EdicionLlaveTest(CampeonatoBase):
         final.refresh_from_db()
         self.assertEqual(getattr(final, slot), semi.equipo_visita_id)
         self.assertTrue(semi.ediciones.filter(detalle__contains="2-0 → 0-1").exists())
+
+
+class IncorporarEquipoTest(CampeonatoBase):
+    """Sumar un equipo con el campeonato en marcha: lo jugado no se toca,
+    el nuevo juega contra todos, nadie juega dos veces en una fecha y se usan
+    las menos fechas posibles reutilizando los horarios programados."""
+
+    def _iniciar_y_jugar_fecha_1(self, n, **cfg):
+        equipos = self.crear_equipos(n)
+        c.iniciar_campeonato(self.torneo, cfg.pop('formato', 'LIGA'), **cfg)
+        self.torneo.refresh_from_db()
+        etapa = c.etapa_regular(self.torneo)
+        jugados = list(Partido.objects.filter(torneo=self.torneo, etapa=etapa, numero_fecha=1))
+        for p in jugados:
+            self.cerrar(p, 1, 0)
+        nuevo = Equipo.objects.create(torneo=self.torneo, dirigente=self.org, nombre="Club Recién Llegado",
+                                      estado_inscripcion='PENDIENTE')
+        return equipos, jugados, nuevo, etapa
+
+    def _revisar(self, etapa, miembros, vueltas=1):
+        partidos = list(Partido.objects.filter(torneo=self.torneo, etapa=etapa,
+                                               equipo_local__in=miembros))
+        pares = Counter(frozenset((p.equipo_local_id, p.equipo_visita_id)) for p in partidos)
+        ids = [e.id for e in miembros]
+        esperados = {frozenset((a, b)) for i, a in enumerate(ids) for b in ids[i + 1:]}
+        self.assertEqual(set(pares), esperados)
+        self.assertTrue(all(v == vueltas for v in pares.values()))
+        por_fecha = Counter()
+        for p in partidos:
+            por_fecha[(p.numero_fecha, p.equipo_local_id)] += 1
+            por_fecha[(p.numero_fecha, p.equipo_visita_id)] += 1
+        self.assertEqual(max(por_fecha.values()), 1)
+        return partidos
+
+    def test_liga_par_con_una_fecha_jugada(self):
+        equipos, jugados, nuevo, etapa = self._iniciar_y_jugar_fecha_1(8)
+        res = c.incorporar_equipo(self.torneo, nuevo)
+        for p in jugados:  # lo jugado sigue intacto
+            p2 = Partido.objects.get(id=p.id)
+            self.assertEqual((p2.estado, p2.numero_fecha, p2.goles_local), ('JUG', 1, 1))
+        partidos = self._revisar(etapa, equipos + [nuevo])
+        # 9 equipos = 9 fechas (lo mínimo posible: el nuevo no jugó la 1)
+        self.assertEqual(max(p.numero_fecha for p in partidos), 9)
+        self.assertEqual(res['partidos_equipo'], 8)
+
+    def test_liga_impar_el_nuevo_juega_con_el_que_descansaba(self):
+        equipos, _, nuevo, etapa = self._iniciar_y_jugar_fecha_1(9)
+        res = c.incorporar_equipo(self.torneo, nuevo)
+        partidos = self._revisar(etapa, equipos + [nuevo])
+        # 10 equipos: 9 fechas + 1 para el partido que el nuevo no jugó en la 1
+        self.assertEqual(max(p.numero_fecha for p in partidos), 10)
+        # los cruces originales se conservan en su fecha
+        self.assertEqual(res['movidos'], 0)
+
+    def test_torneo_grande_usa_el_minimo_de_fechas(self):
+        equipos, _, nuevo, etapa = self._iniciar_y_jugar_fecha_1(16)
+        c.incorporar_equipo(self.torneo, nuevo)
+        partidos = self._revisar(etapa, equipos + [nuevo])
+        self.assertEqual(max(p.numero_fecha for p in partidos), 17)
+
+    def test_ida_y_vuelta(self):
+        equipos, _, nuevo, etapa = self._iniciar_y_jugar_fecha_1(6, ida_vuelta_liga=True)
+        c.incorporar_equipo(self.torneo, nuevo)
+        partidos = self._revisar(etapa, equipos + [nuevo], vueltas=2)
+        localia = Counter((p.equipo_local_id, p.equipo_visita_id) for p in partidos)
+        self.assertEqual(max(localia.values()), 1)  # ida y vuelta con localía invertida
+
+    def test_grupos_entra_al_grupo_mas_chico(self):
+        self._iniciar_y_jugar_fecha_1(7, formato='GRUPOS', num_grupos=2, clasifican=2)
+        nuevo = Equipo.objects.get(nombre="Club Recién Llegado")
+        chico = min('AB', key=lambda l: Equipo.objects.filter(torneo=self.torneo, grupo=l).count())
+        res = c.incorporar_equipo(self.torneo, nuevo)
+        self.assertEqual(res['grupo'], chico)
+        miembros = list(Equipo.objects.filter(torneo=self.torneo, grupo=chico))
+        self._revisar('GRP', miembros)
+
+    def test_reutiliza_los_horarios_programados(self):
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        equipos, _, nuevo, etapa = self._iniciar_y_jugar_fecha_1(8)
+        base = timezone.make_aware(datetime(2026, 11, 7, 9, 0))
+        for p in Partido.objects.filter(torneo=self.torneo, etapa=etapa, numero_fecha=2).order_by('id'):
+            p.fecha_hora, p.cancha = base, "Cancha 2"
+            p.save()
+            base += timedelta(hours=2)
+        c.incorporar_equipo(self.torneo, nuevo)
+        fecha2 = list(Partido.objects.filter(torneo=self.torneo, etapa=etapa, numero_fecha=2))
+        self.assertTrue(all(p.fecha_hora and p.cancha == "Cancha 2" for p in fecha2))
+        self.assertEqual(len({p.fecha_hora for p in fecha2}), len(fecha2))
+
+    def test_eliminacion_directa_no_permite(self):
+        self.crear_equipos(8)
+        c.iniciar_campeonato(self.torneo, 'ELIMINACION')
+        nuevo = Equipo.objects.create(torneo=self.torneo, dirigente=self.org, nombre="Tarde FC")
+        with self.assertRaises(c.CampeonatoError):
+            c.incorporar_equipo(self.torneo, nuevo)
+
+
+class IncorporarEquipoPantallaTest(CampeonatoBase):
+    def setUp(self):
+        super().setUp()
+        self.crear_equipos(8)
+        c.iniciar_campeonato(self.torneo, 'LIGA')
+        for p in Partido.objects.filter(torneo=self.torneo, numero_fecha=1):
+            self.cerrar(p, 2, 1)
+        self.nuevo = Equipo.objects.create(torneo=self.torneo, dirigente=self.org, nombre="Club Tardío",
+                                           estado_inscripcion='PENDIENTE')
+        self.client.login(username="org", password="pass12345")
+
+    def test_el_organizador_ve_el_bloque_e_incorpora(self):
+        r = self.client.get(f"/campeonato/{self.torneo.id}/")
+        self.assertContains(r, "Incorporar equipo al campeonato")
+        r = self.client.post(f"/campeonato/{self.torneo.id}/incorporar/", {"equipo_id": self.nuevo.id})
+        self.assertRedirects(r, f"/campeonato/{self.torneo.id}/", fetch_redirect_response=False)
+        self.nuevo.refresh_from_db()
+        self.assertEqual(self.nuevo.estado_inscripcion, 'APROBADO')
+        self.assertEqual(Partido.objects.filter(torneo=self.torneo, equipo_local=self.nuevo).count()
+                         + Partido.objects.filter(torneo=self.torneo, equipo_visita=self.nuevo).count(), 8)
+        self.assertEqual(Partido.objects.filter(torneo=self.torneo, estado='JUG').count(), 4)
+
+    def test_aprobar_la_solicitud_lleva_a_incorporar(self):
+        r = self.client.post("/solicitudes/", {"equipo_id": self.nuevo.id, "accion": "APROBAR"})
+        self.assertEqual(r["Location"], f"/campeonato/{self.torneo.id}/#incorporar")
+
+    def test_un_dirigente_no_puede_incorporar(self):
+        dirigente = User.objects.create_user("dt_tarde", password="pass12345")
+        RolComplejo.objects.create(usuario=dirigente, complejo=self.complejo, rol="DIR")
+        self.client.login(username="dt_tarde", password="pass12345")
+        self.client.post(f"/campeonato/{self.torneo.id}/incorporar/", {"equipo_id": self.nuevo.id})
+        self.nuevo.refresh_from_db()
+        self.assertEqual(self.nuevo.estado_inscripcion, 'PENDIENTE')

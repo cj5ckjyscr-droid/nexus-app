@@ -719,8 +719,9 @@ def gestionar_equipos(request):
         form.fields['torneo'].queryset = torneos_del_complejo
         form.fields['dirigente'].queryset = usuarios_del_complejo
         if form.is_valid() and form.cleaned_data['torneo'].campeonato_iniciado and form.cleaned_data['estado_inscripcion'] == 'APROBADO':
-            messages.error(request, f"⛔ El campeonato «{form.cleaned_data['torneo'].nombre}» ya empezó: no se pueden sumar equipos aprobados (alteraría el fixture).")
-            return redirect('gestionar_equipos')
+            # Con el campeonato en marcha el equipo se guarda como pendiente y
+            # se suma al fixture desde «Incorporar equipo» (sin perder lo jugado).
+            form.instance.estado_inscripcion = 'PENDIENTE'
         if form.is_valid():
             nuevo_equipo = form.save()
             # 🔥 El dirigente pasa a rol DIR en esta cancha (si era FAN), sin
@@ -733,6 +734,9 @@ def gestionar_equipos(request):
                     monto=costo_inscripcion, monto_pagado=Decimal('0.00'),
                     descripcion=f"Inscripción al Torneo {nuevo_equipo.torneo.nombre}", pagada=False
                 )
+            if nuevo_equipo.torneo.campeonato_iniciado:
+                messages.info(request, f"Equipo creado. El campeonato «{nuevo_equipo.torneo.nombre}» ya empezó: incorpora a {nuevo_equipo.nombre} al fixture sin perder las fechas jugadas.")
+                return redirect(_url_incorporar(nuevo_equipo.torneo))
             messages.success(request, '¡Equipo inscrito correctamente!')
             return redirect('gestionar_equipos')
     else:
@@ -766,7 +770,7 @@ def editar_equipo(request, equipo_id):
             t = form.cleaned_data['torneo']
             entra_nuevo = form.cleaned_data['estado_inscripcion'] == 'APROBADO' and (estado_previo != 'APROBADO' or torneo_previo != t.id)
             if t.campeonato_iniciado and entra_nuevo:
-                messages.error(request, f"⛔ El campeonato «{t.nombre}» ya empezó: no se puede aprobar ni mover equipos a él.")
+                messages.error(request, f"⛔ El campeonato «{t.nombre}» ya empezó: para sumar este equipo usa «Incorporar equipo» en la página del campeonato (así no se pierden las fechas jugadas).")
                 return redirect('editar_equipo', equipo_id=equipo.id)
             if torneo_previo != t.id and Partido.objects.filter(Q(equipo_local=equipo) | Q(equipo_visita=equipo)).exists():
                 messages.error(request, "⛔ Este equipo ya tiene partidos en su torneo: no se puede cambiar de torneo.")
@@ -1478,6 +1482,8 @@ def programar_partidos(request):
             'equipos_aprobados_count': Equipo.objects.filter(torneo=torneo_obj, estado_inscripcion='APROBADO').count(),
             'es_admin_torneo': rol_en_complejo(request.user, torneo_obj.complejo) == 'ORG',
         }
+        if ctx_camp['es_admin_torneo']:
+            ctx_camp.update(_ctx_incorporar(torneo_obj))
     return render(request, 'core/programar_partidos.html', {
         'partidos': partidos, 
         'form': form, 
@@ -2862,8 +2868,8 @@ def gestionar_solicitudes(request):
         equipo = get_object_or_404(Equipo, id=equipo_id, torneo__complejo=mi_complejo)
         
         if accion == 'APROBAR' and equipo.torneo.campeonato_iniciado:
-            messages.error(request, f'⛔ El campeonato "{equipo.torneo.nombre}" ya empezó: no se pueden sumar equipos nuevos (alteraría el fixture).')
-            return redirect('gestionar_solicitudes')
+            messages.info(request, f'El campeonato "{equipo.torneo.nombre}" ya empezó: usa «Incorporar equipo» para sumar a {equipo.nombre} sin perder las fechas jugadas.')
+            return redirect(_url_incorporar(equipo.torneo))
         if accion == 'APROBAR':
             equipo.estado_inscripcion = 'APROBADO'
             equipo.save()
@@ -4096,6 +4102,8 @@ def ver_campeonato(request, torneo_id):
         ctx['puede_cerrar_fase'] = (rol == 'ORG' and torneo.formato in ('LIGA', 'LIGA_PLAYOFF', 'GRUPOS')
                                     and not torneo.fase_regular_cerrada and motor.fase_regular_completa(torneo))
         ctx['puede_reiniciar'] = rol == 'ORG' and not motor.hay_partidos_jugados(torneo)
+        if rol == 'ORG':
+            ctx.update(_ctx_incorporar(torneo))
         etapa_q = Partido.objects.filter(torneo=torneo, etapa=etapa) if etapa else Partido.objects.none()
         ctx['avance'] = {'jugados': etapa_q.filter(estado__in=['JUG', 'WO']).count(), 'total': etapa_q.count()}
     return render(request, 'core/campeonato.html', ctx)
@@ -4235,6 +4243,71 @@ def retirar_equipo_llave(request, llave_id, equipo_id):
     else:
         messages.warning(request, f"{equipo.nombre} fue retirado de la llave. {rival.nombre} avanza por W.O.")
     return redirect('ver_campeonato', torneo_id=llave.torneo_id)
+
+
+def _url_incorporar(torneo):
+    """Página donde el organizador incorpora equipos al campeonato en marcha."""
+    if torneo.formato == 'CLASICO':
+        return f"{reverse('programar_partidos')}?torneo={torneo.id}#incorporar"
+    return f"{reverse('ver_campeonato', args=[torneo.id])}#incorporar"
+
+
+def _ctx_incorporar(torneo):
+    """Datos para el bloque «Incorporar equipo» del organizador: equipos del
+    torneo que aún no están en el fixture (solicitudes pendientes o aprobados
+    sin partidos) y, en grupos, cuántos equipos tiene cada grupo."""
+    if not torneo.campeonato_iniciado:
+        return {}
+    motivo = motor.puede_incorporar(torneo)
+    etapa = motor.etapa_regular(torneo)
+    en_fixture = Partido.objects.filter(torneo=torneo, etapa=etapa)
+    ids = set(en_fixture.values_list('equipo_local_id', flat=True)) | set(en_fixture.values_list('equipo_visita_id', flat=True))
+    candidatos = list(Equipo.objects.filter(torneo=torneo, estado_inscripcion__in=['PENDIENTE', 'APROBADO'])
+                      .exclude(id__in=ids).order_by('estado_inscripcion', 'nombre'))
+    grupos = []
+    if torneo.formato == 'GRUPOS':
+        conteo = dict(Equipo.objects.filter(torneo=torneo).exclude(grupo='').values_list('grupo').annotate(n=Count('id')))
+        grupos = [(l, conteo.get(l, 0)) for l in motor.LETRAS[:torneo.num_grupos]]
+    return {'incorporables': candidatos, 'motivo_no_incorporar': motivo, 'grupos_incorporar': grupos}
+
+
+@login_required
+@user_passes_test(es_organizador)
+@require_POST
+def incorporar_equipo_campeonato(request, torneo_id):
+    """Suma un equipo a un campeonato que ya empezó: lo jugado se conserva y
+    el fixture pendiente se rearma con los horarios ya programados."""
+    from django.utils.http import url_has_allowed_host_and_scheme
+    mi_complejo = obtener_mi_complejo(request.user)
+    torneo = get_object_or_404(Torneo, id=torneo_id, complejo=mi_complejo)
+    equipo = get_object_or_404(Equipo, id=request.POST.get('equipo_id'), torneo=torneo,
+                               estado_inscripcion__in=['PENDIENTE', 'APROBADO'])
+    estado_previo = equipo.estado_inscripcion
+    volver = request.POST.get('volver') or reverse('ver_campeonato', args=[torneo.id])
+    if not url_has_allowed_host_and_scheme(volver, {request.get_host()}, request.is_secure()):
+        volver = reverse('ver_campeonato', args=[torneo.id])
+    try:
+        res = motor.incorporar_equipo(torneo, equipo, request.POST.get('grupo') or None)
+    except motor.CampeonatoError as e:
+        messages.error(request, f"⛔ {e}")
+        return redirect(volver)
+    asegurar_rol_dirigente(equipo.dirigente, mi_complejo)
+    detalle = (f"Entra con {res['partidos_equipo']} partidos"
+               + (f" en el grupo {res['grupo']}" if res['grupo'] else '')
+               + f"; el fixture pasa de {res['fechas_antes']} a {res['fechas_despues']} fechas")
+    registrar_cambio(request, mi_complejo, 'EQUIPO', 'ESTADO', equipo.nombre, equipo.id,
+                     [{'campo': 'Inscripción', 'antes': 'Pendiente' if estado_previo == 'PENDIENTE' else 'Aprobada sin fixture',
+                       'despues': 'Incorporado al campeonato'}], f"{torneo.nombre} · {detalle}")
+    texto = (f"✅ {equipo.nombre} ya está en el campeonato{' (grupo ' + res['grupo'] + ')' if res['grupo'] else ''}: "
+             f"juega {res['partidos_equipo']} partidos. Lo jugado no cambió. "
+             f"El fixture quedó en {res['fechas_despues']} fechas")
+    if res['movidos']:
+        texto += f" y se reacomodaron {res['movidos']} partidos pendientes"
+    texto += "."
+    if res['sin_horario']:
+        texto += f" Quedan {res['sin_horario']} partidos sin día ni hora: prográmalos en «Programar fechas»."
+    messages.success(request, texto)
+    return redirect(volver)
 
 
 @login_required

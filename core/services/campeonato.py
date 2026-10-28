@@ -10,6 +10,7 @@ Reglas de diseño (pedidas por el organizador):
 """
 import itertools
 import random
+from datetime import timedelta
 
 from django.db import transaction
 from django.db.models import Q
@@ -775,6 +776,306 @@ def reiniciar_campeonato(torneo):
     torneo.campeonato_iniciado_en = None
     torneo.semilla_sorteo = None
     torneo.save()
+
+
+# ---------------------------------------------------------------------------
+# Incorporar un equipo con el campeonato en marcha
+# ---------------------------------------------------------------------------
+ESTADOS_BLOQUEADOS = ('VIVO', 'ACTA', 'JUG', 'WO')
+MODALIDADES_CON_INCORPORACION = ('LIGA', 'LIGA_PLAYOFF', 'GRUPOS', 'CLASICO')
+
+
+def _ronda_mejor(pendientes, libres, grado, preferidos, rng, conservar_primero=False):
+    """Arma una jornada: empareja a los equipos libres con la mayor cantidad
+    de partidos posible, primero a los que más partidos les faltan (así nadie
+    se queda atrás) y, a igualdad, conservando los cruces que ya estaban
+    planificados para esa fecha."""
+    candidatos = [par for par in pendientes if par[0] in libres and par[1] in libres]
+    if conservar_primero:
+        candidatos.sort(key=lambda par: (par not in preferidos, -(grado[par[0]] + grado[par[1]]), rng.random()))
+    else:
+        candidatos.sort(key=lambda par: (-(grado[par[0]] + grado[par[1]]), par not in preferidos, rng.random()))
+    usados, ronda = set(), []
+    for a, b in candidatos:
+        if a not in usados and b not in usados:
+            usados.update((a, b))
+            ronda.append((a, b))
+    return ronda
+
+
+def _planificar(pendientes, ocupados_por_fecha, inicio, preferidos_por_fecha, intentos=300, semilla=7):
+    """Reparte los cruces pendientes (pares de ids) en fechas desde `inicio`.
+    En cada fecha no juegan los equipos que ya tienen ahí un partido jugado.
+    Prueba varias combinaciones y se queda con la que usa MENOS fechas y, a
+    igualdad, la que más cruces y fechas originales respeta."""
+    rng = random.Random(semilla)
+    equipos = {e for par in pendientes for e in par}
+    mejor = None
+    for intento in range(intentos):
+        restantes = list(pendientes)
+        grado = {e: 0 for e in equipos}
+        for a, b in restantes:
+            grado[a] += 1
+            grado[b] += 1
+        plan, fecha, conservados = {}, inicio, 0
+        while restantes:
+            libres = equipos - ocupados_por_fecha.get(fecha, set())
+            # Se alternan estrategias: conservar primero lo planificado,
+            # priorizar a quien más partidos le faltan, o armar de cero.
+            preferidos = preferidos_por_fecha.get(fecha, set()) if intento % 3 else set()
+            ronda = _ronda_mejor(restantes, libres, grado, preferidos, rng, conservar_primero=intento % 3 == 1)
+            for par in ronda:
+                restantes.remove(par)
+                grado[par[0]] -= 1
+                grado[par[1]] -= 1
+                conservados += par in preferidos_por_fecha.get(fecha, set())
+            if ronda:
+                plan[fecha] = ronda
+            fecha += 1
+            if fecha - inicio > 4 * len(equipos) + 10:
+                break
+        if restantes:
+            continue
+        clave = (max(plan) if plan else inicio, -conservados)
+        if mejor is None or clave < mejor[0]:
+            mejor = (clave, plan)
+    if mejor is None:
+        raise CampeonatoError("No se pudo armar el calendario con el equipo nuevo.")
+    return mejor[1]
+
+
+def _plan_desde_una_fecha(miembros, jugada, inicio, preferidos_por_fecha, intentos=200, semilla=5):
+    """Caso habitual: solo se jugó UNA fecha. Arma un todos contra todos
+    completo (método del círculo) cuya primera ronda es justo la fecha jugada,
+    así se logra el mínimo de fechas. Quien no jugó esa fecha entre sí (el
+    equipo nuevo y el que descansaba) se enfrenta en una fecha extra al final.
+    Entre varias formas válidas elige la que más cruces planificados respeta."""
+    rng = random.Random(semilla)
+    en_jugada = {e for par in jugada for e in par}
+    sueltos = sorted(set(miembros) - en_jugada)
+    mejor = None
+    for _ in range(intentos):
+        parejas = [tuple(rng.sample(par, 2)) for par in jugada]
+        rng.shuffle(parejas)
+        resto = list(sueltos) + ([None] if len(sueltos) % 2 else [])
+        rng.shuffle(resto)
+        parejas += [(resto[i], resto[i + 1]) for i in range(0, len(resto), 2)]
+        n = 2 * len(parejas)
+        lista = [None] * n
+        for i, (a, b) in enumerate(parejas):
+            lista[i], lista[n - 1 - i] = a, b
+        rondas = round_robin_lista(lista)[1:]
+        plan = {}
+        for k, ronda in enumerate(rondas):
+            pares = [tuple(sorted(par)) for par in ronda if None not in par]
+            if pares:
+                plan[inicio + k] = pares
+        extra = [tuple(sorted(par)) for par in parejas[len(jugada):] if None not in par]
+        if extra:
+            plan[inicio + len(rondas)] = extra
+        conservados = sum(1 for f, r in plan.items() for par in r if par in preferidos_por_fecha.get(f, set()))
+        if mejor is None or conservados > mejor[0]:
+            mejor = (conservados, plan)
+    return mejor[1]
+
+
+def round_robin_lista(lista):
+    """Rondas del método del círculo respetando el orden dado (sin
+    reordenar ni equilibrar localía): la ronda 0 empareja lista[i] con
+    lista[n-1-i]."""
+    lista = list(lista)
+    n = len(lista)
+    rondas = []
+    for _ in range(n - 1):
+        rondas.append([(lista[i], lista[n - 1 - i]) for i in range(n // 2)])
+        lista.insert(1, lista.pop())
+    return rondas
+
+
+def _horarios(slots_por_fecha, plan, cruces_previos):
+    """Asigna día, hora y cancha a los partidos rearmados reutilizando los
+    horarios que ya estaban programados: un cruce que se queda en su misma
+    fecha conserva su horario; el resto ocupa los horarios libres de esa
+    fecha y, si sobra un partido, va a continuación del último del día con
+    el mismo intervalo. Si la fecha no tenía horarios, queda por programar."""
+    resultado = {}
+    for fecha, ronda in plan.items():
+        slots = list(slots_por_fecha.get(fecha, []))
+        asignados = {}
+        for par in ronda:
+            previo = cruces_previos.get((fecha, frozenset(par)))
+            if previo and previo in slots:
+                asignados[par] = previo
+                slots.remove(previo)
+        con_hora = sorted((s for s in slots_por_fecha.get(fecha, []) if s[0]), key=lambda s: s[0])
+        libres = sorted((s for s in slots if s[0]), key=lambda s: s[0]) + [s for s in slots if not s[0]]
+        for par in ronda:
+            if par in asignados:
+                continue
+            if libres:
+                asignados[par] = libres.pop(0)
+            elif con_hora:
+                horas = [s[0] for s in con_hora]
+                pasos = [b - a for a, b in zip(horas, horas[1:]) if b > a]
+                paso = min(pasos) if pasos else timedelta(hours=1)
+                ultimo = max(list(asignados.values()) + con_hora, key=lambda s: s[0] or horas[0])
+                asignados[par] = (ultimo[0] + paso, ultimo[1])
+            else:
+                asignados[par] = (None, None)
+        resultado[fecha] = asignados
+    return resultado
+
+
+def vuelta_jugada(jugados_por_par):
+    return any(v > 1 for v in jugados_por_par.values())
+
+
+def puede_incorporar(torneo):
+    """Motivo por el que NO se puede sumar un equipo, o None si se puede."""
+    if torneo.formato not in MODALIDADES_CON_INCORPORACION:
+        return "En la modalidad de eliminación directa el cuadro ya está armado: no se pueden sumar equipos."
+    if torneo.fase_regular_cerrada:
+        return "La fase regular ya se cerró: ya no se pueden sumar equipos."
+    if not Partido.objects.filter(torneo=torneo, etapa=etapa_regular(torneo)).exists():
+        return "Este campeonato todavía no tiene fixture."
+    return None
+
+
+@transaction.atomic
+def incorporar_equipo(torneo, equipo, grupo=None):
+    """Suma un equipo a un campeonato que ya empezó SIN perder lo jugado.
+
+    - Los partidos jugados, en vivo o con acta se quedan exactamente igual.
+    - Los partidos pendientes del grupo/liga se rearman para que el equipo
+      nuevo juegue contra todos (incluidos los rivales de las fechas que ya
+      pasaron), usando las menos fechas posibles y respetando al máximo los
+      cruces y horarios que ya estaban programados.
+    Devuelve un resumen con lo que cambió."""
+    torneo = type(torneo).objects.select_for_update().get(pk=torneo.pk)
+    motivo = puede_incorporar(torneo)
+    if motivo:
+        raise CampeonatoError(motivo)
+    etapa = etapa_regular(torneo)
+    regulares = Partido.objects.filter(torneo=torneo, etapa=etapa)
+    if regulares.filter(Q(equipo_local=equipo) | Q(equipo_visita=equipo)).exists():
+        raise CampeonatoError(f"{equipo.nombre} ya está en el fixture.")
+
+    if torneo.formato == 'GRUPOS':
+        tam = {l: Equipo.objects.filter(torneo=torneo, grupo=l).count() for l in LETRAS[:torneo.num_grupos]}
+        if grupo not in tam:
+            grupo = min(tam, key=lambda l: (tam[l], l))
+        equipo.grupo = grupo
+        miembros_ids = set(Equipo.objects.filter(torneo=torneo, grupo=grupo).values_list('id', flat=True))
+        regulares = regulares.filter(equipo_local__grupo=grupo)
+    else:
+        miembros_ids = set(regulares.values_list('equipo_local_id', flat=True)) | set(regulares.values_list('equipo_visita_id', flat=True))
+    equipo.estado_inscripcion = 'APROBADO'
+    equipo.save()
+    miembros_ids.add(equipo.id)
+
+    bloqueado = Q(estado__in=ESTADOS_BLOQUEADOS) | Q(detalles__isnull=False)
+    jugados = list(regulares.filter(bloqueado).distinct())
+    ids_jugados = {p.id for p in jugados}
+    pendientes_previos = [p for p in regulares.order_by('numero_fecha', 'fecha_hora', 'id') if p.id not in ids_jugados]
+
+    # Cuántas veces debe enfrentarse cada pareja y cuántas ya lo hizo
+    vueltas = 2 if torneo.fase1_ida_vuelta else 1
+    jugados_por_par = {}
+    localias = {}
+    for p in jugados:
+        clave = frozenset((p.equipo_local_id, p.equipo_visita_id))
+        jugados_por_par[clave] = jugados_por_par.get(clave, 0) + 1
+        localias.setdefault(clave, []).append(p.equipo_local_id)
+    ida, vuelta = [], []
+    for a, b in itertools.combinations(sorted(miembros_ids), 2):
+        hechos = jugados_por_par.get(frozenset((a, b)), 0)
+        for n in range(hechos, vueltas):
+            (ida if n == 0 else vuelta).append((a, b))
+
+    ocupados = {}
+    for p in jugados:
+        ocupados.setdefault(p.numero_fecha, set()).update((p.equipo_local_id, p.equipo_visita_id))
+    inicio = min([p.numero_fecha for p in pendientes_previos] or [max(ocupados or [0]) + 1])
+    preferidos, cruces_previos, slots = {}, {}, {}
+    previo_local = {}
+    for p in pendientes_previos:
+        par = tuple(sorted((p.equipo_local_id, p.equipo_visita_id)))
+        preferidos.setdefault(p.numero_fecha, set()).add(par)
+        slot = (p.fecha_hora, p.cancha)
+        slots.setdefault(p.numero_fecha, []).append(slot)
+        cruces_previos[(p.numero_fecha, frozenset(par))] = slot
+        previo_local.setdefault(frozenset(par), []).append(p.equipo_local_id)
+
+    def calidad(pl):
+        return (max(pl) if pl else 0, -sum(1 for f, r in pl.items() for par in r if par in preferidos.get(f, set())))
+
+    plan = _planificar(ida, ocupados, inicio, preferidos)
+    fechas_jugadas = {p.numero_fecha for p in jugados}
+    if ida and len(fechas_jugadas) == 1 and fechas_jugadas == {inicio - 1} and not vuelta_jugada(jugados_por_par):
+        exacto = _plan_desde_una_fecha(sorted(miembros_ids), [tuple(sorted((p.equipo_local_id, p.equipo_visita_id))) for p in jugados],
+                                       inicio, preferidos)
+        if {par for r in exacto.values() for par in r} == set(ida) and calidad(exacto) < calidad(plan):
+            plan = exacto
+    if vuelta:
+        fin_ida = max(plan) if plan else inicio - 1
+        # La vuelta repite el orden de la ida (incluida la fecha ya jugada),
+        # o se arma de cero si así quedan menos fechas.
+        orden_ida = ([sorted(tuple(sorted((p.equipo_local_id, p.equipo_visita_id))) for p in jugados if p.numero_fecha == f)
+                      for f in sorted(fechas_jugadas)] + [plan[f] for f in sorted(plan)])
+        espejo, f = {}, fin_ida + 1
+        pendientes_vuelta = set(vuelta)
+        for ronda in orden_ida:
+            sel = [par for par in ronda if par in pendientes_vuelta and not (ocupados.get(f, set()) & set(par))]
+            if sel:
+                espejo[f] = sel
+                pendientes_vuelta -= set(sel)
+            f += 1
+        if pendientes_vuelta:
+            for k, r in _planificar(sorted(pendientes_vuelta), ocupados, f, preferidos, semilla=13).items():
+                espejo.setdefault(k, []).extend(r)
+        libre = _planificar(vuelta, ocupados, fin_ida + 1, preferidos, semilla=11)
+        for k, r in (espejo if calidad(espejo) <= calidad(libre) else libre).items():
+            plan.setdefault(k, []).extend(r)
+    horarios = _horarios(slots, plan, cruces_previos)
+
+    # Localía: un cruce que ya estaba planificado conserva su local; si la
+    # pareja ya se enfrentó, ahora es local el que fue visitante; los cruces
+    # nuevos se reparten para que cada uno sea local la mitad de las veces.
+    locales = {}
+    for p in jugados:
+        locales[p.equipo_local_id] = locales.get(p.equipo_local_id, 0) + 1
+    regulares.filter(id__in=[p.id for p in pendientes_previos]).delete()
+    nuevos = []
+    for fecha in sorted(plan):
+        for a, b in plan[fecha]:
+            clave = frozenset((a, b))
+            if previo_local.get(clave):
+                local = previo_local[clave].pop(0)
+            elif localias.get(clave):
+                local = b if localias[clave][-1] == a else a
+            else:
+                local = a if locales.get(a, 0) <= locales.get(b, 0) else b
+            localias.setdefault(clave, []).append(local)
+            visita = b if local == a else a
+            locales[local] = locales.get(local, 0) + 1
+            fh, cancha = horarios[fecha][(a, b)]
+            nuevos.append(Partido(torneo=torneo, etapa=etapa, numero_fecha=fecha, equipo_local_id=local,
+                                  equipo_visita_id=visita, fecha_hora=fh,
+                                  cancha=cancha or Partido._meta.get_field('cancha').default))
+    Partido.objects.bulk_create(nuevos)
+    antes = {(p.numero_fecha, frozenset((p.equipo_local_id, p.equipo_visita_id))) for p in pendientes_previos}
+    despues = {(p.numero_fecha, frozenset((p.equipo_local_id, p.equipo_visita_id))) for p in nuevos}
+    return {
+        'grupo': equipo.grupo if torneo.formato == 'GRUPOS' else '',
+        'partidos_equipo': sum(1 for p in nuevos if equipo.id in (p.equipo_local_id, p.equipo_visita_id)),
+        'conservados': len(antes & despues),
+        'movidos': len(antes - despues),
+        'fechas_antes': max([p.numero_fecha for p in pendientes_previos] or [0]),
+        'fechas_despues': max(plan) if plan else 0,
+        # Partidos que caen en una fecha ya programada pero quedaron sin hora
+        'sin_horario': sum(1 for p in nuevos if p.fecha_hora is None
+                           and any(slot[0] for slot in slots.get(p.numero_fecha, []))),
+    }
 
 
 # ---------------------------------------------------------------------------

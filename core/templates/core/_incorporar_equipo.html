@@ -1,0 +1,61 @@
+{% comment %}Bloque del organizador para sumar un equipo con el campeonato en marcha.
+Parámetros: torneo, incorporables, motivo_no_incorporar, grupos_incorporar, volver (url).{% endcomment %}
+{% if incorporables %}
+<section id="incorporar" class="incorp mb-4" aria-labelledby="incorp-titulo">
+    <div class="incorp-cab">
+        <span class="incorp-ico" aria-hidden="true"><i class="bi bi-shield-plus"></i></span>
+        <div style="min-width: 0;">
+            <h3 id="incorp-titulo">Incorporar equipo al campeonato</h3>
+            <p>{{ incorporables|length }} equipo{{ incorporables|length|pluralize }} esperando entrar al fixture.</p>
+        </div>
+    </div>
+    {% if motivo_no_incorporar %}
+        <div class="incorp-aviso"><i class="bi bi-lock-fill"></i>{{ motivo_no_incorporar }}</div>
+    {% else %}
+    <ul class="incorp-reglas">
+        <li><i class="bi bi-check2-circle"></i><span>Los partidos ya jugados <b>no cambian</b>: resultados, goles y tarjetas se conservan.</span></li>
+        <li><i class="bi bi-check2-circle"></i><span>El equipo nuevo juega contra todos{% if torneo.formato == 'GRUPOS' %} los de su grupo{% endif %}, también contra los rivales de las fechas que ya pasaron.</span></li>
+        <li><i class="bi bi-check2-circle"></i><span>Se usan las menos fechas posibles y los horarios ya programados se reaprovechan.</span></li>
+    </ul>
+    <form method="post" action="{% url 'incorporar_equipo_campeonato' torneo.id %}" class="incorp-form"
+          onsubmit="return confirm('¿Incorporar este equipo? Los partidos pendientes del fixture se reacomodarán.');">
+        {% csrf_token %}
+        <input type="hidden" name="volver" value="{{ volver }}">
+        <div class="campo">
+            <label for="incorp-equipo">Equipo</label>
+            <select id="incorp-equipo" name="equipo_id" class="form-select" required>
+                {% for e in incorporables %}
+                <option value="{{ e.id }}">{{ e.nombre }}{% if e.estado_inscripcion == 'PENDIENTE' %} · pendiente{% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if grupos_incorporar %}
+        <div class="campo">
+            <label for="incorp-grupo">Grupo</label>
+            <select id="incorp-grupo" name="grupo" class="form-select">
+                <option value="">Automático (el grupo con menos equipos)</option>
+                {% for letra, n in grupos_incorporar %}<option value="{{ letra }}">Grupo {{ letra }} · {{ n }} equipo{{ n|pluralize }}</option>{% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <button type="submit" class="btn-mar verde"><i class="bi bi-plus-circle-fill"></i>Incorporar y rearmar fixture</button>
+    </form>
+    {% endif %}
+</section>
+<style>
+    .incorp { background: #fff; border: 1px solid #EADBA8; border-radius: 18px; padding: 18px 20px; }
+    .incorp-cab { display: flex; gap: 12px; align-items: center; }
+    .incorp-ico { width: 44px; height: 44px; border-radius: 12px; background: #FBF3DC; color: #9A7414; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+    .incorp h3 { font-size: 1.05rem; font-weight: 800; color: #12261B; margin: 0; }
+    .incorp-cab p { margin: 2px 0 0; font-size: .85rem; color: #5B6670; }
+    .incorp-reglas { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 6px; }
+    .incorp-reglas li { display: flex; gap: 8px; font-size: .86rem; color: #3A4650; line-height: 1.4; }
+    .incorp-reglas i { color: #166534; flex-shrink: 0; margin-top: 1px; }
+    .incorp-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+    .incorp-form .campo { flex: 1 1 220px; min-width: 0; }
+    .incorp-form label { display: block; font-size: .78rem; font-weight: 700; color: #5B6670; margin-bottom: 4px; }
+    .incorp-form .btn-mar { flex: 0 0 auto; }
+    .incorp-aviso { margin-top: 12px; display: flex; gap: 8px; align-items: center; background: #F6F7F6; border-radius: 12px; padding: 10px 12px; font-size: .86rem; color: #5B6670; }
+    @media (max-width: 576px) { .incorp-form .btn-mar { width: 100%; justify-content: center; } }
+</style>
+{% endif %}
